@@ -21,7 +21,6 @@ class ncepsigma(object):
         vrtspec, divspec,tempspec,zspec,lnpsspec,qspec =\
         read_specdata(self.filename,self.ntrunc,self.nlevs)
         return vrtspec.T,divspec.T,tempspec.T,zspec,lnpsspec,qspec.T
-        #return (vrtspec.T).astype(np.complex64),(divspec.T).astype(np.complex64),(tempspec.T).astype(np.complex64),zspec.astype(np.complex64),lnpsspec.astype(np.complex64),(qspec.T).astype(np.complex64)
 
 ncount = 0
 hrs = range(2400,9997,12); nhrs = len(hrs)

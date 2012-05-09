@@ -23,9 +23,7 @@ class ncepsigma(object):
         vrtspec, divspec,tempspec,zspec,lnpsspec,qspec =\
         read_specdata(self.filename,self.ntrunc,self.nlevs)
         return vrtspec.T,divspec.T,tempspec.T,zspec,lnpsspec,qspec.T
-        #return (vrtspec.T).astype(np.complex64),(divspec.T).astype(np.complex64),(tempspec.T).astype(np.complex64),zspec.astype(np.complex64),lnpsspec.astype(np.complex64),(qspec.T).astype(np.complex64)
 
-#filename = 'sig.f120'
 filename = sys.argv[1]
 
 sigfile = ncepsigma(filename)
@@ -35,13 +33,6 @@ lons,lats = np.meshgrid(sigfile.lons,sigfile.lats)
 psg = sigfile.spectogrd(lnpsspec)
 psg = 10.*np.exp(psg) # hPa
 print psg.min(), psg.max(), psg.shape
-ug = np.empty((sigfile.nlevs,sigfile.nlats,sigfile.nlons),np.float32)
-vg = np.empty((sigfile.nlevs,sigfile.nlats,sigfile.nlons),np.float32)
-for k in range(sigfile.nlevs):
-    ug[k],vg[k] = sigfile.getuv(vrtspec[k],divspec[k])
-    spd = np.sqrt(ug[k]**2 + vg[k]**2)
-    print k,spd.max()
-print ug.min(), ug.max(), ug.shape
 
 m = Basemap(projection='npstere',boundinglat=15,lon_0=90,round=True)
 x,y = m(lons,lats)
