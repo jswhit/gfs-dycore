@@ -1,10 +1,9 @@
 requires:
 
-numpy
+numpy (http://numpy.scipy.org)
 matplotlib (http://matplotlib.sf.net)
 basemap (http://matplotlib.github.com/basemap)
 pyspharm (http://pyspharm.googlecode.com)
-
 
 look at comments at top of read_sigma.f90 to see
 how to compile module with f2py.
