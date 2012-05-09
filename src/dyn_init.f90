@@ -132,6 +132,8 @@ module dyn_init
  end subroutine copyspecout
 
  subroutine wrtout(fh,filename)
+    ! write out spectral data
+    ! (this probably belongs in a separate module)
     real(r_kind), dimension(nlons,nlats) :: psg 
     complex(r_kind), dimension(ndimspec) :: lnpsspec_tmp
     type(sigio_data) sigdata
