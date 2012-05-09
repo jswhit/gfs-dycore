@@ -14,7 +14,7 @@ FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OM
 
 EXEC          = ../bin/gfs
 LDFLAGS       = $(OMPFLAG)  
-LIBS          = -L/Users/jwhitaker/lib -lshtns -L/opt/local/lib -lfftw3 -lfftw3f -llapack
+LIBS          = -L/Users/jwhitaker/lib -lshtns -L/opt/local/lib -lfftw3 -llapack
 
 .SUFFIXES: .o .f90 .F90
 
