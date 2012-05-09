@@ -174,15 +174,15 @@
  end subroutine getdyntend
 
  subroutine semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
-                      divspec_tmp,virtempspec_tmp,lnpsspec_tmp,kt,dtx)
+                      divspec_prev,virtempspec_prev,lnpsspec_prev,kt,dtx)
 ! semi-implicit adjustment of tendencies (using a trapezoidal forward in time scheme)
    integer, intent(in) :: kt ! iteration index for RK (zero based - 0,1 or 2 for RK3)
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    ddivspecdt,dvirtempspecdt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    complex(r_kind), intent(in), dimension(ndimspec,nlevs) :: &
-   divspec_tmp,virtempspec_tmp
-   complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_tmp
+   divspec_prev,virtempspec_prev
+   complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
    real(r_kind),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
    complex(r_kind), dimension(ndimspec,nlevs) :: &
    divspec_new,virtempspec_new,espec,fspec
@@ -200,9 +200,9 @@
 !$omp end parallel do 
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
-   espec = divspec_tmp + dtx*ddivspecdt
-   fspec = virtempspec_tmp + dtx*dvirtempspecdt
-   gspec = lnpsspec_tmp + dtx*dlnpsspecdt
+   espec = divspec_prev + dtx*ddivspecdt
+   fspec = virtempspec_prev + dtx*dvirtempspecdt
+   gspec = lnpsspec_prev + dtx*dlnpsspecdt
 !$omp parallel do private(n,rhs)
    do n=1,ndimspec
       rhs = espec(n,:) - 0.5*lap(n)*dtx*&
@@ -214,9 +214,9 @@
    enddo
 !$omp end parallel do 
 ! create new tendencies, including semi-implicit contribution.
-   ddivspecdt = (divspec_new - divspec_tmp)/dtx
-   dvirtempspecdt = (virtempspec_new - virtempspec_tmp)/dtx
-   dlnpsspecdt = (lnpsspec_new - lnpsspec_tmp)/dtx
+   ddivspecdt = (divspec_new - divspec_prev)/dtx
+   dvirtempspecdt = (virtempspec_new - virtempspec_prev)/dtx
+   dlnpsspecdt = (lnpsspec_new - lnpsspec_prev)/dtx
    return
  end subroutine semimpadj
 
