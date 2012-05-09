@@ -9,7 +9,7 @@ Prerequistes:
 
 a fortran compiler (tested with intel fortran and gnu fortran)
 fftw3 FFT library (fftw.org)
-shtns spherical harmonic lib (https://bitbucket.org/nschaeff/shtns/wiki/Home)
+*blazingly fast* shtns spherical harmonic lib (https://bitbucket.org/nschaeff/shtns/wiki/Home)
 
 To build:
 
