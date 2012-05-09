@@ -1,10 +1,13 @@
-#intel fortran (jet)
+#intel fortran (jet,zeus)
 #FC            = ifort
 #OMPFLAG       = -openmp
 #FFLAGS        = -O3 -xHOST -assume byterecl -warn all -implicitnone -traceback  $(OMPFLAG)
 #EXEC          = ../bin/gfs
 #LDFLAGS       = $(OMPFLAG) -mkl=sequential
+# jet
 #LIBS          = -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3
+# zeus
+#LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3
 
 #gnu fortran (mac)
 FC = gfortran
