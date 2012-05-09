@@ -66,6 +66,8 @@ plt.contour(lats[:,0],np.arange(1,sigfile.nlevs+1),ugzm,[0],colors='k',linewidth
 plt.clabel(CS,fmt='%i')
 plt.contourf(lats[:,0],np.arange(1,sigfile.nlevs+1),ugzm,clevs,cmap=plt.cm.RdBu_r,extend='both')
 plt.colorbar()
+plt.xlabel('latitude')
+plt.ylabel('model level')
 plt.title('zonal wind')
 
 plt.figure()
@@ -74,5 +76,7 @@ CS=plt.contour(lats[:,0],np.arange(1,sigfile.nlevs+1),tempzm,clevs,colors='k',li
 plt.clabel(CS,fmt='%i')
 plt.contourf(lats[:,0],np.arange(1,sigfile.nlevs+1),tempzm,clevs,cmap=plt.cm.RdBu_r,extend='both')
 plt.colorbar()
+plt.xlabel('latitude')
+plt.ylabel('model level')
 plt.title('temperature')
 plt.show()
