@@ -70,7 +70,7 @@ plt.ylabel('model level')
 plt.title('zonal wind')
 
 plt.figure()
-clevs = np.arange(200,311,4)
+clevs = np.arange(186,311,4)
 CS=plt.contour(lats[:,0],np.arange(1,sigfile.nlevs+1),tempzm,clevs,colors='k',linewidths=0.5)
 plt.clabel(CS,fmt='%i')
 plt.contourf(lats[:,0],np.arange(1,sigfile.nlevs+1),tempzm,clevs,cmap=plt.cm.RdBu_r,extend='both')
