@@ -1,4 +1,8 @@
 module semimp_data
+! static data arrays used in semi-implicit time integration scheme.
+! Public subroutines:
+! init_semimpdata: allocate and populate arrays.
+! destroy_semimpdata: deallocate arrays.
  use kinds, only: r_kind, default_real, r_double
  use params, only: dt,ntrunc,nlons,nlats,nlevs
  use pressure_data, only: ak,bk
