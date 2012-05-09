@@ -1,10 +1,9 @@
 ! jet:
 ! f2py -c read_sigma.f90 -m read_sigma --fcompiler=intelem ./shtns.o
-! ./sigio_module.o -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3 -lfftw3f
+! ./sigio_module.o -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3 
 ! mac:
 ! f2py -c read_sigma.f90 -m read_sigma --fcompiler=gnu95 ./shtns.o
-! ./sigio_module.o -L/Users/jwhitaker/lib -lshtns -L/opt/local/lib -lfftw3
-! -lfftw3f -lgomp
+! ./sigio_module.o -L/Users/jwhitaker/lib -lshtns -L/opt/local/lib -lgomp -lfftw3
 subroutine read_header(filename, nlons, nlats, nlevs, ntrunc)
   use sigio_module, only: sigio_sclose,sigio_swohdc,sigio_head,sigio_srhead,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
