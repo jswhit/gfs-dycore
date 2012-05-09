@@ -2,7 +2,7 @@
 #FC            = ifort
 #OMPFLAG       = -openmp
 #FFLAGS        = -O3 -xHOST -assume byterecl -warn all -implicitnone -traceback  $(OMPFLAG)
-#EXEC          = gfs
+#EXEC          = ../bin/gfs
 #LDFLAGS       = $(OMPFLAG) -mkl=sequential
 #LIBS          = -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3
 
