@@ -140,8 +140,6 @@
       dvrtspecdt(:,k) = -dvrtspecdt(:,k) + disspec(:)*vrtspec(:,k)
       ! add hyperdiffusion, laplacian(KE) term to div tendency
       prsgx(:,:,k) = 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
-      ! alternative to using uphi,vphi for press gradient
-      !prsgx(:,:,k) = phig(:,:,nlevs-k+1) + 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
       call grdtospec(prsgx(:,:,k),workspec(:,k))
       ddivspecdt(:,k) = ddivspecdt(:,k) + disspec(:)*divspec(:,k) - &
       (lap(:)/rerth**2)*workspec(:,k)
