@@ -46,14 +46,11 @@
    real(r_kind), dimension(:,:), allocatable :: dlnpsdt,dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
-   !real(r_kind), dimension(:,:,:), allocatable :: phigi,phig
    real(r_kind) kappa,delta
    integer k
 
    ! use alloctable arrays instead of automatic arrays 
    ! for these to avoid segfaults in openmp.
-   !allocate(phigi(nlons,nlats,nlevs+1))
-   !allocate(phig(nlons,nlats,nlevs))
    allocate(dlnpsdx(nlons,nlats))
    allocate(dlnpsdy(nlons,nlats))
    allocate(dlnpsdt(nlons,nlats))
@@ -80,15 +77,6 @@
       !print *,k,maxval(abs(ug(:,:,k))),maxval(abs(virtempg(:,:,k))),maxval(abs(dvirtempdx(:,:,k)))
    enddo
 !$omp end parallel do 
-   ! test gradient
-   !do k=1,nlevs
-   !   divspec(:,k) = invlap*rerth**2*vrtspec(:,k)
-   !   call getgrad(divspec(:,k),dlnpsdx,dlnpsdy,rerth)
-   !   call getvrtdivspec(dlnpsdx,dlnpsdy,ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
-   !   call spectogrd(dvrtspecdt(:,k),divg(:,:,k))
-   !   print *,maxval(abs(vrtg(:,:,k))),maxval(abs(divg(:,:,k))),maxval(abs(divg(:,:,k)-vrtg(:,:,k)))
-   !enddo
-   !stop
    ! specific humidity on grid.
    if (.not. dry) then
       do k=1,nlevs
@@ -118,15 +106,6 @@
    call getpresgrad(virtempg,dvirtempdx,dvirtempdy,dphisdx,dphisdy,dlnpsdx,dlnpsdy,&
                     prsgx,prsgy,&
                     vadvu,vadvv,vadvt,vadvq) ! work storage
-   ! compute geopotential using hydrostatic eqn (for testing pressure gradient
-   ! calc)
-   !phigi(:,:,nlevs+1) = phis
-   !do k=nlevs,1,-1
-   !   phigi(:,:,k) = phigi(:,:,k+1) + rd*rlnp(:,:,k)*virtempg(:,:,nlevs-k+1)
-   !enddo
-   !do k=1,nlevs
-   !   phig(:,:,k) = phigi(:,:,k+1) + rd*virtempg(:,:,nlevs-k+1)*alfa(:,:,k) 
-   !enddo
    ! get vertical advection terms  (input etadot is top to bottom)
    call getvadv(ug,etadot,vadvu)
    call getvadv(vg,etadot,vadvv)
@@ -168,20 +147,6 @@
       (lap(:)/rerth**2)*workspec(:,k)
    enddo
 !$omp end parallel do 
-   !do k=1,nlevs
-   !   call getuv(dvrtspecdt(:,k),ddivspecdt(:,k),ug(:,:,k),vg(:,:,k),rerth)
-   !   call spectogrd(dvirtempspecdt(:,k),virtempg(:,:,k))
-   !   call spectogrd(ddivspecdt(:,k),divg(:,:,k))
-   !   call spectogrd(dvrtspecdt(:,k),vrtg(:,:,k))
-   !enddo
-   !print *,'min/max dudt',minval(ug),maxval(ug)
-   !print *,'min/max dvdt',minval(vg),maxval(vg)
-   !print *,'min/max dtvdt',minval(virtempg),maxval(virtempg)
-   !print *,'min/max dvrtdt',minval(vrtg),maxval(vrtg)
-   !print *,'min/max ddivdt',minval(divg),maxval(divg)
-   !print *,'min/max dlnpsdt',minval(dlnpsdt),maxval(dlnpsdt)
-   !print *
-   !stop
    ! compute tendency of specific humidity in spectral space.
    if (.not. dry) then
       ! should use positive-definite version here.
