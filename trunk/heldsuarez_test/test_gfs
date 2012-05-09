@@ -1,0 +1,11 @@
+#!/bin/csh
+#$ -j y
+#$ -cwd
+#$ -l h_rt=08:00:00
+#$ -A gfsenkf
+#$ -pe hfip 12  
+#$ -N gfs_dycore
+#$ -o gfs_dycore.out
+
+setenv OMP_NUM_THREADS 12
+./gfs < gfs.nml
