@@ -1,0 +1,21 @@
+fortran mode source code and Makefile in src directory.
+python interface to spectral data files and sample plotting scripts in python directory.
+model executable (gfs) put in bin directory by Makefile.
+heldsuarez_test holds test data and scripts for Held-Suarez dycore test.
+
+
+To build:
+
+Prerequistes:  
+
+fftw3 FFT library (fftw.org)
+shtns spherical harmonic lib (https://bitbucket.org/nschaeff/shtns/wiki/Home)
+
+cd src; edit Makefile for your system; run make (executable put in bin).
+Default is setup to run Held-Suarez test.  To run Jablownosky-Williamson
+adiabatic baroclinc wave test, symlink phy_run_stub.f90 to phy_run.f90 and recompile.
+
+to run held-suarez test case, cd to heldsuarez_test directory and run test_gfs.
+plot zonal mean zonal wind and temperature using python/plotzonalmean.py
+
+Contact:  Jeff Whitaker <jeffrey.s.whitaker@noaa.gov>
