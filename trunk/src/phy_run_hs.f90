@@ -9,8 +9,7 @@
  use kinds, only: r_kind
  use shtns, only: grdtospec, lats
  use grid_data, only: vrtg,divg,virtempg
- use pressure_data, only:  prs,psg,pk
- use physcons, only: rd => con_rd, cp => con_cp
+ use pressure_data, only:  prs,psg
 
  implicit none
  private
@@ -25,7 +24,7 @@
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
-   real(r_kind) p0,kappa,sigbot,tempstrat,delthz,deltmp,&
+   real(r_kind) p0,sigbot,tempstrat,delthz,deltmp,&
                 kdrag,krada,kradb
    real(r_kind), dimension(:,:,:),allocatable :: blprof,radequiltemp,forcingg
    complex(r_kind), dimension(:,:),allocatable :: forcingspec
@@ -34,10 +33,9 @@
    allocate(blprof(nlons,nlats,nlevs),radequiltemp(nlons,nlats,nlevs))
    allocate(forcingg(nlons,nlats,nlevs),forcingspec(ndimspec,nlevs))
 
-   kappa = rd/cp
    sigbot = 0.7
    delthz = 10.
-   tempstrat = 210.
+   tempstrat = 200.
    kdrag = 1./(1.*86400.)
    krada = 1./(40.*86400.)
    kradb = 1./(4.*86400. )
@@ -46,8 +44,8 @@
 !$omp parallel do private(k)
    do k=1,nlevs
       blprof(:,:,k) = prs(:,:,k)/psg
-      radequiltemp(:,:,k) = (prs(:,:,k)/p0)**(kappa)*&
-                     (315.-deltmp*sin(lats)**2-delthz*log(prs(:,:,k)/p0)*(1.+cos(lats)**2))
+      radequiltemp(:,:,k) = (prs(:,:,k)/p0)**(2./7.)*&
+                     (315.-deltmp*sin(lats)**2-delthz*log(prs(:,:,k)/p0)*cos(lats)**2)
    enddo
 !$omp end parallel do 
    blprof = (blprof-sigbot)/(1.-sigbot)
