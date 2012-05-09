@@ -1,0 +1,11 @@
+ &nam_dyn
+ initfile="sanl.dat",
+ fhmax=9996,
+ fhout=12,
+ dt=1200,
+ dry=.true.,
+ explicit=.false.,
+ jablowill=.false.,
+ heldsuarez=.true.
+ /
+ &END
