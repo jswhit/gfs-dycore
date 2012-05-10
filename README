@@ -23,4 +23,7 @@ to run held-suarez test case, cd to heldsuarez_test directory and run test_gfs.
 plot zonal mean zonal wind and temperature using python/plotzonalmean.py
 compare resulting plots to zonalmeanu.png and zonalmeant.png.
 
+to run jablonowski and williamson test case, cd to jablowill_test and run test_gfs.
+plot surface pressure using python/plotps.py and compare resulting plot with ps.png.
+
 Contact:  Jeff Whitaker <jeffrey.s.whitaker@noaa.gov>
