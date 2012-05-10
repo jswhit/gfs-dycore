@@ -10,7 +10,7 @@ module params
 
  public :: read_namelist,initfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
- ntout,fhout
+ ntout,fhout,idate_start
 
  character(len=500) :: initfile ! init cond filename
  integer            :: fhmax ! hours to run
@@ -37,7 +37,8 @@ module params
  !logical    :: explicit = .true. ! use explicit rk3
  logical    :: explicit = .false. ! use semi-implicit rk3
  ! starting forecast time in seconds (read in from initfile)
- integer    :: tstart
+ real(r_kind) :: tstart
+ integer    :: idate_start(4) ! starting date (hr,month,day,year)
  integer    :: ntout ! time step interval for IO
  integer    :: ndiss=6 ! hyperdiffusion order
  real(r_kind) :: efold=3.*3600. ! efolding scale for smallest resolvable wave
@@ -92,8 +93,10 @@ module params
       nlevs = sighead%levs
       ntrunc = sighead%jcap
       tstart = sighead%fhour*3600.
+      idate_start = sighead%idate
       print *,'nlons,nlats,nlevs,ntrunc=',nlons,nlats,nlevs,ntrunc
       print *,'tstart=',tstart,' secs'
+      print *,'idate_start=',idate_start
    endif 
    if (jablowill .and. heldsuarez) then
       print *,'conflicting namelist options'
