@@ -18,11 +18,12 @@
 
  contains
 
- subroutine getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt)
+ subroutine getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt,dt)
    ! compute physics tendencies for held-suarez test case.
    ! http://dx.doi.org/10.1175/1520-0477(1994)075%3C1825:APFTIO%3E2.0.CO;2
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt
+   real(r_kind), intent(in) :: dt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind) p0,sigbot,tempstrat,delthz,deltmp,&
                 kdrag,krada,kradb
