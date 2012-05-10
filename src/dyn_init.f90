@@ -13,7 +13,7 @@ module dyn_init
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
  use params, only: &
  nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,jablowill,&
- heldsuarez,explicit
+ heldsuarez,explicit,tstart,idate_start
  use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, lap, lats, lons
  use spectral_data, only: vrtspec,divspec,virtempspec,spfhumspec,topospec,lnpsspec,&
                           disspec,init_specdata
@@ -81,11 +81,11 @@ module dyn_init
     ! jablonowoski and williamson test case or
     ! held-suarez test case
     ! (over-ride initial conditions read from file).
-    if (heldsuarez) then
+    if (jablowill .and. tstart .le. tiny(tstart)) then
        call jablowill_ics()
        spfhumspec = 0.
     endif
-    if (heldsuarez) then
+    if (heldsuarez .and. tstart .le. tiny(tstart)) then
        call heldsuarez_ics()
        spfhumspec = 0.
     endif
@@ -237,10 +237,11 @@ module dyn_init
  subroutine heldsuarez_ics()
    ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)
    ! initial perturbation on an isothermal state.
-   use grid_data, only: ug,vg,virtempg
+   use grid_data, only: ug,vg,virtempg,lnpsg
    real(r_kind), dimension(nlons,nlats) :: rnh,xnh,rsh,xsh
    real(r_kind) :: lonc,latc,up,pertrad
    integer k
+   print *,'replacing initial conds with held and suarez test case..'
    lonc = pi/9.
    up = 1.
    pertrad = rerth/10.
@@ -252,6 +253,10 @@ module dyn_init
    rsh = rerth*acos(xsh)
    virtempg = 300.  ! isothermal state.
    vg = 0.
+   psg = 1.e5
+   lnpsg = log(psg)
+   call grdtospec(lnpsg,lnpsspec)
+   call calc_pressdata(lnpsg)
    do k=1,nlevs
       ! add a barotropic zonal wind perturbation (opp sign in each hemisphere)
       ug(:,:,k) = up*(exp(-(rnh/pertrad)**2)-exp(-(rsh/pertrad)**2))
