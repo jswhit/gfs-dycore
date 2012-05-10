@@ -1,0 +1,12 @@
+ &nam_dyn
+ initfile="../heldsuarez_test/sanl.dat",
+ fhmax=252,
+ fhout=252,
+ dt=120,
+ efold=1.e30,
+ dry=.true.,
+ explicit=.true.,
+ jablowill=.true.,
+ heldsuarez=.false.
+ /
+ &END
