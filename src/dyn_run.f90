@@ -168,7 +168,6 @@
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
    deallocate(dlnpsdx,dlnpsdy,dlnpsdt)
-   !deallocate(phigi,phig)
 
    return
  end subroutine getdyntend
