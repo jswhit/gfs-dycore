@@ -84,7 +84,7 @@ subroutine advance()
      ! dynamics tendencies.
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt)
      ! add physics tendencies.
-     call getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt)
+     call getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt,dtx)
      if (.not. explicit) then
          ! semi-implicit adjustment.
          call semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
@@ -99,7 +99,7 @@ subroutine advance()
 end subroutine advance
 
 !subroutine getvaliddate(tstart,fhour,idate_start,idate_valid)
-!   ! Compute valid ime from initial date and forecast hour
+!   ! Compute valid time from initial date and forecast hour
 !   ! (using NCEP w3lib)
 !   real(r_kind), intent(in) :: tstart
 !   real(r_kind), intent(in) :: fhour
