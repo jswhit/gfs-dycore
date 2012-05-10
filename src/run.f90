@@ -24,7 +24,7 @@ subroutine run()
   integer nt,my_id
   real(r_kind) t,t1,t2,fh
   real(r_kind), dimension(nlons,nlats,nlevs) :: spd
-  integer count_0, count_1, count_rate, count_max
+  integer(8) count, count_rate, count_max
   character(len=500) filename
 
 !$omp parallel
@@ -34,12 +34,12 @@ subroutine run()
   ! time step loop
   do nt=1,ntmax
      t = tstart + nt*dt
-     call system_clock(count_0, count_rate, count_max)
-     t1 = count_0*1.0/count_rate
+     call system_clock(count, count_rate, count_max)
+     t1 = count*1.0/count_rate
      ! advance solution with RK3
      call advance()
-     call system_clock(count_1, count_rate, count_max)
-     t2 = count_1*1.0/count_rate
+     call system_clock(count, count_rate, count_max)
+     t2 = count*1.0/count_rate
      spd = sqrt(ug**2+vg**2) ! max wind speed
      ! write out data at specified intervals.
      if (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0) then
