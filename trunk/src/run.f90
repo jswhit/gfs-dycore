@@ -45,7 +45,7 @@ subroutine run()
      if (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0) then
         fh = t/3600.
         write(filename,9000) int(fh)
-9000    format('sig.f',i4.4)
+9000    format('sig.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename)
         call wrtout(t/3600.,filename)
      end if
