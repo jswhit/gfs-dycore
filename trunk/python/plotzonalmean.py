@@ -25,7 +25,10 @@ class ncepsigma(object):
 ncount = 0
 hrs = range(2400,9997,12); nhrs = len(hrs)
 for hr in hrs:
-    filename = 'sig.f%04i' % hr
+    if hr < 1000:
+        filename = 'sig.f%03i' % hr
+    else:
+        filename = 'sig.f%s' % hr
     print filename
     sigfile = ncepsigma(filename)
     vrtspec,divspec,tempspec,zspec,lnpsspec,qspec = sigfile.specdata()
