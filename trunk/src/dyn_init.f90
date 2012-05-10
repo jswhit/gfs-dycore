@@ -191,7 +191,6 @@ module dyn_init
    etat = 0.2
    lonc = pi/9.
    latc = 2.*pi/9.
-   up = 1.
    pertrad = rerth/10.
    do k=1,nlevs
       eta = prs(:,:,nlevs-k+1)/psg
@@ -216,15 +215,10 @@ module dyn_init
    zs = u0*cos(etav)**1.5*((-2.*sin(lats)**6*(cos(lats)**2+(1./3.)) + (10./63))*u0*cos(etav)**1.5+&
       ((8./5.)*cos(lats)**3*(sin(lats)**2+(2./3.)) - 0.25*pi)*rerth*omega)/grav
    call grdtospec(zs, topospec) 
-   !print *,minval(grav*zs),maxval(grav*zs)
-   !do k=1,nlevs
-   !   eta = prs(:,:,nlevs-k+1)/psg
-   !   print *,k,eta(1,nlats/4),virtempg(1,nlats/4,k)
-   !enddo
-   !stop
    ! add perturbation
    x = sin(latc)*sin(lats) + cos(latc)*cos(lats)*cos(lons-lonc)
    r = rerth*acos(x)
+   up = 0.
    do k=1,nlevs
       ! add a zonal wind perturbation
       ug(:,:,k) = ug(:,:,k) + up*exp(-(r/pertrad)**2)
