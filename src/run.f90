@@ -22,7 +22,8 @@ subroutine run()
   use omp_lib, only: omp_get_num_threads, omp_get_thread_num
   implicit none
   integer nt,my_id
-  real(r_kind) t,t1,t2,fh
+  real(r_kind) t,fh
+  real(8) t1,t2
   real(r_kind), dimension(nlons,nlats,nlevs) :: spd
   integer(8) count, count_rate, count_max
   character(len=500) filename
@@ -35,11 +36,11 @@ subroutine run()
   do nt=1,ntmax
      t = tstart + nt*dt
      call system_clock(count, count_rate, count_max)
-     t1 = count*1.0/count_rate
+     t1 = count*1.d0/count_rate
      ! advance solution with RK3
      call advance()
      call system_clock(count, count_rate, count_max)
-     t2 = count*1.0/count_rate
+     t2 = count*1.d0/count_rate
      spd = sqrt(ug**2+vg**2) ! max wind speed
      ! write out data at specified intervals.
      if (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0) then
