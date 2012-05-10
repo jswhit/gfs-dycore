@@ -5,7 +5,7 @@ module run_mod
 ! data at specified intervals).
 use kinds, only: r_kind
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  ntout, explicit
+  ntout, explicit, idate_start
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use dyn_init, only: wrtout
@@ -97,5 +97,32 @@ subroutine advance()
      lnpsspec=lnpsspec_save+dtx*dlnpsspecdt
   enddo
 end subroutine advance
+
+!subroutine getvaliddate(tstart,fhour,idate_start,idate_valid)
+!   ! Compute valid ime from initial date and forecast hour
+!   ! (using NCEP w3lib)
+!   real(r_kind), intent(in) :: tstart
+!   real(r_kind), intent(in) :: fhour
+!   integer,dimension(8):: id,jd
+!   real(r_kind), dimension(5):: fh
+!   integer, intent(in),  dimension(4) :: idate_start
+!   integer, intent(out), dimension(4) :: idate_valid
+!   fh=zero; id=0; jd=0
+!   fh(2)=fhour    ! relative time interval in hours
+!   id(1)=idate_start(4) ! year
+!   id(2)=idate_start(2) ! month
+!   id(3)=idate_start(3) ! day
+!   id(4)=0        ! time zone
+!   id(5)=idate_start(1) ! hour
+!   call w3movdat(fh,id,jd)
+!   !     JDAT       INTEGER NCEP ABSOLUTE DATE AND TIME
+!   !                (YEAR, MONTH, DAY, TIME ZONE,
+!   !                 HOUR, MINUTE, SECOND, MILLISECOND)
+!   idate_valid(1)=jd(5) ! hour
+!   idate_valid(2)=jd(2) ! mon
+!   idate_valid(3)=jd(3) ! day
+!   idate_valid(4)=jd(1) ! year
+!   return
+!end subroutine getvaliddate
 
 end module run_mod
