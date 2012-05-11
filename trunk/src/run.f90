@@ -51,7 +51,7 @@ subroutine run()
         call wrtout(t/3600.,filename)
      end if
      write(6,9001) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),t2-t1
-9001 format('t = ',f8.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', cpu time = ',f7.3)
+9001 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', cpu time = ',f0.3)
   enddo
 
   return
