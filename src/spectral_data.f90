@@ -11,6 +11,7 @@ module spectral_data
  complex(r_kind), allocatable, public, dimension(:,:) :: &
  vrtspec,divspec,virtempspec,spfhumspec
 ! ndimspec by nlevs complex arrays (ndimspec = (ntrunc+1)*(ntrunc)/2):
+! these arrays are update each timestep in subroutine advance in run.f90.
 ! vrtspec: vorticity
 ! divspec: divergence
 ! virtempspec: virtural temp
@@ -19,8 +20,8 @@ module spectral_data
  disspec
 ! ndimspec 1-d arrays:
 ! lnpsspec: log(ps) in Pa
-! topospec: orography in meters.
-! disspec: hyperdiffusion operator
+! topospec: orography in meters (static, created in init_dyn)
+! disspec: hyperdiffusion operator (static, created in init_dyn)
 
  contains
  subroutine init_specdata()
