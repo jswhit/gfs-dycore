@@ -28,7 +28,7 @@ class ncepsigma(object):
 m = Basemap(projection='npstere',boundinglat=15,lon_0=90,round=True)
 fig = plt.figure(figsize=(15,5))
 npanel = 1
-for fhour in [252,336,384]:
+for fhour in [264,336,384]:
     filename = 'sig.f%s' % fhour
 
     sigfile = ncepsigma(filename)
@@ -51,7 +51,12 @@ for fhour in [252,336,384]:
     m.contour(x,y,psg,[1000.],linestyles='dotted',linewidths=1,colors='k')
     m.contour(x,y,psg,levs,linewidths=1,colors='k')
     m.drawparallels(np.arange(0,76,15),latmax=75)
-    m.drawmeridians(np.arange(0,360,30),labels=[1,1,1,1],latmax=90)
-    plt.title('hour %s'%fhour,y=1.05)
+    merids = range(0,360,30)
+    merids_label = range(0,271,90)
+    for merid in merids_label:
+        merids.remove(merid)
+    m.drawmeridians(merids,latmax=90)
+    m.drawmeridians(merids_label,labels=[1,1,1,1],latmax=90)
+    plt.title('day %s' % int(fhour/24.), y=1.1)
     npanel = npanel + 1
 plt.show()
