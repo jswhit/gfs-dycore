@@ -12,7 +12,7 @@ module grid_data
  spfhumg,virtempg,etadot,dlnpdtg
 ! (nlons,nlons,nlevs) arrays (bottom to top unless otherwise noted)
 ! they are transformed to the grid from spectral space in subroutine
-! getdyntend in module dyn_ru.
+! getdyntend in module dyn_run.
 ! ug: zonal wind 
 ! vg: meridional wind
 ! vrtg: vorticity
