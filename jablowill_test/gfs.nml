@@ -1,7 +1,7 @@
  &nam_dyn
  initfile="../heldsuarez_test/sanl.dat",
  fhmax=384,
- fhout=72,
+ fhout=24,
  dt=1200,
  explicit=.false.,
  jablowill=.true.,
