@@ -5,7 +5,7 @@ module run_mod
 ! data at specified intervals).
 use kinds, only: r_kind
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  ntout, explicit, idate_start
+  ntout, explicit, idate_start, adiabatic
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use dyn_init, only: wrtout
@@ -85,6 +85,7 @@ subroutine advance()
      ! dynamics tendencies.
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt)
      ! add physics tendencies.
+     if (.not. adiabatic) &
      call getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt,dtx)
      if (.not. explicit) then
          ! semi-implicit adjustment.
