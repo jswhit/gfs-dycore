@@ -61,40 +61,40 @@ clean:
 
 %.o : %.mod
 
-kinds.o:	kinds.f90
+kinds.o:	  kinds.f90
 
-physcons.o:	physcons.f90 kinds.o
+physcons.o:	  physcons.f90 kinds.o
 
-constants.o:	constants.f90 kinds.o
+constants.o:	  constants.f90 kinds.o
 
-shtns.o:	shtns.f90 kinds.o
+shtns.o:	  shtns.f90 kinds.o
 
-sigio_module.o:  sigio_module.f90
+sigio_module.o:   sigio_module.f90
 
-params.o:	params.f90 kinds.o sigio_module.o
+params.o:	  params.f90 kinds.o sigio_module.o
 
-init.o:  	init.f90 params.o dyn_init.o phy_init.o kinds.o
+init.o:  	  init.f90 params.o dyn_init.o phy_init.o kinds.o
 
-finalize.o:  	finalize.f90 params.o dyn_finalize.o phy_finalize.o
+finalize.o:  	  finalize.f90 params.o dyn_finalize.o phy_finalize.o
 
-spectral_data.o:  	spectral_data.f90 kinds.o
+spectral_data.o:  spectral_data.f90 kinds.o
 
-semimp_data.o: semimp_data.f90 kinds.o shtns.o pressure_data.o physcons.o
+semimp_data.o:    semimp_data.f90 kinds.o shtns.o pressure_data.o physcons.o
 
-grid_data.o:  	grid_data.f90 kinds.o params.o
+grid_data.o:  	  grid_data.f90 kinds.o params.o
 
-pressure_data.o:  	pressure_data.f90 kinds.o params.o physcons.o
+pressure_data.o:  pressure_data.f90 kinds.o params.o physcons.o
 
-dyn_init.o:  	dyn_init.f90 params.o sigio_module.o shtns.o spectral_data.o pressure_data.o physcons.o grid_data.o semimp_data.o
+dyn_init.o:  	  dyn_init.f90 params.o sigio_module.o shtns.o spectral_data.o pressure_data.o physcons.o grid_data.o semimp_data.o
 
-phy_init.o:     phy_init.f90 
+phy_init.o:       phy_init.f90 
 
-phy_finalize.o:     phy_finalize.f90 
+phy_finalize.o:   phy_finalize.f90 
 
-phy_run.o:      phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o
+phy_run.o:        phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o
 
-dyn_finalize.o:  dyn_finalize.f90 shtns.o spectral_data.o pressure_data.o grid_data.o
+dyn_finalize.o:   dyn_finalize.f90 shtns.o spectral_data.o pressure_data.o grid_data.o
 
-dyn_run.o:	dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o
+dyn_run.o:	  dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o
 
-run.o:   	run.f90 dyn_run.o phy_run.o kinds.o params.o
+run.o:   	  run.f90 dyn_run.o phy_run.o kinds.o params.o
