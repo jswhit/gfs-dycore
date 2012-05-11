@@ -1,12 +1,12 @@
-#intel fortran (jet,zeus)
+##intel fortran (jet,zeus)
 #FC            = ifort
-#OMPFLAG       = -openmp
+#OMPFLAG       = -openmp -no-ip
 #FFLAGS        = -O3 -xHOST -assume byterecl -warn all -implicitnone -traceback  $(OMPFLAG)
 #EXEC          = ../bin/gfs
 #LDFLAGS       = $(OMPFLAG) -mkl=sequential
-# jet
+## jet
 #LIBS          = -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3
-# zeus
+## zeus
 #LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3
 
 #gnu fortran (mac)
@@ -14,7 +14,6 @@ FC = gfortran
 OMPFLAG = -fopenmp
 #FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
 FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OMPFLAG) 
-
 EXEC          = ../bin/gfs
 LDFLAGS       = $(OMPFLAG)  
 LIBS          = -L/Users/jwhitaker/lib -lshtns -L/opt/local/lib -lfftw3 -llapack
@@ -68,13 +67,13 @@ physcons.o:	physcons.f90 kinds.o
 
 constants.o:	constants.f90 kinds.o
 
-shtns.o:	shtns.f90
+shtns.o:	shtns.f90 kinds.o
 
 sigio_module.o:  sigio_module.f90
 
 params.o:	params.f90 kinds.o sigio_module.o
 
-init.o:  	init.f90 params.o dyn_init.o phy_init.o
+init.o:  	init.f90 params.o dyn_init.o phy_init.o kinds.o
 
 finalize.o:  	finalize.f90 params.o dyn_finalize.o phy_finalize.o
 
