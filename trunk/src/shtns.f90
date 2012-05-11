@@ -84,14 +84,20 @@
 
       contains
 
-      subroutine shtns_init(nlon,nlat,ntrunc)
+      subroutine shtns_init(nlon,nlat,ntrunc,nthreads)
 ! initialize library, allocate arrays.
       integer, intent(in) :: nlon,nlat,ntrunc
+      integer, intent(in), optional :: nthreads
       real(r_double), dimension(:), allocatable :: lats1
       real(r_double) pi
-      integer m,n,i,j
+      integer m,n,i,j,nth
+      if (present(nthreads)) then
+         nth = nthreads
+      else
+         nth = 1
+      endif
       call shtns_destroy()
-      call shtns_use_threads(0) ! no threads.
+      call shtns_use_threads(nth) ! number of openmp threads.
       call shtns_init_sh_gauss(SHT_PHI_CONTIGUOUS, ntrunc, ntrunc, 1, nlat, nlon)
       ! switch to on-the-fly algorithm
       !call shtns_precompute(SHT_GAUSS_FLY, SHT_PHI_CONTIGUOUS, &
