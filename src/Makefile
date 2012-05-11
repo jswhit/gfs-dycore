@@ -2,6 +2,7 @@
 #FC            = ifort
 #OMPFLAG       = -openmp -no-ip
 #FFLAGS        = -O3 -xHOST -assume byterecl -warn all -implicitnone -traceback  $(OMPFLAG)
+#FREEFLAG      = -FR
 #EXEC          = ../bin/gfs
 #LDFLAGS       = $(OMPFLAG) -mkl=sequential
 ## jet
@@ -10,10 +11,11 @@
 #LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3
 
 #gnu fortran (mac)
-FC = gfortran
-OMPFLAG = -fopenmp
-#FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
-FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OMPFLAG) 
+FC            = gfortran
+OMPFLAG       = -fopenmp
+#FFLAGS       =-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
+FFLAGS        =-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OMPFLAG) 
+FREEFLAG      = -ffree-form
 EXEC          = ../bin/gfs
 LDFLAGS       = $(OMPFLAG)  
 LIBS          = -L/Users/jwhitaker/lib -lshtns -L/opt/local/lib -lfftw3 -llapack
@@ -57,7 +59,7 @@ clean:
 	$(FC) $(FFLAGS) -c $< 
 
 .f.o:
-	$(FC) $(FFLAGS) -free -c $< 
+	$(FC) $(FFLAGS) $(FREEFLAG) -c $< 
 
 %.o : %.mod
 
