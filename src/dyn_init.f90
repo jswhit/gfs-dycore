@@ -18,7 +18,8 @@ module dyn_init
  use spectral_data, only: vrtspec,divspec,virtempspec,spfhumspec,topospec,lnpsspec,&
                           disspec,init_specdata
  use pressure_data, only: ak,bk,ck,dbk,psg,prs,init_pressdata,calc_pressdata
- use grid_data, only: init_griddata, dphisdx, dphisdy, phis, ug, vg, virtempg
+ use grid_data, only: init_griddata, dphisdx, dphisdy, phis, ug, vg, virtempg, &
+ lnpsg
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                      omega => con_omega, grav => con_g, pi => con_pi
  use semimp_data, only: init_semimpdata
@@ -31,7 +32,6 @@ module dyn_init
 
  subroutine init_dyn()
     type(sigio_data) sigdata
-    real(r_kind), dimension(:,:), allocatable :: psg
     integer k,lu,iret
     ! allocate arrays
     call init_specdata()
@@ -55,15 +55,14 @@ module dyn_init
        call copyspecin(sigdata%q(:,k,1),spfhumspec(:,k))
     enddo
     if (dry) spfhumspec = 0.
-    allocate(psg(nlons,nlats))
+    ! initialize pressure arrays.
+    call init_pressdata()
     ! convert to ln(ps) in Pa.
     call spectogrd(lnpsspec, psg)
     psg = 1000.*exp(psg) ! convert to Pa
     call grdtospec(log(psg), lnpsspec) ! back to spectral.
     call sigio_axdata(sigdata,iret)
     call sigio_sclose(lu,iret)
-    ! initialize pressure arrays.
-    call init_pressdata()
     if (sighead%idvc == 2) then ! hybrid coordinate
        do k=1,nlevs+1
           ak(k) = sighead%vcoord(nlevs+2-k,1)
@@ -95,7 +94,6 @@ module dyn_init
     call spectogrd(lnpsspec, psg)
     psg = exp(psg) 
     print *,'min/max sfc pressure (hPa)',maxval(psg/100.),minval(psg/100.)
-    deallocate(psg)
     ! compute gradient of surface orography
     call getgrad(grav*topospec, dphisdx, dphisdy, rerth)
     ! hyper-diffusion operator
@@ -176,7 +174,7 @@ module dyn_init
    integer k
    real(r_kind) u0,etat,eta0,t0,gamma,deltat,lonc,latc,&
         up,pertrad
-   real(r_kind), dimension(nlons,nlats) :: r,x,eta,etav,zs,lnpsg
+   real(r_kind), dimension(nlons,nlats) :: r,x,eta,etav,zs
    print *,'replacing initial conds with jablonowsky and williamson test case..'
    ! zonal jet.
    psg = 1.e5
@@ -193,7 +191,7 @@ module dyn_init
    latc = 2.*pi/9.
    pertrad = rerth/10.
    do k=1,nlevs
-      eta = prs(:,:,nlevs-k+1)/psg
+      eta = prs(:,:,k)/psg
       etav = 0.5*pi*(eta-eta0)
       ug(:,:,k) = u0*cos(etav)**1.5*sin(2.*lats)**2 ! eqn 2
       ! eqns 4 and 5
@@ -218,7 +216,7 @@ module dyn_init
    ! add perturbation
    x = sin(latc)*sin(lats) + cos(latc)*cos(lats)*cos(lons-lonc)
    r = rerth*acos(x)
-   up = 0.
+   up = 1.
    do k=1,nlevs
       ! add a zonal wind perturbation
       ug(:,:,k) = ug(:,:,k) + up*exp(-(r/pertrad)**2)
@@ -231,7 +229,6 @@ module dyn_init
  subroutine heldsuarez_ics()
    ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)
    ! initial perturbation on an isothermal state.
-   use grid_data, only: ug,vg,virtempg,lnpsg
    real(r_kind), dimension(nlons,nlats) :: rnh,xnh,rsh,xsh
    real(r_kind) :: lonc,latc,up,pertrad
    integer k
