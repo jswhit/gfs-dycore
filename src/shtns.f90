@@ -72,7 +72,7 @@
       INTEGER, PARAMETER :: SHT_QUICK_INIT=4
       INTEGER, PARAMETER :: SHT_REG_POLES=5
       INTEGER, PARAMETER :: SHT_GAUSS_FLY=6
-      REAL(r_kind), PARAMETER :: SHT_DEFAULT_POLAR_OPT=1.d-10
+      REAL(r_double), PARAMETER :: SHT_DEFAULT_POLAR_OPT=1.d-10
       INTEGER, SAVE      :: current_nlon = -1  
       INTEGER, SAVE      :: current_nlat = -1  
       INTEGER, SAVE      :: current_ntrunc = -1  
@@ -157,7 +157,6 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          print *,'calling shtns_init'
           call shtns_init(nlon,nlat,ntrunc)
       end if
       if (default_real .ne. 2) then
@@ -190,7 +189,6 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          print *,'calling shtns_init'
           call shtns_init(nlon,nlat,ntrunc)
       end if
       if (default_real .ne. 2) then
@@ -224,7 +222,6 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          print *,'calling shtns_init'
           call shtns_init(nlon,nlat,ntrunc)
       end if
       if (default_real .ne. 2) then
@@ -232,16 +229,19 @@
          allocate(vrtspec_tmp(nlm))
          allocate(vgrid_tmp(nlon,nlat))
          allocate(divspec_tmp(nlm))
-         vrtspec_tmp = vrtspec
-         divspec_tmp = divspec
-         call shtns_sphtor_to_spat(invlap*rsphere*vrtspec_tmp,&
-         invlap*rsphere*divspec_tmp,ugrid_tmp,vgrid_tmp)
+         vrtspec_tmp = invlap*rsphere*vrtspec
+         divspec_tmp = invlap*rsphere*divspec
+         call shtns_sphtor_to_spat(vrtspec_tmp,divspec_tmp,ugrid_tmp,vgrid_tmp)
          ugrid = ugrid_tmp
          vgrid = vgrid_tmp
          deallocate(ugrid_tmp,vgrid_tmp,vrtspec_tmp,divspec_tmp)
       else
-         call shtns_sphtor_to_spat(invlap*rsphere*vrtspec,&
-         invlap*rsphere*divspec,ugrid,vgrid)
+         allocate(vrtspec_tmp(nlm))
+         allocate(divspec_tmp(nlm))
+         vrtspec_tmp = invlap*rsphere*vrtspec
+         divspec_tmp = invlap*rsphere*divspec
+         call shtns_sphtor_to_spat(vrtspec_tmp,divspec_tmp,ugrid,vgrid)
+         deallocate(vrtspec_tmp,divspec_tmp)
       endif
       end subroutine getuv
 
@@ -264,7 +264,6 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          print *,'calling shtns_init'
           call shtns_init(nlon,nlat,ntrunc)
       end if
       if (default_real .ne. 2) then
@@ -290,7 +289,7 @@
       real(r_kind), intent(in) :: rsphere
       real(r_kind), dimension(:,:), intent(out) :: ugrid,vgrid
       complex(r_kind), dimension(:), intent(in) :: divspec
-      complex(r_kind), dimension(nlm) :: vrtspec
+      complex(r_kind), dimension(:), allocatable :: vrtspec
       real(r_double), dimension(:,:), allocatable :: ugrid_tmp,vgrid_tmp
       complex(r_double), dimension(:), allocatable :: &
       vrtspec_tmp,divspec_tmp
@@ -303,7 +302,6 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          print *,'calling shtns_init'
           call shtns_init(nlon,nlat,ntrunc)
       end if
       if (default_real .ne. 2) then
@@ -318,7 +316,10 @@
          vgrid = vgrid_tmp
          deallocate(ugrid_tmp,vgrid_tmp,vrtspec_tmp,divspec_tmp)
       else
+         allocate(vrtspec(nlm))
+         vrtspec = 0.     
          call shtns_sphtor_to_spat(vrtspec,divspec,ugrid,vgrid)
+         deallocate(vrtspec)
       endif
       ugrid = ugrid/rsphere; vgrid = vgrid/rsphere
       end subroutine getgrad
