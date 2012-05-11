@@ -10,7 +10,7 @@ module params
 
  public :: read_namelist,initfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
- ntout,fhout,idate_start
+ ntout,fhout,idate_start,adiabatic
 
  character(len=500) :: initfile ! init cond filename
  integer            :: fhmax ! hours to run
@@ -23,7 +23,8 @@ module params
  integer    :: ntrunc ! spectral truncation
  integer    :: ndimspec ! spectral array dimension
  type(sigio_head),save  :: sighead ! header struct from initfile
- logical    :: dry = .false.
+ logical    :: dry = .false. ! no moisture
+ logical    :: adiabatic = .false. ! don't call physics
  ! held-suarez forcing
  logical    :: heldsuarez = .false.
  ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)
@@ -44,7 +45,7 @@ module params
  real(r_kind) :: efold=3.*3600. ! efolding scale for smallest resolvable wave
 
  namelist/nam_dyn/initfile,fhmax,dt,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
- fhout
+ fhout,adiabatic
 
  contains
 
@@ -104,6 +105,7 @@ module params
    endif
    ! for these idealized tests, model is dry.
    if (jablowill .or. heldsuarez) dry = .true.
+   if (jablowill) adiabatic = .true.
    if (jablowill) print *,'running jablonowsky and williamson test..'
    if (heldsuarez) print *,'running held-suarez test..'
    call sigio_sclose(lu,iret)
