@@ -14,8 +14,6 @@ fftw3 FFT library (fftw.org)
 To build:
 
 cd src; edit Makefile for your system; run make (executable put in bin).
-Default is setup to run Held-Suarez test.  To run Jablownosky-Williamson
-adiabatic baroclinc wave test, symlink phy_run_stub.f90 to phy_run.f90 and recompile.
 
 To test:
 
@@ -25,5 +23,10 @@ compare resulting plots to zonalmeanu.png and zonalmeant.png.
 
 to run jablonowski and williamson test case, cd to jablowill_test and run test_gfs.
 plot surface pressure using python/plotps.py and compare resulting plot with ps.png.
+
+TODO:
+
+* add gfs physics.
+* MPI?
 
 Contact:  Jeff Whitaker <jeffrey.s.whitaker@noaa.gov>
