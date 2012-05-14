@@ -10,13 +10,13 @@
 ! getpresgrad: calculate pressure gradient terms in momentum eqns.
 ! getvadv: calculate vertical advection terms.
 
- use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt
+ use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac
  use kinds, only: r_kind
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
- spfhumspec, topospec, disspec
- use grid_data, only: ug,vg,vrtg,virtempg,divg,spfhumg,dlnpdtg,etadot,lnpsg,&
+ tracerspec, topospec, disspec, dmp_prof, diff_prof
+ use grid_data, only: ug,vg,vrtg,virtempg,divg,tracerg,dlnpdtg,etadot,lnpsg,&
  phis,dphisdx,dphisdy
  use pressure_data, only:  ak, bk, ck, dbk, dpk, rlnp, pk, alfa, dpk, psg,&
  calc_pressdata
@@ -32,14 +32,16 @@
 
  contains
 
- subroutine getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt)
+ subroutine getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
    ! compute dynamics tendencies, including hyper-diffusion.
    ! based on hybrid sigma-pressure dynamical core described in
    ! http://www.emc.ncep.noaa.gov/officenotes/newernotes/on462.pdf
    ! The only difference is that here we use a forward in time
    ! runge-kutta scheme instead of assellin-filtered leap-frog.
    complex(r_kind), intent(out), dimension(ndimspec,nlevs) :: &
-   dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt
+   dvrtspecdt,ddivspecdt,dvirtempspecdt
+   complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
+   dtracerspecdt
    complex(r_kind), intent(out), dimension(ndimspec) :: dlnpsspecdt
 ! local variables.
    complex(r_kind), dimension(:,:),allocatable :: workspec
@@ -47,7 +49,7 @@
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
    real(r_kind) kappa,delta
-   integer k
+   integer k,nt
 
    ! use alloctable arrays instead of automatic arrays 
    ! for these to avoid segfaults in openmp.
@@ -75,16 +77,12 @@
       ! gradient of virtual temperature on grid.
       call getgrad(virtempspec(:,k),dvirtempdx(:,:,k),dvirtempdy(:,:,k),rerth)
       !print *,k,maxval(abs(ug(:,:,k))),maxval(abs(virtempg(:,:,k))),maxval(abs(dvirtempdx(:,:,k)))
+      ! specific humidity, other tracers on grid.
+      do nt=1,ntrac
+         call spectogrd(tracerspec(:,k,nt),tracerg(:,:,k,nt))
+      enddo
    enddo
 !$omp end parallel do 
-   ! specific humidity on grid.
-   if (.not. dry) then
-      do k=1,nlevs
-         call spectogrd(spfhumspec(:,k),spfhumg(:,:,k))
-      enddo
-   else
-      spfhumg = 0.
-   endif
    ! lnps on grid.
    call spectogrd(lnpsspec, lnpsg)
    ! gradient of surface pressure.
@@ -114,6 +112,23 @@
    ! compute energy conversion term.
    kappa = rd/cp; delta = cvap/cp-1.
    dlnpsdx = 2.*omega*sin(lats) ! temp storage of planetary vorticity
+   if (ntrac > 0) then
+      ! energy conversion term, store in vadvq
+      !$omp parallel do private(k)
+      do k=1,nlevs
+         vadvq(:,:,k) = &
+         ! this is what Sela's docs (ON461, eqn 1.0.3) say it should be
+         kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)*&
+         ((1.+eps*tracerg(:,:,k,1))/(1.+delta*tracerg(:,:,k,1)))
+      enddo
+      !$omp end parallel do 
+   else
+      !$omp parallel do private(k)
+      do k=1,nlevs
+         vadvq(:,:,k) = kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)
+      enddo
+      !$omp end parallel do 
+   endif
    ! compute tendencies of virt temp, ort and div in spectral space
 !$omp parallel do private(k)
    do k=1,nlevs
@@ -121,49 +136,46 @@
       ! (so prsgy and prsgx can be re-used)
       vadvv(:,:,k) = vadvv(:,:,k) - prsgy(:,:,k)
       vadvu(:,:,k) = vadvu(:,:,k) - prsgx(:,:,k)
-      ! energy conversion term, store in vadvq
-      vadvq(:,:,k) = &
-      ! this is what Sela's docs (ON461, eqn 1.0.3) say it should be
-      kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)*&
-      ((1.+eps*spfhumg(:,:,k))/(1.+delta*spfhumg(:,:,k)))
       ! virtual temp tendency
       prsgx(:,:,k) = -ug(:,:,k)*dvirtempdx(:,:,k) - vg(:,:,k)*dvirtempdy(:,:,k) - &
                       vadvt(:,:,k) + vadvq(:,:,k)
       call grdtospec(prsgx(:,:,k), dvirtempspecdt(:,k))
       ! add hyper-diffusion.
-      dvirtempspecdt(:,k) = dvirtempspecdt(:,k) + disspec(:)*virtempspec(:,k)
+      dvirtempspecdt(:,k) = dvirtempspecdt(:,k) + &
+      disspec(:)*diff_prof(k)*virtempspec(:,k)
       ! flux terms for vort, div eqns
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
       prsgy(:,:,k) = vg(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) - vadvu(:,:,k)
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
-      ! flip sign of vort tend and add hyperdiffusion.
-      dvrtspecdt(:,k) = -dvrtspecdt(:,k) + disspec(:)*vrtspec(:,k)
-      ! add hyperdiffusion, laplacian(KE) term to div tendency
+      ! flip sign of vort tend and add hyperdiffusion, drag.
+      dvrtspecdt(:,k) = -dvrtspecdt(:,k) - &
+      (dmp_prof(k) - disspec(:)*diff_prof(k))*vrtspec(:,k) 
+      ! add hyperdiffusion, drag, laplacian(KE) term to div tendency
       prsgx(:,:,k) = 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
       call grdtospec(prsgx(:,:,k),workspec(:,k))
-      ddivspecdt(:,k) = ddivspecdt(:,k) + disspec(:)*divspec(:,k) - &
+      ddivspecdt(:,k) = ddivspecdt(:,k) - &
+      (dmp_prof(k) - disspec(:)*diff_prof(k))*divspec(:,k) - &
       (lap(:)/rerth**2)*workspec(:,k)
    enddo
 !$omp end parallel do 
-   ! compute tendency of specific humidity in spectral space.
-   if (.not. dry) then
-      ! should use positive-definite version here.
-      call getvadv(spfhumg,etadot,vadvq)
+   ! compute tendency of tracers (including specific humidity) in spectral space.
+   do nt=1,ntrac
+   ! should use positive-definite version here.
+   call getvadv(tracerg(:,:,:,nt),etadot,vadvq)
 !$omp parallel do private(k)
-      do k=1,nlevs
-         ! gradient of specific humidity on grid.
-         call getgrad(spfhumspec(:,k),dvirtempdx(:,:,k),dvirtempdy(:,:,k),rerth)
-         ! specific humidity tendency
-         prsgx(:,:,k) = &
-         -ug(:,:,k)*dvirtempdx(:,:,k)-vg(:,:,k)*dvirtempdy(:,:,k)-vadvq(:,:,k)
-         call grdtospec(prsgx(:,:,k), dspfhumspecdt(:,k))
-         ! add hyper-diffusion.
-         dspfhumspecdt(:,k) = dspfhumspecdt(:,k) + disspec(:)*spfhumspec(:,k)
-      enddo
+   do k=1,nlevs
+      ! gradient of specific humidity on grid.
+      call getgrad(tracerspec(:,k,nt),dvirtempdx(:,:,k),dvirtempdy(:,:,k),rerth)
+      ! specific humidity tendency
+      prsgx(:,:,k) = &
+      -ug(:,:,k)*dvirtempdx(:,:,k)-vg(:,:,k)*dvirtempdy(:,:,k)-vadvq(:,:,k)
+      call grdtospec(prsgx(:,:,k), dtracerspecdt(:,k,nt))
+      ! add hyper-diffusion.
+      dtracerspecdt(:,k,nt) = dtracerspecdt(:,k,nt) + &
+      disspec(:)*diff_prof(k)*tracerspec(:,k,nt)
+   enddo
 !$omp end parallel do 
-   else
-      dspfhumspecdt = 0.
-   endif
+   enddo
 
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
