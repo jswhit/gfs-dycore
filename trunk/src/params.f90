@@ -52,7 +52,7 @@ module params
  real(r_kind) :: fshk=0 
  integer(r_kind) :: ntrac=0 ! number of tracers (including specific humidity)
  integer(r_kind) :: ntoz=2 ! ozone tracer number
- integer(r_kind) :: ntclw=2 ! cloud condensate tracer number
+ integer(r_kind) :: ntclw=3 ! cloud condensate tracer number
  real(r_kind) :: taustratdamp=5.*86400. ! extra linear drag near top of model
 
  namelist/nam_dyn/initfile,fhmax,dt,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
