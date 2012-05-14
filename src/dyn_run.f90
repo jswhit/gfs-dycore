@@ -160,8 +160,8 @@
 !$omp end parallel do 
    ! compute tendency of tracers (including specific humidity) in spectral space.
    do nt=1,ntrac
-   ! should use positive-definite version here.
-   call getvadv(tracerg(:,:,:,nt),etadot,vadvq)
+   ! use positive-definite vertical advection.
+   call getvadv_tracers(tracerg(:,:,:,nt),etadot,vadvq)
 !$omp parallel do private(k)
    do k=1,nlevs
       ! gradient of specific humidity on grid.
@@ -401,5 +401,79 @@
 
    return
  end subroutine getvadv
+
+ subroutine getvadv_tracers(datag,etadot,vadv)
+   ! compute vertical advection of datag, using etadot - result in vadv
+   ! datag, vadv bottom to top, etadot top to bottom.
+   ! uses positive definite scheme of Thuburn (1993, DOI:
+   ! 10.1002/qj.49711951107)
+   real(r_kind), intent(in), dimension(nlons,nlats,nlevs) :: datag
+   real(r_kind), intent(in), dimension(nlons,nlats,nlevs+1) :: etadot
+   real(r_kind), intent(out), dimension(nlons,nlats,nlevs) :: vadv
+   real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
+   integer i,j,k
+   real(r_kind) rrkp,rrk1m,phkp,phkp1m
+
+   allocate(datag_half(nlons,nlats,0:nlevs))
+   allocate(datag_d(nlons,nlats,0:nlevs))
+
+!$omp parallel do private(k)
+   do k=1,nlevs-1
+      datag_half(:,:,k) = 0.5*(datag(:,:,nlevs-k)+datag(:,:,nlevs+1-k))
+   enddo
+!$omp end parallel do 
+   datag_half(:,:,0) = datag(:,:,nlevs)
+   datag_half(:,:,nlevs) = datag(:,:,1)
+!$omp parallel do private(k)
+   do k=1,nlevs-1
+      datag_d(:,:,k) = datag(:,:,nlevs-k) - datag(:,:,nlevs+1-k)
+   enddo
+!$omp end parallel do 
+   where (datag(:,:,nlevs) >= 0.)
+      datag_d(:,:,0) = datag(:,:,nlevs) - &
+      max(0.,2.*datag(:,:,nlevs)-datag(:,:,nlevs-1))
+   else where
+      datag_d(:,:,0) = datag(:,:,nlevs) - &
+      min(0.,2.*datag(:,:,nlevs)-datag(:,:,nlevs-1))
+   end where
+   where (datag(:,:,1) >= 0.)
+      datag_d(:,:,nlevs) = max(0.,2.*datag(:,:,1)-datag(:,:,2)) - datag(:,:,1)
+   else where
+      datag_d(:,:,nlevs) = min(0.,2.*datag(:,:,1)-datag(:,:,2)) - datag(:,:,1)
+   end where
+!$omp parallel do private(k)
+   do k=1,nlevs-1
+      do j=1,nlats
+      do i=1,nlons
+         if(etadot(i,j,k+1) > 0.) then            !etadot is from top to bottom
+            rrkp = 0.
+            if (datag_d(i,j,k) .ne. 0.) rrkp = datag_d(i,j,k-1)/datag_d(i,j,k)
+            phkp = (rrkp+abs(rrkp))/(1.+abs(rrkp))
+            datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
+                                phkp*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
+         else
+            rrkp = 0.
+            if (datag_d(i,j,k) .ne. 0.) rrk1m = datag_d(i,j,k+1)/datag_d(i,j,k)
+            phkp1m = (rrk1m+abs(rrk1m))/(1.+abs(rrk1m))
+            datag_half(i,j,k) = datag(i,j,nlevs-k) + &
+                                phkp*(datag_half(i,j,k)-datag(i,j,nlevs-k))
+         endif
+      enddo
+      enddo
+   enddo
+!$omp end parallel do 
+
+!$omp parallel do private(k)
+   do k=1,nlevs
+      vadv(:,:,nlevs+1-k) = -(1./dpk(:,:,k))*(&
+      (datag_half(:,:,k)*etadot(:,:,k+1) - datag_half(:,:,k-1)*etadot(:,:,k))+&
+      (datag(:,:,nlevs+1-k)*(etadot(:,:,k)-etadot(:,:,k+1))))
+   enddo
+!$omp end parallel do 
+      
+   deallocate(datag_half, datag_d)
+
+   return
+ end subroutine getvadv_tracers
 
 end module dyn_run
