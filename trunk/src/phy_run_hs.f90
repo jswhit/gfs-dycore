@@ -5,7 +5,7 @@
 ! getphytend: compute newtonian damping of temperature, drag terms
 ! in vort and div eqns.
 
- use params, only: nlevs,nlons,nlats,ndimspec
+ use params, only: nlevs,nlons,nlats,ndimspec,ntrac
  use kinds, only: r_kind
  use shtns, only: grdtospec, lats
  use grid_data, only: vrtg,divg,virtempg
@@ -18,11 +18,13 @@
 
  contains
 
- subroutine getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt,dt)
+ subroutine getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt,dt)
    ! compute physics tendencies for held-suarez test case.
    ! http://dx.doi.org/10.1175/1520-0477(1994)075%3C1825:APFTIO%3E2.0.CO;2
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
-   dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt
+   dvrtspecdt,ddivspecdt,dvirtempspecdt
+   complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
+   dtracerspecdt
    real(r_kind), intent(in) :: dt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind) p0,sigbot,tempstrat,delthz,deltmp,&

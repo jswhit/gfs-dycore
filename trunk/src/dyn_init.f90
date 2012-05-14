@@ -5,7 +5,7 @@ module dyn_init
 ! init_dyn:  allocate spectral arrays (init_specdata),
 !  read in initial conditions, initalize pressure variables (init_pressdata,
 !  get ak,bk from IC file header), compute gradient of orography,
-!  set up spectral hyperdiffusion operator (disspec), initialize arrays
+!  set up linear damping operators (disspec,diff_prof,damp_prof), initialize arrays
 !  for semi-implicit time stepping.
 ! wrtout: write out spectral data.
  use kinds, only: r_kind, r_single
@@ -13,11 +13,11 @@ module dyn_init
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
  use params, only: &
  nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,jablowill,&
- heldsuarez,explicit,tstart,idate_start
+ heldsuarez,explicit,tstart,idate_start,hdif_fac,hdif_fac2,fshk,ntrac,taustratdamp
  use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, lap, lats, lons
- use spectral_data, only: vrtspec,divspec,virtempspec,spfhumspec,topospec,lnpsspec,&
-                          disspec,init_specdata
- use pressure_data, only: ak,bk,ck,dbk,psg,prs,init_pressdata,calc_pressdata
+ use spectral_data, only: vrtspec,divspec,virtempspec,tracerspec,topospec,lnpsspec,&
+                          disspec,diff_prof,dmp_prof,init_specdata
+ use pressure_data, only: ak,bk,ck,dbk,bkl,sl,psg,prs,init_pressdata,calc_pressdata
  use grid_data, only: init_griddata, dphisdx, dphisdy, phis, ug, vg, virtempg, &
  lnpsg
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
@@ -32,7 +32,7 @@ module dyn_init
 
  subroutine init_dyn()
     type(sigio_data) sigdata
-    integer k,lu,iret
+    integer k,lu,iret,nt
     ! allocate arrays
     call init_specdata()
     ! initialize spherical harmonic lib
@@ -52,9 +52,10 @@ module dyn_init
        call copyspecin(sigdata%z(:,k),vrtspec(:,k))
        call copyspecin(sigdata%d(:,k),divspec(:,k))
        call copyspecin(sigdata%t(:,k),virtempspec(:,k))
-       call copyspecin(sigdata%q(:,k,1),spfhumspec(:,k))
+       do nt=1,ntrac
+          call copyspecin(sigdata%q(:,k,nt),tracerspec(:,k,nt))
+       enddo
     enddo
-    if (dry) spfhumspec = 0.
     ! initialize pressure arrays.
     call init_pressdata()
     ! convert to ln(ps) in Pa.
@@ -70,6 +71,7 @@ module dyn_init
        enddo
        do k=1,nlevs
           dbk(k) = bk(k+1)-bk(k)
+          bkl(k) = 0.5*(bk(k+1)+bk(k))
           ck(k)  = ak(k+1)*bk(k)-ak(k)*bk(k+1)
        enddo
     else
@@ -82,11 +84,9 @@ module dyn_init
     ! (over-ride initial conditions read from file).
     if (jablowill .and. tstart .le. tiny(tstart)) then
        call jablowill_ics()
-       spfhumspec = 0.
     endif
     if (heldsuarez .and. tstart .le. tiny(tstart)) then
        call heldsuarez_ics()
-       spfhumspec = 0.
     endif
     ! print out max/min values of phis,ps
     call spectogrd(grav*topospec, phis)
@@ -96,8 +96,8 @@ module dyn_init
     print *,'min/max sfc pressure (hPa)',maxval(psg/100.),minval(psg/100.)
     ! compute gradient of surface orography
     call getgrad(grav*topospec, dphisdx, dphisdy, rerth)
-    ! hyper-diffusion operator
-    disspec(:) = -(1./efold)*(lap(:)/minval(lap))**(ndiss/2)
+    ! hyper-diffusion operator (plus rayleigh damping in upper stratosphere)
+    call setdampspec(ndiss,efold,hdif_fac,hdif_fac2,fshk,disspec,diff_prof,dmp_prof)
     ! initialize arrays for semi-implicit adjustments.
     if (.not. explicit) call init_semimpdata()
  end subroutine init_dyn
@@ -137,7 +137,7 @@ module dyn_init
     type(sigio_data) sigdata
     real(r_kind), intent(in) :: fh
     character(len=500), intent(in) :: filename
-    integer k,lu,iret,lu2
+    integer k,lu,iret,lu2,nt
     ! convert to ln(ps) in Pa.
     call spectogrd(lnpsspec, psg)
     psg = exp(psg)/1000. ! convert to cb
@@ -156,7 +156,9 @@ module dyn_init
        call copyspecout(vrtspec(:,k), sigdata%z(:,k))
        call copyspecout(divspec(:,k), sigdata%d(:,k))
        call copyspecout(virtempspec(:,k), sigdata%t(:,k))
-       call copyspecout(spfhumspec(:,k), sigdata%q(:,k,1))
+       do nt=1,ntrac
+         call copyspecout(tracerspec(:,k,nt), sigdata%q(:,k,nt))
+       enddo
     enddo
     call sigio_swohdc(lu2,filename,sighead,sigdata,iret)
     if (iret .ne. 0) then
@@ -256,5 +258,51 @@ module dyn_init
    enddo
    topospec = 0.
  end subroutine heldsuarez_ics
+
+ subroutine setdampspec(ndiss,efold,hdif_fac,hdif_fac2,fshk,disspec,diff_prof,dmp_prof)
+   ! set hyper-diffusion and upper level rayleigh damping parameters/structure.
+   ! if efold and/or ndiss are zero, default GFS parameters are used.
+   integer, intent(inout) :: ndiss
+   real(r_kind), intent(inout) :: efold,fshk
+   real(r_kind), intent(in) :: hdif_fac,hdif_fac2
+   real(r_kind), intent(out),dimension(ndimspec) :: disspec
+   real(r_kind), dimension(nlevs),intent(out) :: diff_prof,dmp_prof
+   integer k
+   real(r_kind) slrd0,dmp_prof1
+   ! if ndiss=0, use default value of 8
+   if (ndiss == 0) ndiss = 8
+   ! if efold <= 0, use GFS defaults.
+   if (efold .le. 0) then
+      if (ntrunc > 170) then
+         efold = 3600./(hdif_fac2*(ntrunc/170.)**4*1.1)
+      else if (ntrunc == 126 .or. ntrunc == 170) then
+         efold = 1./(hdif_fac2*12.E15/(RERTH**4)*(80.*81.)**2)
+      else
+         efold = 1./(hdif_fac2*3.E15/(RERTH**4)*(80.*81.)**2)
+      end if
+      efold = 2.*efold ! mysterious factor 2 in deldifs.f
+      print *,'ndiss,efold =',ndiss,efold
+   end if
+   if (fshk .le. 0) then
+      ! factor to multiply diffusion per scale height.
+      fshk = 1.0*hdif_fac
+      if (ntrunc > 170) fshk = 2.2*hdif_fac
+      if (ntrunc == 126) fshk = 1.5*hdif_fac
+   end if
+   slrd0=0.002        ! SIGMA LEVEL AT WHICH TO BEGIN RAYLEIGH MOMTUM DAMPING
+   dmp_prof1=1./taustratdamp ! RECIPROCAL OF TIME SCALE PER SCALE HEIGHT
+                      ! ABOVE BEGINNING SIGMA LEVEL FOR RAYLEIGH DAMPING
+   dmp_prof = 0.
+   diff_prof = sl**(log(1./fshk))
+   print *,'fshk =',fshk
+   print *,'profiles for diffusion and linear damping:'
+   print *,'(level, sigma, diffusion enhancment, linear drag coeff)'
+   do k=1,nlevs
+      if (sl(k) .lt. slrd0) dmp_prof(k)=dmp_prof1*log(slrd0/sl(k))
+      print *,k,sl(k),diff_prof(k),dmp_prof(k)
+   enddo
+   disspec(:) = -(1./efold)*(lap(:)/minval(lap))**(ndiss/2)
+   return
+ end subroutine setdampspec
 
 end module dyn_init
