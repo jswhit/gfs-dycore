@@ -3,6 +3,10 @@
  fhmax=384,
  fhout=24,
  dt=1200,
+ ndiss=8,
+ efold=10800.,
+ fshk=1.,
+ taustratdamp=1.e30,
  explicit=.false.,
  jablowill=.true.,
  heldsuarez=.false.
