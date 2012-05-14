@@ -41,8 +41,7 @@ subroutine run()
      call advance()
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
-     !spd = sqrt(ug**2+vg**2) ! max wind speed
-     spd = abs(vg)
+     spd = sqrt(ug**2+vg**2) ! max wind speed
      ! write out data at specified intervals.
      if (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0) then
         fh = t/3600.
