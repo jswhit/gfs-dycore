@@ -10,10 +10,12 @@ module pressure_data
  use physcons, only: con_rd,con_cp
  implicit none
  private
- public :: ak,bk,ck,dbk,psg,pk,alfa,rlnp,dpk,&
-  prs,init_pressdata, calc_pressdata, destroy_pressdata
+ public :: ak,bk,ck,dbk,bkl,psg,pk,alfa,rlnp,dpk,&
+  si,sl,prs,init_pressdata, calc_pressdata, destroy_pressdata
 ! ak,bk: definition of hybrid sigma-pressure coordinates
+! si,sl: equivalent values of sigma coordinate at interfaces, mid-levels.
 ! dbk(k) = bk(k+1)-bk(k)
+! bkl(k) = 0.5*(bk(k+1)+bk(k))
 ! ck(k)  = ak(k+1)*bk(k)-ak(k)*bk(k+1)
 ! above 1-d arrays computed in init_dyn, defined from top to bottom
 ! of model.
@@ -26,7 +28,7 @@ module pressure_data
 ! alfa = 1.-(pk(:,:,k)/dpk(:,:,k))*rlnp(:,:,k) (for k=1 alfa(:,:,1)=log(2))
 ! all of the above arrays are defined top to bottom, except
 ! prs which is bottom to top.
- real(r_kind), dimension(:), allocatable :: ak,bk,ck,dbk
+ real(r_kind), dimension(:), allocatable :: ak,bk,ck,dbk,si,sl,bkl
  real(r_kind), dimension(:,:), allocatable :: psg
  real(r_kind), dimension(:,:,:), allocatable :: pk,alfa,rlnp,dpk,prs
  
@@ -35,8 +37,11 @@ module pressure_data
  subroutine init_pressdata()
     allocate(ak(nlevs+1))
     allocate(bk(nlevs+1))
+    allocate(si(nlevs+1))
+    allocate(sl(nlevs))
     allocate(ck(nlevs))
     allocate(dbk(nlevs))
+    allocate(bkl(nlevs))
     allocate(psg(nlons,nlats))
     allocate(alfa(nlons,nlats,nlevs))
     allocate(rlnp(nlons,nlats,nlevs))
@@ -46,7 +51,7 @@ module pressure_data
  end subroutine init_pressdata
 
  subroutine destroy_pressdata()
-    deallocate(ak,bk,ck,dbk)
+    deallocate(ak,bk,ck,dbk,si,sl,bkl)
     deallocate(psg,alfa,rlnp,dpk,pk,prs)
  end subroutine destroy_pressdata
 
@@ -56,6 +61,15 @@ module pressure_data
 ! update pressure related variables using latest estimate of lnps
     integer k
     rk = con_rd/con_cp
+! compute sigma coordinate quantities (bottom to top).
+    do k=1,nlevs+1
+       si(nlevs+2-k)= ak(k)/101300.0+bk(k) ! si are now sigmas
+    enddo
+    do k=1,nlevs
+       sl(k) = 0.5*(si(k)+si(k+1))
+       !sl(k) = ((si(k)**(rk+1.) - si(k+1)**(rk+1.))/&
+       !        ((rk+1.)*(si(k)-si(k+1))))**(1./rk)
+    enddo
     ! surface press from log(ps)
     psg = exp(lnpsg)
     ! interface pressure (psg is ps)

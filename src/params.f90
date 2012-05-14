@@ -10,7 +10,8 @@ module params
 
  public :: read_namelist,initfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
- ntout,fhout,idate_start,adiabatic
+ ntout,fhout,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
+ taustratdamp
 
  character(len=500) :: initfile ! init cond filename
  integer            :: fhmax ! hours to run
@@ -41,16 +42,26 @@ module params
  real(r_kind) :: tstart
  integer    :: idate_start(4) ! starting date (hr,month,day,year)
  integer    :: ntout ! time step interval for IO
- integer    :: ndiss=6 ! hyperdiffusion order
- real(r_kind) :: efold=3.*3600. ! efolding scale for smallest resolvable wave
+ integer    :: ndiss=0 ! hyperdiffusion order (0 for GFS defaults)
+ ! efolding scale for smallest resolvable wave (0 for GFS defaults)
+ real(r_kind) :: efold=0. 
+ real(r_kind) :: hdif_fac=1.0 ! multiplier for height-dep part of hyper-diff
+ real(r_kind) :: hdif_fac2=1.0 ! multiplier to increase hyper-diffusion
+ ! amplitude of vertically varying part of hyper-diff (1 means no variation,
+ ! zero gives GFS resolution dependent defaults)
+ real(r_kind) :: fshk=0 
+ integer(r_kind) :: ntrac=0 ! number of tracers (including specific humidity)
+ integer(r_kind) :: ntoz=2 ! ozone tracer number
+ integer(r_kind) :: ntclw=2 ! cloud condensate tracer number
+ real(r_kind) :: taustratdamp=5.*86400. ! extra linear drag near top of model
 
  namelist/nam_dyn/initfile,fhmax,dt,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
- fhout,adiabatic
+ fhout,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,taustratdamp
 
  contains
 
  subroutine read_namelist()
-   integer lu,iret
+   integer lu,iret,ntracin
    initfile=""
    fhmax = 0
    fhout = 0
@@ -94,6 +105,7 @@ module params
       nlevs = sighead%levs
       ntrunc = sighead%jcap
       tstart = sighead%fhour*3600.
+      ntracin = sighead%ntrac
       idate_start = sighead%idate
       print *,'nlons,nlats,nlevs,ntrunc=',nlons,nlats,nlevs,ntrunc
       print *,'tstart=',tstart,' secs'
@@ -110,6 +122,11 @@ module params
    if (heldsuarez) print *,'running held-suarez test..'
    call sigio_sclose(lu,iret)
    ndimspec = (ntrunc+1)*(ntrunc+2)/2
+   if (dry) ntrac=0
+   if (ntrac .gt. ntracin) then
+     print *,'only',ntracin,' tracers in input file, need',ntrac
+     stop
+   endif
    print *,'namelist nam_dyn:'
    write(6, nam_dyn)
  end subroutine read_namelist

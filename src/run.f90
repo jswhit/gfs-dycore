@@ -5,12 +5,12 @@ module run_mod
 ! data at specified intervals).
 use kinds, only: r_kind
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  ntout, explicit, idate_start, adiabatic
+  ntout, explicit, idate_start, adiabatic, ntrac
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use dyn_init, only: wrtout
 use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
-                          spfhumspec
+                          tracerspec
 ! these arrays used to print diagnostics after each time step.
 use pressure_data, only: psg
 use grid_data, only: ug,vg
@@ -41,7 +41,8 @@ subroutine run()
      call advance()
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
-     spd = sqrt(ug**2+vg**2) ! max wind speed
+     !spd = sqrt(ug**2+vg**2) ! max wind speed
+     spd = abs(vg)
      ! write out data at specified intervals.
      if (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0) then
         fh = t/3600.
@@ -67,10 +68,14 @@ subroutine advance()
 ! Kar (2006, http://journals.ametsoc.org/doi/pdf/10.1175/MWR3214.1)
 ! instead of semi-lmplicit assellin-filtered leap-frog.
   complex(r_kind),dimension(ndimspec,nlevs) :: &
-  vrtspec_save,divspec_save,virtempspec_save,spfhumspec_save
+  vrtspec_save,divspec_save,virtempspec_save
+  complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
+  tracerspec_save
   complex(r_kind),dimension(ndimspec) :: lnpsspec_save
   complex(r_kind), dimension(ndimspec,nlevs) :: &
-  dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt
+  dvrtspecdt,ddivspecdt,dvirtempspecdt
+  complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
+  dtracerspecdt
   complex(r_kind), dimension(ndimspec) :: dlnpsspecdt
   integer k
   real(r_kind) dtx
@@ -78,15 +83,15 @@ subroutine advance()
   vrtspec_save = vrtspec
   divspec_save = divspec
   virtempspec_save = virtempspec
-  spfhumspec_save = spfhumspec
+  if (ntrac > 0) tracerspec_save = tracerspec
   lnpsspec_save = lnpsspec
   do k=0,2
      dtx = dt/float(3-k)
      ! dynamics tendencies.
-     call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt)
+     call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
      ! add physics tendencies.
      if (.not. adiabatic) &
-     call getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dspfhumspecdt,dlnpsspecdt,dtx)
+     call getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt,dtx)
      if (.not. explicit) then
          ! semi-implicit adjustment.
          call semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
@@ -95,7 +100,7 @@ subroutine advance()
      vrtspec=vrtspec_save+dtx*dvrtspecdt
      divspec=divspec_save+dtx*ddivspecdt
      virtempspec=virtempspec_save+dtx*dvirtempspecdt
-     spfhumspec=spfhumspec_save+dtx*dspfhumspecdt
+     if (ntrac > 0) tracerspec=tracerspec_save+dtx*dtracerspecdt
      lnpsspec=lnpsspec_save+dtx*dlnpsspecdt
   enddo
 end subroutine advance
