@@ -94,6 +94,8 @@ module dyn_init
     call spectogrd(lnpsspec, psg)
     psg = exp(psg) 
     print *,'min/max sfc pressure (hPa)',maxval(psg/100.),minval(psg/100.)
+    ! initialize model interface and level pressures, related variables. 
+    call calc_pressdata(lnpsg)
     ! compute gradient of surface orography
     call getgrad(grav*topospec, dphisdx, dphisdy, rerth)
     ! hyper-diffusion operator (plus rayleigh damping in upper stratosphere)
