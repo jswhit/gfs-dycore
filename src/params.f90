@@ -62,6 +62,7 @@ module params
 
  subroutine read_namelist()
    integer lu,iret,ntracin
+   real(r_kind) tmax
    initfile=""
    fhmax = 0
    fhout = 0
@@ -87,8 +88,6 @@ module params
       print *,'1 hour must be an integer number of timesteps'
       stop
    endif
-   ntmax = nint(real(fhmax)*3600./dt)
-   ntout = nint(real(fhout)*3600/dt)
    lu = 7
    call sigio_sropen(lu,trim(initfile),iret)
    if (iret .ne. 0) then
@@ -111,6 +110,9 @@ module params
       print *,'tstart=',tstart,' secs'
       print *,'idate_start=',idate_start
    endif 
+   tmax = fhmax*3600. 
+   ntmax = nint((tmax-tstart)/dt)
+   ntout = nint(real(fhout)*3600/dt)
    if (jablowill .and. heldsuarez) then
       print *,'conflicting namelist options'
       print *,'heldsuarez and jablowill both cannot be .true.'
