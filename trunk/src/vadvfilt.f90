@@ -1,4 +1,4 @@
-      subroutine vcnhyb(im,km,nm,dt,zint,zmid,zdot,zadv)
+      subroutine vcnhyb(im,km,nm,dt,zint,zdot,zadv)
 !                .      .    .                                       .
 ! subprogram:    vcnhyb      vertical advection instability filter
 !   prgmmr: iredell          org: w/nmc23    date: 91-05-07
@@ -17,15 +17,14 @@
 ! program history log:
 !   97-07-30  iredell
 !
-! usage:    call vcnhyb(im,km,nm,dt,zint,zmid,zdot,zadv,nvcn,xvcn)
+! usage:    call vcnhyb(im,km,nm,dt,zint,zdot,zadv,nvcn,xvcn)
 !
 !   input argument list:
 !     im       - integer number of gridpoints to filter
 !     km       - integer number of vertical levels
 !     nm       - integer number of fields
 !     dt       - real(r_kind) timestep in seconds
-!     zint     - real(r_kind) (im,km+1) interface vertical coordinate values (bot to top)
-!     zmid     - real(r_kind) (im,km) midlayer vertical coordinate values (bot to top)
+!     zint     - real(r_kind) (im,km+1) interface vertical coordinate values (top to bot)
 !     zdot     - real(r_kind) (im,km+1) vertical coordinate velocity (top to bot)
 !     zadv     - real(r_kind) (im,km,nm) vertical advection tendencies (bot to top)
 !
@@ -42,11 +41,11 @@
       use kinds, only: r_kind
       implicit none
       integer,intent(in):: im,km,nm
-      real(r_kind),intent(in):: dt,zint(im,km+1),zmid(im,km),zdot(im,km+1)
+      real(r_kind),intent(in):: dt,zint(im,km+1),zdot(im,km+1)
       real(r_kind),intent(inout):: zadv(im,km,nm)
       integer :: nvcn
       real(r_kind) :: xvcn
-      integer i,j,k,n,ivcn(im)
+      integer i,j,k,kk,n,ivcn(im)
       logical lvcn(im)
       real(r_kind) zdm,zda,zdb,vcn(im,km-1)
       real(r_kind) rnu,cm(im,km),cu(im,km-1),cl(im,km-1)
@@ -61,8 +60,9 @@
       xvcn=0.
       lvcn=.false.
       do k=1,km-1
+        kk = km-k+2
         do i=1,im
-          zdm=zmid(i,k)-zmid(i,k+1)
+          zdm=0.5*(zint(i,kk)-zint(i,kk+2))
           vcn(i,k)=abs(zdot(i,km-(k+1)+2)*dt/zdm)*cfl
           lvcn(i)=lvcn(i).or.vcn(i,k).gt.1
           xvcn=max(xvcn,vcn(i,k))
@@ -83,12 +83,14 @@
           cm(j,1)=1
         enddo
         do k=1,km-1
+          kk = km-k+2
           do j=1,nvcn
             i=ivcn(j)
             if(vcn(i,k).gt.1) then
-             zdm=zmid(i,k)-zmid(i,k+1)
-             zda=zint(i,k+1)-zint(i,k+2)
-             zdb=zint(i,k)-zint(i,k+1)
+              !zdm=zmid(i,k)-zmid(i,k+1)
+              zdm=0.5*(zint(i,kk)-zint(i,kk+2))
+              zda=zint(i,kk+1)-zint(i,kk+2)
+              zdb=zint(i,kk)-zint(i,kk+1)
               rnu=(vcn(i,k)**2-1)/4
               cu(j,k)=-rnu*zdm/zdb
               cl(j,k)=-rnu*zdm/zda

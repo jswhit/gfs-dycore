@@ -38,6 +38,7 @@ OBJS=	 params.o \
 	 run.o\
          phy_run.o\
          phy_init.o\
+	 vadvfilt.o\
 	 phy_finalize.o\
 	 shtns.o
 
@@ -97,6 +98,8 @@ phy_run.o:        phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o
 
 dyn_finalize.o:   dyn_finalize.f90 shtns.o spectral_data.o pressure_data.o grid_data.o
 
-dyn_run.o:	  dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o
+vadvfilt.o:       vadvfilt.f90  kinds.o
+
+dyn_run.o:	  dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o vadvfilt.o
 
 run.o:   	  run.f90 dyn_run.o phy_run.o kinds.o params.o
