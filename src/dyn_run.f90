@@ -48,8 +48,11 @@
    real(r_kind), dimension(:,:), allocatable :: dlnpsdt,dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
+   real(r_kind), dimension(:,:,:), allocatable :: si,sl
    real(r_kind) kappa,delta
    integer k,nt
+   ! set to true to filter vertical advection 
+   logical :: vadvfilt = .false.
 
    ! use alloctable arrays instead of automatic arrays 
    ! for these to avoid segfaults in openmp.
@@ -64,6 +67,10 @@
    allocate(vadvq(nlons,nlats,nlevs))
    allocate(dvirtempdx(nlons,nlats,nlevs))
    allocate(dvirtempdy(nlons,nlats,nlevs))
+   if (vadvfilt) then
+      allocate(si(nlons,nlats,nlevs+1))
+      allocate(sl(nlons,nlats,nlevs))
+   endif
    allocate(workspec(ndimspec,nlevs))
 
    ! compute u,v,virt temp, vorticity, divergence, ln(ps)
@@ -108,6 +115,23 @@
    call getvadv(ug,etadot,vadvu)
    call getvadv(vg,etadot,vadvv)
    call getvadv(virtempg,etadot,vadvt)
+   if (vadvfilt) then
+   ! filter vertical advection to preserve stability.
+!$omp parallel
+!$omp do private(k)
+      do k=1,nlevs+1
+         si(:,:,nlevs+2-k) = ak(k) + bk(k)*psg
+      enddo
+!$omp do private(k)
+      do k=1,nlevs
+         sl(:,:,k) = 0.5*(si(:,:,k)+si(:,:,k+1))
+      enddo
+!$omp end do 
+!$omp end parallel
+      call vcnhyb(nlons*nlats,nlevs,1,dt,si,sl,etadot,vadvu)
+      call vcnhyb(nlons*nlats,nlevs,1,dt,si,sl,etadot,vadvv)
+      call vcnhyb(nlons*nlats,nlevs,1,dt,si,sl,etadot,vadvt)
+   endif
    ! add pressure gradient force to vertical advection terms
    ! compute energy conversion term.
    kappa = rd/cp; delta = cvap/cp-1.
@@ -162,6 +186,7 @@
    do nt=1,ntrac
    ! use positive-definite vertical advection.
    call getvadv_tracers(tracerg(:,:,:,nt),etadot,vadvq)
+   if (vadvfilt) call vcnhyb(nlons*nlats,nlevs,1,dt,si,sl,etadot,vadvq)
 !$omp parallel do private(k)
    do k=1,nlevs
       ! gradient of specific humidity on grid.
@@ -178,6 +203,7 @@
    enddo
 
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
+   if (vadvfilt) deallocate(sl,si)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
    deallocate(dlnpsdx,dlnpsdy,dlnpsdt)
 
