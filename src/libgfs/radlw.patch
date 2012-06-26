@@ -1,0 +1,23 @@
+--- radlw_datatb.f.orig	2012-06-22 03:32:52.000000000 +0000
++++ radlw_datatb.f	2012-06-22 03:41:38.000000000 +0000
+@@ -741,8 +741,8 @@
+       private
+ 
+       real (kind=kind_phys), public ::                                  &
+-     &       absice0(2), absice1(2,5), absice2(40,16), abscoice(NBANDS),&
+-     &       absliq1, absliq2, absliq3(58,16), abscoliq(NBANDS),        &
++     &       absice0(2), absice1(2,5), absice2(40,16),                  &
++     &       absliq1, absliq2, absliq3(58,16),                          &
+      &       absrain, abssnow0, abssnow1
+ 
+       integer, public :: ipat(NBANDS)
+--- radlw_main.f.orig	2012-06-21 23:04:46.000000000 +0000
++++ radlw_main.f	2012-06-22 03:43:29.000000000 +0000
+@@ -1415,6 +1415,7 @@
+       real (kind=kind_phys) :: cliq, cice, radliq, radice, factor, fint
+       real (kind=kind_phys) :: taurain, tausnow
+       integer               :: j, k, index
++      real (kind=kind_phys) :: abscoliq(NBANDS),abscoice(NBANDS)
+ 
+ !
+ !===> ... begin here
