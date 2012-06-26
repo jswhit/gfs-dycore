@@ -1,0 +1,15 @@
+ &nam_dyn
+ initfile="gec00.t00z.sanl",
+ sfcinitfile="gec00.t00z.sfcanl",
+ fhmax=120,
+ fhout=6,
+ fhzer=6,
+ fhlwr=1,
+ fhswr=1,
+ dt=450,
+ explicit=.false.,
+ ntrac=3,
+ /
+ &soil_veg
+ /
+ &END
