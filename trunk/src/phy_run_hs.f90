@@ -18,14 +18,14 @@
 
  contains
 
- subroutine getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt,dt)
+ subroutine getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt,t,dt)
    ! compute physics tendencies for held-suarez test case.
    ! http://dx.doi.org/10.1175/1520-0477(1994)075%3C1825:APFTIO%3E2.0.CO;2
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt
    complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
    dtracerspecdt
-   real(r_kind), intent(in) :: dt
+   real(r_kind), intent(in) :: t,dt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind) p0,sigbot,tempstrat,delthz,deltmp,&
                 kdrag,krada,kradb
@@ -63,13 +63,16 @@
       forcingg(:,:,k)=(krada+(kradb-krada)*blprof(:,:,k)*cos(lats)**4)*&
                       (radequiltemp(:,:,k)-virtempg(:,:,k))
       call grdtospec(forcingg(:,:,k), forcingspec(:,k))
-      dvirtempspecdt(:,k) = dvirtempspecdt(:,k) + forcingspec(:,k)
+      !dvirtempspecdt(:,k) = dvirtempspecdt(:,k) + forcingspec(:,k)
+      dvirtempspecdt(:,k) = forcingspec(:,k)
       forcingg(:,:,k) = -(blprof(:,:,k)*kdrag)*vrtg(:,:,k)
       call grdtospec(forcingg(:,:,k), forcingspec(:,k))
-      dvrtspecdt(:,k) = dvrtspecdt(:,k) + forcingspec(:,k)
+      !dvrtspecdt(:,k) = dvrtspecdt(:,k) + forcingspec(:,k)
+      dvrtspecdt(:,k) = forcingspec(:,k)
       forcingg(:,:,k) = -(blprof(:,:,k)*kdrag)*divg(:,:,k)
       call grdtospec(forcingg(:,:,k), forcingspec(:,k))
-      ddivspecdt(:,k) = ddivspecdt(:,k) + forcingspec(:,k)
+      !ddivspecdt(:,k) = ddivspecdt(:,k) + forcingspec(:,k)
+      ddivspecdt(:,k) = forcingspec(:,k)
    enddo
 !$omp end parallel do 
 
