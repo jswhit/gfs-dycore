@@ -7,7 +7,7 @@ module dyn_init
 !  get ak,bk from IC file header), compute gradient of orography,
 !  set up linear damping operators (disspec,diff_prof,damp_prof), initialize arrays
 !  for semi-implicit time stepping.
-! wrtout: write out spectral data.
+! wrtout_sig: write out spectral data.
  use kinds, only: r_kind, r_single
  use sigio_module, only: sigio_sclose,sigio_swohdc,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
@@ -26,7 +26,7 @@ module dyn_init
 
  implicit none
  private
- public :: init_dyn, wrtout
+ public :: init_dyn, wrtout_sig
 
  contains
 
@@ -93,7 +93,7 @@ module dyn_init
     print *,'min/max surface geopotential',minval(phis),maxval(phis)
     call spectogrd(lnpsspec, psg)
     psg = exp(psg) 
-    print *,'min/max sfc pressure (hPa)',maxval(psg/100.),minval(psg/100.)
+    print *,'min/max sfc pressure (hPa)',minval(psg/100.),maxval(psg/100.)
     ! initialize model interface and level pressures, related variables. 
     call calc_pressdata(lnpsg)
     ! compute gradient of surface orography
@@ -131,7 +131,7 @@ module dyn_init
     enddo
  end subroutine copyspecout
 
- subroutine wrtout(fh,filename)
+ subroutine wrtout_sig(fh,filename)
     ! write out spectral data
     ! (this probably belongs in a separate module)
     real(r_kind), dimension(nlons,nlats) :: psg 
@@ -144,11 +144,11 @@ module dyn_init
     call spectogrd(lnpsspec, psg)
     psg = exp(psg)/1000. ! convert to cb
     call grdtospec(log(psg), lnpsspec_tmp) ! back to spectral.
-    print *,'fhour =',int(fh),', min/max psg = ',maxval(10.*psg),minval(10.*psg)
-    lu = 7; lu = 8
-    call sigio_srohdc(lu,trim(initfile),sighead,sigdata,iret)
+    !print *,'fhour =',int(fh),', min/max psg = ',minval(10.*psg),maxval(10.*psg)
+    lu = 7; lu2 = 8
+    call sigio_aldata(sighead,sigdata,iret)
     if (iret .ne. 0) then
-      print *,'error reading ',trim(initfile),iret
+      print *,'error allocating sigdata',iret
       stop
     endif
     sighead%fhour = fh
@@ -170,7 +170,7 @@ module dyn_init
     call sigio_axdata(sigdata,iret)
     call sigio_sclose(lu,iret)
     call sigio_sclose(lu2,iret)
- end subroutine wrtout
+ end subroutine wrtout_sig
 
  subroutine jablowill_ics()
    ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)
