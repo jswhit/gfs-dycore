@@ -1,7 +1,7 @@
  module dyn_run
 ! calculation of model tendencies.
 ! Public subroutines:
-! getdyntend:  dynamics tendencies (including hyperdiffusino)
+! getdyntend:  dynamics tendencies (not including linear damping and idffusion)
 ! (called in run.f90)
 ! semimpadj:  adjustment to tendencies from semi-implicit step.
 ! (only called in run.f90 if explicit=.false.)
@@ -15,7 +15,7 @@
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
- tracerspec, topospec, disspec, dmp_prof, diff_prof
+ tracerspec, topospec
  use grid_data, only: ug,vg,vrtg,virtempg,divg,tracerg,dlnpdtg,etadot,lnpsg,&
  phis,dphisdx,dphisdy
  use pressure_data, only:  ak, bk, ck, dbk, dpk, rlnp, pk, alfa, dpk, psg,&
@@ -32,12 +32,17 @@
 
  contains
 
- subroutine getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
-   ! compute dynamics tendencies, including hyper-diffusion.
+ subroutine getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,&
+                       dtracerspecdt,dlnpsspecdt,just_do_inverse_transform)
+   ! compute dynamics tendencies (notincluding hyper-diffusion.and linear drag,
+   ! which are treated implicitly)
    ! based on hybrid sigma-pressure dynamical core described in
    ! http://www.emc.ncep.noaa.gov/officenotes/newernotes/on462.pdf
    ! The only difference is that here we use a forward in time
    ! runge-kutta scheme instead of assellin-filtered leap-frog.
+   logical, optional, intent(in) :: just_do_inverse_transform
+   logical :: early_return = .false. ! if true. spectral-> grid only
+   logical :: vadvfilt = .false. ! filtering of vertical advection
    complex(r_kind), intent(out), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt
    complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
@@ -50,7 +55,13 @@
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
    real(r_kind) kappa,delta
    integer k,nt
-   logical :: vadvfilt = .false. ! filtering of vertical advection
+
+   ! should tendencies be computed, or just spectrail -> grid?
+   if (present(just_do_inverse_transform)) then
+     early_return = .true.
+   else
+     early_return = .false.
+   endif
 
    ! use alloctable arrays instead of automatic arrays 
    ! for these to avoid segfaults in openmp.
@@ -65,7 +76,7 @@
    allocate(vadvq(nlons,nlats,nlevs))
    allocate(dvirtempdx(nlons,nlats,nlevs))
    allocate(dvirtempdy(nlons,nlats,nlevs))
-   allocate(workspec(ndimspec,nlevs))
+   allocate(workspec(ndimspec,nlevs))  
 
    ! compute u,v,virt temp, vorticity, divergence, ln(ps)
    ! and specific humidity on grid from spectral coefficients.
@@ -100,6 +111,14 @@
    ! etadot goes top to bottom, dlnpdtg goes bottom to top 
    call getomega(ug,vg,divg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot,&
                  vadvu,vadvv,vadvt,vadvq,prsgx) ! work storage
+   ! return before computing tendencies (after updating
+   ! grid data).
+   if (early_return) then
+      deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
+      deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
+      deallocate(dlnpsdx,dlnpsdy,dlnpsdt)
+      return
+   endif
    call grdtospec(dlnpsdt,dlnpsspecdt)
    ! get pressure gradient terms (prsgx,prsgy)
    call getpresgrad(virtempg,dvirtempdx,dvirtempdy,dphisdx,dphisdy,dlnpsdx,dlnpsdy,&
@@ -147,21 +166,16 @@
       prsgx(:,:,k) = -ug(:,:,k)*dvirtempdx(:,:,k) - vg(:,:,k)*dvirtempdy(:,:,k) - &
                       vadvt(:,:,k) + vadvq(:,:,k)
       call grdtospec(prsgx(:,:,k), dvirtempspecdt(:,k))
-      ! add hyper-diffusion.
-      dvirtempspecdt(:,k) = dvirtempspecdt(:,k) + &
-      disspec(:)*diff_prof(k)*virtempspec(:,k)
       ! flux terms for vort, div eqns
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
       prsgy(:,:,k) = vg(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) - vadvu(:,:,k)
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
-      ! flip sign of vort tend and add hyperdiffusion, drag.
-      dvrtspecdt(:,k) = -dvrtspecdt(:,k) - &
-      (dmp_prof(k) - disspec(:)*diff_prof(k))*vrtspec(:,k) 
-      ! add hyperdiffusion, drag, laplacian(KE) term to div tendency
+      ! flip sign of vort tend.
+      dvrtspecdt(:,k) = -dvrtspecdt(:,k) 
+      ! add laplacian(KE) term to div tendency
       prsgx(:,:,k) = 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
       call grdtospec(prsgx(:,:,k),workspec(:,k))
       ddivspecdt(:,k) = ddivspecdt(:,k) - &
-      (dmp_prof(k) - disspec(:)*diff_prof(k))*divspec(:,k) - &
       (lap(:)/rerth**2)*workspec(:,k)
    enddo
 !$omp end parallel do 
@@ -178,9 +192,6 @@
       prsgx(:,:,k) = &
       -ug(:,:,k)*dvirtempdx(:,:,k)-vg(:,:,k)*dvirtempdy(:,:,k)-vadvq(:,:,k)
       call grdtospec(prsgx(:,:,k), dtracerspecdt(:,k,nt))
-      ! add hyper-diffusion.
-      dtracerspecdt(:,k,nt) = dtracerspecdt(:,k,nt) + &
-      disspec(:)*diff_prof(k)*tracerspec(:,k,nt)
    enddo
 !$omp end parallel do 
    enddo
@@ -472,7 +483,7 @@
             if (datag_d(i,j,k) .ne. 0.) rrk1m = datag_d(i,j,k+1)/datag_d(i,j,k)
             phkp1m = (rrk1m+abs(rrk1m))/(1.+abs(rrk1m))
             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
-                                phkp*(datag_half(i,j,k)-datag(i,j,nlevs-k))
+                                phkp1m*(datag_half(i,j,k)-datag(i,j,nlevs-k))
          endif
       enddo
       enddo
@@ -481,7 +492,7 @@
 
 !$omp parallel do private(k)
    do k=1,nlevs
-      vadv(:,:,nlevs+1-k) = -(1./dpk(:,:,k))*(&
+      vadv(:,:,nlevs+1-k) = (1./dpk(:,:,k))*(&
       (datag_half(:,:,k)*etadot(:,:,k+1) - datag_half(:,:,k-1)*etadot(:,:,k))+&
       (datag(:,:,nlevs+1-k)*(etadot(:,:,k)-etadot(:,:,k+1))))
    enddo
