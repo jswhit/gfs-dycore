@@ -5,7 +5,7 @@ module run_mod
 ! data at specified intervals).
 use kinds, only: r_kind
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac
+  heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx
@@ -56,6 +56,8 @@ subroutine run()
 8999    format('sig.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename)
         call wrtout_sig(t/3600.,filename)
+        ! write out boundary and flux files if using gfs physics.
+        if (.not. heldsuarez .and. .not. jablowill) then
         write(filename,9000) int(fh)
 9000    format('sfc.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename)
@@ -64,6 +66,7 @@ subroutine run()
 9001    format('flx.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename)
         call wrtout_flx(t/3600.,ta,filename)
+        endif
      end if
      write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),t2-t1
 9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', cpu time = ',f0.3)
