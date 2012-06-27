@@ -293,38 +293,38 @@ grrad.o:	grrad.f
 progtm_module.o:	progtm_module.f
 		$(F77) $(FFLAGM) -c progtm_module.f
 
-machine.o:	kinds.f90 machine.f
+machine.o:	machine.f kinds.o
 		$(F77) $(FFLAGM)  -c machine.f
 
 mpi_quit.o:	mpi_quit.f90
 		$(F90) $(FFLAG90)  -c mpi_quit.f90
 
-kinds.o:	kinds.f90
-		$(F90) $(FFLAG90) -c kinds.f90
+kinds.o:	../kinds.f90
+		$(F90) $(FFLAG90) -c ../kinds.f90
 
 #
 # *****************************************************************
 #
-physcons.o:	physcons.f90
-		$(F90) $(FFLAG90) -c physcons.f90
+physcons.o:	../physcons.f90
+		$(F90) $(FFLAG90) -c ../physcons.f90
 
-phy_data.o:	phy_data.f90
-		$(F90) $(FFLAG90) -c phy_data.f90
+phy_data.o:	../phy_data.f90
+		$(F90) $(FFLAG90) -c ../phy_data.f90
 
-params.o:	params.f90
-		$(F90) $(FFLAG90) -c params.f90
+params.o:	../params.f90
+		$(F90) $(FFLAG90) -c ../params.f90
 
-funcphys.o:	funcphys.f90
-		$(F90) $(FFLAG90) -c funcphys.f90
+funcphys.o:	../funcphys.f90
+		$(F90) $(FFLAG90) -c ../funcphys.f90
 
-sigio_module.o:	sigio_module.f90
-		$(F77) $(FFLAG90) -c sigio_module.f90
+sigio_module.o:	../sigio_module.f90
+		$(F77) $(FFLAG90) -c ../sigio_module.f90
 
-sfcio_module.o:	sfcio_module.f90
-		$(F77) $(FFLAG90) -c sfcio_module.f90
+sfcio_module.o:	../sfcio_module.f90
+		$(F77) $(FFLAG90) -c ../sfcio_module.f90
 
-shtns.o:	shtns.f90
-		$(F77) $(FFLAG90) -c shtns.f90
+shtns.o:	../shtns.f90
+		$(F77) $(FFLAG90) -c ../shtns.f90
 
 nstio_module.o:	 nstio_module.f
 		$(F77) $(FFLAG90) -c nstio_module.f
