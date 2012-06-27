@@ -69,6 +69,14 @@ clean:
 	ln -fs phy_finalize_gfs.f90 phy_finalize.f90
 	ln -fs phy_run_gfs.f90 phy_run.f90
 
+# uncomment this for Held-Suarez test
+#clean:
+#	rm -f $(OBJS) *.mod *genmod* $(EXEC)
+#	ln -fs phy_init_stub.f90 phy_init.f90
+#	ln -fs phy_data_gfs.f90 phy_data.f90
+#	ln -fs phy_finalize_stub.f90 phy_finalize.f90
+#	ln -fs phy_run_hs.f90 phy_run.f90
+
 .f90.o:
 	$(FC) $(FFLAGS) -c $< 
 
