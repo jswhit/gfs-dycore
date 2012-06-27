@@ -331,9 +331,6 @@
    clstp=1.0 ! legacy parameter, not used
 ! hour of day at end of previous time step.
    solhr = mod(fhour + idate_start(1), 24.0) 
-   !print *,'fhour,solhr=',fhour,solhr
-   !print *,'min/max swh',minval(swh),maxval(swh)
-   !print *,'min/max hlw',minval(hlw),maxval(hlw)
 ! interpolate oz forcing to model latitudes, day of year.
    ozplout = 0.
    if (ntoz .gt. 0) then
@@ -391,10 +388,6 @@
       hprime_tmp(:) = hprime(i,j,:)
       swh_tmp(:) = swh(i,j,:); hlw_tmp(:) = hlw(i,j,:)
       slc_tmp(:) = slc(i,j,:); smc_tmp(:) = smc(i,j,:); stc_tmp(:) = stc(i,j,:)
-      !print *,lons(i,j),lats(i,j)
-      !do k=1,nlevs
-      !   print *,k,vvel(k),prsl(k),gt(k),gq(k,1)
-      !enddo
 ! call GFS physics driver
       call gbphys                                                       &
 !  ---  inputs:
@@ -493,10 +486,6 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
-     !do k=1,nlevs
-     !   print *,k,adt(k)-gt(k),adu(k)-gu(k),adq(k,1)-gq(k,1)
-     !enddo
-     !stop
      ! convert sensible temp back to virt temp.
      ! (clip humidity in conversion)
      do k=1,nlevs
