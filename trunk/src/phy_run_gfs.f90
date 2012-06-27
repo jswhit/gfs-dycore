@@ -453,6 +453,7 @@
             slc_tmp,smc_tmp,stc_tmp,                                    &
             upd_mf, dwn_mf, det_mf, dkh, rnp,                           &
             phy3d,phy2d,                                                &
+! nst and coupled ocean components not implemented.
 !           DLWSFC_cc(i,j),  ULWSFC_cc(i,j),                            &
 !           DTSFC_cc(i,j),   SWSFC_cc(i,j),                             &
 !           DUSFC_cc(i,j),   DVSFC_cc(i,j),                             &
