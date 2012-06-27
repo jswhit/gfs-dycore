@@ -260,7 +260,7 @@
        endif
        fluxr_tmp(:) = fluxr(i,j,:)
 ! call GFS radiation driver
-       call grrad                                                    &
+       call grrad                                                   &
 !  ---  inputs:
        ( prsi,prsl,prslk,gt,gq(:,1),gq,vvel,slmsk(i,j),             &
          lons(i,j),lats(i,j),tsea(i,j),                             &
@@ -277,14 +277,14 @@
          icsdsw,icsdlw,NUM_P3D,NTCLW,NCLD,NTOZ,NTRAC,NFXR,          &
          dtlw,dtsw,lsswr,lslwr,lssav,sas_shal,norad_precip,         &
          crick_proof, ccnorm,                                       &
-         1,1,nlevs,1,0,.false.,1,1,                                  &
+         1,1,nlevs,1,0,.false.,1,1,                                 &
 !  ---  outputs:
          swh_tmp,sfcnsw(i,j),sfcdsw(i,j),                           &
          sfalb(i,j),                                                &
          hlw_tmp,sfcdlw(i,j),tsflw(i,j),                            &
          sfcemis(i,j),cldcov_tmp,                                   &
 !  ---  input/output:
-        fluxr_tmp                                                  &
+        fluxr_tmp                                                   &
        )
        ! avoid array temporaries by using these instead
        ! of passing non-contiguous slices.
@@ -396,102 +396,102 @@
       !   print *,k,vvel(k),prsl(k),gt(k),gq(k,1)
       !enddo
 ! call GFS physics driver
-      call gbphys                                                 &
+      call gbphys                                                       &
 !  ---  inputs:
-     &    ( 1,1,nlevs,lsoil,1,ntrac,ncld,ntoz,ntclw,            &
-     &      nmtvr,nnrcm,levozp,nlons,nlats,ntrunc,num_p3d,num_p2d,          &
-     &      nstep,1,0,pl_coeff,ilons,ncw,flgmin,crtrh,cdmbgwd,       &
-     &      ccwf,dlqf,ctei_rm,clstp,dtx,dtx,fhour,solhr,                &
-     &      slag,sdec,cdec,sin(lats(i,j)),cos(lats(i,j)),psg(i,j),gu,gv, &
-     &      gt,gq,vvel,prsi,prsl,prslk,prsik,phii,phil,                 &
-     &      rann,ozp,pl_pres,dpshc,                    &
-     &      hprime_tmp,lons(i,j),lats(i,j),                      &
-     &      slope (i,j),    shdmin(i,j),        &
-     &      shdmax(i,j),    snoalb(i,j),        &
-     &      tg3   (i,j),    slmsk (i,j),        &
-     &      vfrac (i,j),    vtype (i,j),        &
-     &      stype (i,j),    uustar(i,j),        &
-     &      oro   (i,j),    oro_uf(i,j),        &   
-     &      coszen(i,j),                                    &
-     &      sfcdsw(i,j),    sfcnsw(i,j),        &
-     &      sfcdlw(i,j),    tsflw (i,j),        &
-     &      sfcemis(i,j),   sfalb(i,j),                 &
-     &      swh_tmp,     hlw_tmp,                   &
-     &      ras,pre_rad,ldiag3d,lggfs3d,lssav,lssav_cc,                 &
-     &      bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,psautco,prautco, evpco, &
-     &      wminco,                                                     &
-     &      flipv,old_monin,cnvgwd,shal_cnv,sashal,newsas,cal_pre,      &
-     &      mom4ice,mstrat,trans_trac,nst_fcst,moist_adj,fscav,         &
-!    &      thermodyn_id, sfcpress_id, gen_coord_hybrid,                &
-     &      0,  0, .false.,                &
+          ( 1,1,nlevs,lsoil,1,ntrac,ncld,ntoz,ntclw,                    &
+            nmtvr,nnrcm,levozp,nlons,nlats,ntrunc,num_p3d,num_p2d,      &
+            nstep,1,0,pl_coeff,ilons,ncw,flgmin,crtrh,cdmbgwd,          &
+            ccwf,dlqf,ctei_rm,clstp,dtx,dtx,fhour,solhr,                &
+            slag,sdec,cdec,sin(lats(i,j)),cos(lats(i,j)),psg(i,j),gu,gv,&
+            gt,gq,vvel,prsi,prsl,prslk,prsik,phii,phil,                 &
+            rann,ozp,pl_pres,dpshc,                                     &
+            hprime_tmp,lons(i,j),lats(i,j),                             &
+            slope (i,j),    shdmin(i,j),                                &
+            shdmax(i,j),    snoalb(i,j),                                &
+            tg3   (i,j),    slmsk (i,j),                                &
+            vfrac (i,j),    vtype (i,j),                                &
+            stype (i,j),    uustar(i,j),                                &
+            oro   (i,j),    oro_uf(i,j),                                &   
+            coszen(i,j),                                                &
+            sfcdsw(i,j),    sfcnsw(i,j),                                &
+            sfcdlw(i,j),    tsflw (i,j),                                &
+            sfcemis(i,j),   sfalb(i,j),                                 &
+            swh_tmp,     hlw_tmp,                                       &
+            ras,pre_rad,ldiag3d,lggfs3d,lssav,lssav_cc,                 &
+            bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,psautco,prautco, evpco, &
+            wminco,                                                     &
+            flipv,old_monin,cnvgwd,shal_cnv,sashal,newsas,cal_pre,      &
+            mom4ice,mstrat,trans_trac,nst_fcst,moist_adj,fscav,         &
+!           thermodyn_id, sfcpress_id, gen_coord_hybrid,                &
+            0,  0, .false.,                                             &
 !  ---  input/outputs:
-     &      hice  (i,j),    fice  (i,j),        &
-     &      tisfc (i,j),    tsea  (i,j),        &
-     &      tprcp (i,j),    cv    (i,j),        &
-     &      cvb   (i,j),    cvt   (i,j),        &
-     &      srflag(i,j),    snwdph(i,j),        &
-     &      sheleg(i,j),    sncovr(i,j),        &
-     &      zorl  (i,j),    canopy(i,j),        &
-     &      ffmm  (i,j),    ffhh  (i,j),        &
-     &      f10m  (i,j),    srunoff(i,j),       &
-     &      evbsa (i,j),    evcwa (i,j),        &
-     &      snohfa(i,j),    transa(i,j),        &
-     &      sbsnoa(i,j),    snowca(i,j),        &
-     &      soilm (i,j),    tmpmin(i,j),        &
-     &      tmpmax(i,j),    dusfc (i,j),        &
-     &      dvsfc (i,j),    dtsfc (i,j),        &
-     &      dqsfc (i,j),    geshem(i,j),        &
-     &      gflux (i,j),    dlwsfc(i,j),        & 
-     &      ulwsfc(i,j),    suntim(i,j),        &
-     &      runoff(i,j),    ep    (i,j),        &
-     &      cldwrk(i,j),    dugwd (i,j),        &
-     &      dvgwd (i,j),    psmean(i,j),        &
-     &      bengsh(i,j),    spfhmin(i,j),       &
-     &      spfhmax(i,j),                                   &
-     &      dt3dt, dq3dt, du3dt, dv3dt,                         &
-     &      acv, acvb, acvt,                 &
-     &      slc_tmp,smc_tmp,stc_tmp,                           &
-     &      upd_mf, dwn_mf, det_mf, dkh, rnp,                 &
-     &      phy3d,phy2d,                                        &
-!    &      DLWSFC_cc(i,j),  ULWSFC_cc(i,j),                    &
-!    &      DTSFC_cc(i,j),   SWSFC_cc(i,j),                     &
-!    &      DUSFC_cc(i,j),   DVSFC_cc(i,j),                     &
-!    &      DQSFC_cc(i,j),   PRECR_cc(i,j),                     &
-!    &      nst_fld%xt(i,j),        nst_fld%xs(i,j),            &
-!    &      nst_fld%xu(i,j),        nst_fld%xv(i,j),            &
-!    &      nst_fld%xz(i,j),        nst_fld%zm(i,j),            &
-!    &      nst_fld%xtts(i,j),      nst_fld%xzts(i,j),          &
-!    &      nst_fld%d_conv(i,j),    nst_fld%ifd(i,j),           &
-!    &      nst_fld%dt_cool(i,j),   nst_fld%Qrain(i,j),         &
-     &      dum1,dum1,dum1,dum1,dum1,&
-     &      dum1,dum1,dum1,dum1,dum1,&
-     &      dum1,dum1,dum1,dum1,dum1,&
-     &      dum1,dum1,dum1,dum1,dum1,&
-!  ---  outputs:
-     &      adt, adq, adu, adv,                                         &
-     &      t2m   (i,j),    q2m   (i,j),        &
-     &      u10m  (i,j),    v10m  (i,j),        &
-     &      zlvl  (i,j),    psurf (i,j),        &
-     &      hpbl  (i,j),    pwat  (i,j),        &
-     &      t1    (i,j),    q1    (i,j),        &
-     &      u1    (i,j),    v1    (i,j),        &
-     &      chh   (i,j),    cmm   (i,j),        &
-     &      dlwsfci(i,j),   ulwsfci(i,j),       &
-     &      dswsfci(i,j),   uswsfci(i,j),       &
-     &      dtsfci(i,j),    dqsfci(i,j),        &
-     &      gfluxi(i,j),    epi   (i,j),        &
-     &      smcwlt2(i,j),   smcref2(i,j),       &
-     &      gsoil(i,j),     gtmp2m(i,j),        &
-     &      gustar(i,j),    gpblh(i,j),         &
-     &      gu10m(i,j),     gv10m(i,j),         &
-     &      gzorl(i,j),     goro(i,j),          &
-!    &      XMU_cc(i,j), DLW_cc(i,j), DSW_cc(i,j),          &
-!    &      SNW_cc(i,j), LPREC_cc(i,j),                         &
-!    &      nst_fld%Tref(i,j),       nst_fld%z_c(i,j),          &
-!    &      nst_fld%c_0 (i,j),       nst_fld%c_d(i,j),          &
-!    &      nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),          &
-!    &      rqtk)
-     &      dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
+            hice  (i,j),    fice  (i,j),                                &
+            tisfc (i,j),    tsea  (i,j),                                &
+            tprcp (i,j),    cv    (i,j),                                &
+            cvb   (i,j),    cvt   (i,j),                                &
+            srflag(i,j),    snwdph(i,j),                                &
+            sheleg(i,j),    sncovr(i,j),                                &
+            zorl  (i,j),    canopy(i,j),                                &
+            ffmm  (i,j),    ffhh  (i,j),                                &
+            f10m  (i,j),    srunoff(i,j),                               &
+            evbsa (i,j),    evcwa (i,j),                                &
+            snohfa(i,j),    transa(i,j),                                &
+            sbsnoa(i,j),    snowca(i,j),                                &
+            soilm (i,j),    tmpmin(i,j),                                &
+            tmpmax(i,j),    dusfc (i,j),                                &
+            dvsfc (i,j),    dtsfc (i,j),                                &
+            dqsfc (i,j),    geshem(i,j),                                &
+            gflux (i,j),    dlwsfc(i,j),                                & 
+            ulwsfc(i,j),    suntim(i,j),                                &
+            runoff(i,j),    ep    (i,j),                                &
+            cldwrk(i,j),    dugwd (i,j),                                &
+            dvgwd (i,j),    psmean(i,j),                                &
+            bengsh(i,j),    spfhmin(i,j),                               &
+            spfhmax(i,j),                                               &
+            dt3dt, dq3dt, du3dt, dv3dt,                                 &
+            acv, acvb, acvt,                                            &
+            slc_tmp,smc_tmp,stc_tmp,                                    &
+            upd_mf, dwn_mf, det_mf, dkh, rnp,                           &
+            phy3d,phy2d,                                                &
+!           DLWSFC_cc(i,j),  ULWSFC_cc(i,j),                            &
+!           DTSFC_cc(i,j),   SWSFC_cc(i,j),                             &
+!           DUSFC_cc(i,j),   DVSFC_cc(i,j),                             &
+!           DQSFC_cc(i,j),   PRECR_cc(i,j),                             &
+!           nst_fld%xt(i,j),        nst_fld%xs(i,j),                    &
+!           nst_fld%xu(i,j),        nst_fld%xv(i,j),                    &
+!           nst_fld%xz(i,j),        nst_fld%zm(i,j),                    &
+!           nst_fld%xtts(i,j),      nst_fld%xzts(i,j),                  &
+!           nst_fld%d_conv(i,j),    nst_fld%ifd(i,j),                   &
+!           nst_fld%dt_cool(i,j),   nst_fld%Qrain(i,j),                 &
+            dum1,dum1,dum1,dum1,dum1,                                   &
+            dum1,dum1,dum1,dum1,dum1,                                   &
+            dum1,dum1,dum1,dum1,dum1,                                   &
+            dum1,dum1,dum1,dum1,dum1,                                   &
+!  --   outputs:
+            adt, adq, adu, adv,                                         &
+            t2m   (i,j),    q2m   (i,j),                                &
+            u10m  (i,j),    v10m  (i,j),                                &
+            zlvl  (i,j),    psurf (i,j),                                &
+            hpbl  (i,j),    pwat  (i,j),                                &
+            t1    (i,j),    q1    (i,j),                                &
+            u1    (i,j),    v1    (i,j),                                &
+            chh   (i,j),    cmm   (i,j),                                &
+            dlwsfci(i,j),   ulwsfci(i,j),                               &
+            dswsfci(i,j),   uswsfci(i,j),                               &
+            dtsfci(i,j),    dqsfci(i,j),                                &
+            gfluxi(i,j),    epi   (i,j),                                &
+            smcwlt2(i,j),   smcref2(i,j),                               &
+            gsoil(i,j),     gtmp2m(i,j),                                &
+            gustar(i,j),    gpblh(i,j),                                 &
+            gu10m(i,j),     gv10m(i,j),                                 &
+            gzorl(i,j),     goro(i,j),                                  &
+!           XMU_cc(i,j), DLW_cc(i,j), DSW_cc(i,j),                      &
+!           SNW_cc(i,j), LPREC_cc(i,j),                                 &
+!           nst_fld%Tref(i,j),       nst_fld%z_c(i,j),                  &
+!           nst_fld%c_0 (i,j),       nst_fld%c_d(i,j),                  &
+!           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
+!           rqtk)
+            dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
      !do k=1,nlevs
      !   print *,k,adt(k)-gt(k),adu(k)-gu(k),adq(k,1)-gq(k,1)
      !enddo
