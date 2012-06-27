@@ -56,7 +56,7 @@
    real(r_kind) kappa,delta
    integer k,nt
 
-   ! should tendencies be computed, or just spectrail -> grid?
+   ! should tendencies be computed, or just spectral -> grid?
    if (present(just_do_inverse_transform)) then
      early_return = .true.
    else
