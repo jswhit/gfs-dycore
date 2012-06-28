@@ -18,22 +18,21 @@ OPTS_SERM=$(OPTSBT) $(ARCHM)
 OPTS90M=$(OPTSBT)  $(FRRM)
 OPTS90AM=$(OPTSBT) $(FRRM)
  
-FRR 	 = $(FRRM)
 OPTS     = $(OPTSM)
 OPTS_SER = $(OPTS_SERM)
 OPTS90   = $(OPTS90M)
 OPTS90A  = $(OPTS90AM)
 OPTSIO	 = $(OPTSIOM)
-FFLAG90  = $(OPTS90) $(FRR)
-FFLAG90A = $(OPTS90A) $(FRR)
+FFLAG90  = $(OPTS90) 
+FFLAG90A = $(OPTS90A) 
 FFLAGS   = $(OPTS) $(TRAPS)  
 FFLAGX   = $(OPTS) $(TRAPS) 
 FFLAGIO  = $(OPTSIO) $(TRAPS) 
 FFLAGY   = $(OPTS) 
 FFLAGM   = $(OPTS) $(TRAPS) $(DEBUG)  
-FFLAGM3  = $(OPTS) $(TRAPS) $(DEBUG) $(FRR)
-FFLAGSF  = $(OPTSBT) $(FRR) 
-FFLAGSI  = $(OPTSBT) $(FRR)
+FFLAGM3  = $(OPTS) $(TRAPS) $(DEBUG) $(FRRM)
+FFLAGSF  = $(OPTSBT) $(FRRM) 
+FFLAGSI  = $(OPTSBT) $(FRRM)
 FFLAGB   = $(OPTSBT) 
 FFLAG_SER = $(OPTS_SER) $(DOUBLEFLAG) $(TRAPS) $(DEBUG) 
 FFLAGSC   =
@@ -64,7 +63,7 @@ OBJ_MOD	= kinds.o             \
 	  progtm_module.o       \
 	  rascnvv2.o            \
 	  mersenne_twister.o    \
-	  tracer_const_h-new.o  \
+	  tracer_const_h-new.o \
 	  module_bfmicrophysics.o  
 
 
