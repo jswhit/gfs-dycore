@@ -63,18 +63,16 @@
       forcingg(:,:,k)=(krada+(kradb-krada)*blprof(:,:,k)*cos(lats)**4)*&
                       (radequiltemp(:,:,k)-virtempg(:,:,k))
       call grdtospec(forcingg(:,:,k), forcingspec(:,k))
-      !dvirtempspecdt(:,k) = dvirtempspecdt(:,k) + forcingspec(:,k)
       dvirtempspecdt(:,k) = forcingspec(:,k)
       forcingg(:,:,k) = -(blprof(:,:,k)*kdrag)*vrtg(:,:,k)
       call grdtospec(forcingg(:,:,k), forcingspec(:,k))
-      !dvrtspecdt(:,k) = dvrtspecdt(:,k) + forcingspec(:,k)
       dvrtspecdt(:,k) = forcingspec(:,k)
       forcingg(:,:,k) = -(blprof(:,:,k)*kdrag)*divg(:,:,k)
       call grdtospec(forcingg(:,:,k), forcingspec(:,k))
-      !ddivspecdt(:,k) = ddivspecdt(:,k) + forcingspec(:,k)
       ddivspecdt(:,k) = forcingspec(:,k)
    enddo
 !$omp end parallel do 
+   dlnpsspecdt = 0.
 
    deallocate(blprof,radequiltemp)
    deallocate(forcingg,forcingspec)
