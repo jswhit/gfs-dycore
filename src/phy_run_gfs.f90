@@ -42,7 +42,7 @@
     runoff,    ep    ,        &
     cldwrk,    dugwd ,        &
     dvgwd ,    psmean,        &
-    bengsh,    spfhmin,  spfhmax,      &
+    spfhmin,  spfhmax,        &
     t2m   ,    q2m   ,        &
     u10m  ,    v10m  ,        &
     zlvl  ,    psurf ,        &
@@ -58,7 +58,8 @@
     gsoil,     gtmp2m,        &
     gustar,    gpblh,         &
     gu10m,     gv10m,         &
-    gzorl,     goro          
+    gzorl,     goro,          &
+    bengsh
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
                grav => con_g
@@ -195,10 +196,10 @@
 !
    call astronomy                                                    &
 !  ---  inputs:
-       ( nlons, nlats, lons, lats,                                  &
-         fhswr, jdat, lsswr,                                        &
+       ( nlons, nlats, lons, lats,                                   &
+         fhswr, jdat, lsswr,                                         &
 !  ---  outputs:
-         solcon, slag, sdec, cdec, coszen, coszdg                   &
+         solcon, slag, sdec, cdec, coszen, coszdg                    &
         )
 !
 !===> *** ...  generate 2-d random seeds array for sub-grid cloud-radiation
@@ -230,7 +231,7 @@
    tstart = count*1.d0/count_rate
 !$omp parallel do private(n,k,nt,i,j,prslk,f_ice,f_rain,&
 !$omp& r_rime,prsi,prsl,gt,gq,vvel,icsdsw,icsdlw,fluxr_tmp,&
-!$omp& swh_tmp,hlw_tmp,cldcov_tmp) 
+!$omp& swh_tmp,hlw_tmp,cldcov_tmp) schedule(dynamic)
    do n=1,nlons*nlats
        ! n=i+(j-1)*nlons
        j = 1+(n-1)/nlons
@@ -352,7 +353,7 @@
 !$omp& phy3d,phy2d,hlw_tmp,swh_tmp,hprime_tmp,&
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
 !$omp& acv,acvt,acvb,rqtk,&
-!$omp& dt3dt,dq3dt,du3dt,dv3dt) 
+!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic)
    do n=1,nlons*nlats
       ! n=i+(j-1)*nlons
       j = 1+(n-1)/nlons
