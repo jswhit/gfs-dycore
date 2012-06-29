@@ -2189,10 +2189,13 @@
           enddo
         enddo
 
+        call cnvc90(clstp, im,   ix,   rainc, kbot, ktop, levs, prsi,   &
+     &              acv,   acvb, acvt, cv,    cvb,  cvt)
+
       endif   ! end if_ntcw
 
-      call cnvc90(clstp, im,   ix,   rainc, kbot, ktop, levs, prsi,     &
-     &            acv,   acvb, acvt, cv,    cvb,  cvt)
+!     call cnvc90(clstp, im,   ix,   rainc, kbot, ktop, levs, prsi,     &
+!    &           acv,   acvb, acvt, cv,    cvb,  cvt)
 
       if (ncld == 0) then
 
