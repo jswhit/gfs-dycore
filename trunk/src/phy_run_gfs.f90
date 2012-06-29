@@ -376,12 +376,13 @@
       prsl(:) = prs(i,j,:)
       prslk = prsl**rk
       prsik = prsi**rk
-      phii(1) = 0. ! topographic height not included
-      do k=1,nlevs
-         dphi = (prsi(k)-prsi(k+1))*(rd*virtempg(i,j,k))/(prsi(k) + prsi(k+1))
-         phil(k) = phii(k) + dphi
-         phii(k+1) = phil(k) + dphi
-      enddo
+      phil(nlevs) = 0. ! will be recomputed in gbphys
+      !phii(1) = 0. ! topographic height not included
+      !do k=1,nlevs
+      !   dphi = (prsi(k)-prsi(k+1))*(rd*virtempg(i,j,k))/(prsi(k) + prsi(k+1))
+      !   phil(k) = phii(k) + dphi
+      !   phii(k+1) = phil(k) + dphi
+      !enddo
       ozp(:,:) = ozplout(:,j,:)
       dpshc(1)     = 0.3  * prsi(1)
       phy3d(:,:) = phy_f3d(i,j,:,:)
