@@ -38,10 +38,11 @@
 !   subprograms called:
 !     tridim_hyb   - tridiagonal matrix solver
 !
-      use kinds, only: r_kind
+      use kinds, only: r_kind,r_double
       implicit none
       integer,intent(in):: im,km,nm
-      real(r_kind),intent(in):: dt,zint(im,km+1),zdot(im,km+1)
+      real(r_double),intent(in) :: dt
+      real(r_kind),intent(in):: zint(im,km+1),zdot(im,km+1)
       real(r_kind),intent(inout):: zadv(im,km,nm)
       integer :: nvcn
       real(r_kind) :: xvcn

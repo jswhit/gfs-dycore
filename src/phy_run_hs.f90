@@ -25,7 +25,7 @@
    dvrtspecdt,ddivspecdt,dvirtempspecdt
    complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
    dtracerspecdt
-   real(r_kind), intent(in) :: t,dt
+   real(r_double), intent(in) :: t,dt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind) p0,sigbot,tempstrat,delthz,deltmp,&
                 kdrag,krada,kradb

@@ -9,8 +9,8 @@
  ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
- psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw
- use kinds, only: r_kind,r_single
+ timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw
+ use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, getvrtdivspec, lons, lats
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use pressure_data, only:  prs,psg,pk,ak,bk
@@ -20,7 +20,7 @@
     alnsf,alvwf,alnwf,facsf,facwf,fice,tisfc,coszen,cv,cvt,cvb,sfcemis,&
     sfcnsw,sfcdsw,sfalb,sfcdlw,tsflw,slc,smc,stc,slope,shdmin,shdmax, &
     vfrac,tg3,stype,vtype,oro,oro_uf,uustar,phy_f3d,phy_f2d,&
-    fluxr,hlw,swh, &
+    cldcov,fluxr,hlw,swh, &
     hice  ,    fice  ,        &
     tisfc ,    tsea  ,        &
     tprcp ,    cv    ,        &
@@ -81,7 +81,8 @@
    dvrtspecdt,ddivspecdt,dvirtempspecdt
    complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
    dtracerspecdt
-   real(r_kind), intent(in) :: t,dtx
+   real(r_double), intent(in) :: t,dtx
+   real(r_kind) dtp
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind), parameter :: qmin = 1.e-10 ! min value for clipping tracers
    real(r_kind), parameter :: typical_pgr = 95000.0
@@ -99,7 +100,6 @@
    integer :: icsdsw(1),icsdlw(1),ilons(1), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
    real(r_kind), allocatable, dimension(:,:,:) :: ozplout,dtdt,dudt,dvdt
-   !real(r_kind), allocatable, dimension(:,:,:) :: cldcov
    real(4), allocatable, dimension(:,:,:) :: work4
    real(r_kind), allocatable, dimension(:,:,:,:) :: dtracersdt
    logical :: sas_shal ! sas shallow convection.
@@ -127,21 +127,21 @@
 
    rk = rd/cp
    delta = cvap/cp-1. ! used for virt temp to sensible temp computation
+   dtp = dtx
 
    allocate(ozplout(levozp,nlats,pl_coeff))
    allocate(coszdg(nlons,nlats))
-   !allocate(cldcov(nlons,nlats,nlevs)) ! clouds diagnosed by grrad (diagnostic)
    allocate(dtdt(nlons,nlats,nlevs),dudt(nlons,nlats,nlevs),dvdt(nlons,nlats,nlevs))
    allocate(dtracersdt(nlons,nlats,nlevs,ntrac))
    allocate(dpsdt(nlons,nlats))
 
 ! is it a radiation time step (long or short wave)?
    fhour = t/3600.
-   nswr = int(fhswr*3600./dt)
-   nlwr = int(fhlwr*3600./dt)
-   nszer = int(fhzer*3600./dt)
+   nswr = int(fhswr*timestepsperhr)
+   nlwr = int(fhlwr*timestepsperhr)
+   nszer = int(fhzer*timestepsperhr)
    if (t > 0) then
-      nstep = int(t/dt)
+      nstep = nint(t/dt)
       lsswr = mod(nstep,nswr) .eq. 0
       lslwr = mod(nstep,nlwr) .eq. 0
       lszer = mod(nstep,nszer) .eq. 0
@@ -292,7 +292,8 @@
        hlw(i,j,:) = hlw_tmp(:)
        swh(i,j,:) = swh_tmp(:)
        fluxr(i,j,:) = fluxr_tmp(:)
-       !cldcov(i,j,:) = cldcov_tmp(:)
+       ! diagnosed 3d cloud fraction.
+       cldcov(i,j,:) = cldcov_tmp(:)
 
    enddo ! loop over horiz grid points
 !$omp end parallel do 
@@ -396,7 +397,7 @@
           ( 1,1,nlevs,lsoil,1,ntrac,ncld,ntoz,ntclw,                    &
             nmtvr,nnrcm,levozp,nlons,nlats,ntrunc,num_p3d,num_p2d,      &
             nstep,1,0,pl_coeff,ilons,ncw,flgmin,crtrh,cdmbgwd,          &
-            ccwf,dlqf,ctei_rm,clstp,dtx,dtx,fhour,solhr,                &
+            ccwf,dlqf,ctei_rm,clstp,dtp,dtp,fhour,solhr,                &
             slag,sdec,cdec,sin(lats(i,j)),cos(lats(i,j)),psg(i,j),gu,gv,&
             gt,gq,vvel,prsi,prsl,prslk,prsik,phii,phil,                 &
             rann,ozp,pl_pres,dpshc,                                     &
@@ -578,7 +579,6 @@
 
    deallocate(ozplout)
    deallocate(coszdg)
-   !deallocate(cldcov)
    deallocate(dtdt,dudt,dvdt)
    deallocate(dtracersdt)
    deallocate(dpsdt)

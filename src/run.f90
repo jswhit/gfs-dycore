@@ -3,9 +3,10 @@ module run_mod
 ! Public subroutines:
 ! run: main time step loop (advances model state, writes out
 ! data at specified intervals).
-use kinds, only: r_kind
+use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac
+  heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
+  postphys
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx
@@ -23,7 +24,8 @@ subroutine run()
   use omp_lib, only: omp_get_num_threads, omp_get_thread_num
   implicit none
   integer nt,my_id
-  real(r_kind) t,fh,ta,fha
+  real(r_kind) fh,fha
+  real(r_double) ta,t
   real(8) t1,t2
   real(r_kind), dimension(nlons,nlats,nlevs) :: spd
   integer(8) count, count_rate, count_max
@@ -55,17 +57,17 @@ subroutine run()
         write(filename,8999) int(fh)
 8999    format('sig.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename)
-        call wrtout_sig(t/3600.,filename)
+        call wrtout_sig(fh,filename)
         ! write out boundary and flux files if using gfs physics.
         if (.not. heldsuarez .and. .not. jablowill) then
         write(filename,9000) int(fh)
 9000    format('sfc.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename)
-        call wrtout_sfc(t/3600.,filename)
+        call wrtout_sfc(fh,filename)
         write(filename,9001) int(fh)
 9001    format('flx.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename)
-        call wrtout_flx(t/3600.,ta,filename)
+        call wrtout_flx(fh,ta,filename)
         endif
      end if
      write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),t2-t1
@@ -84,7 +86,7 @@ subroutine advance(t)
 ! semi-implicit runge-kutta scheme described by
 ! Kar (2006, http://journals.ametsoc.org/doi/pdf/10.1175/MWR3214.1)
 ! instead of semi-lmplicit assellin-filtered leap-frog.
-  real(r_kind), intent(in) :: t
+  real(r_double), intent(in) :: t
   complex(r_kind),dimension(ndimspec,nlevs) :: &
   vrtspec_save,divspec_save,virtempspec_save
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
@@ -96,8 +98,7 @@ subroutine advance(t)
   dtracerspecdt,dtracerspecdt_phy
   complex(r_kind), dimension(ndimspec) :: dlnpsspecdt,dlnpsspecdt_phy
   integer k, nt, kk
-  real(r_kind) dtx
-  logical :: postphys = .false.
+  real(r_double) dtx
   ! save original fields.
   vrtspec_save = vrtspec
   divspec_save = divspec
@@ -109,12 +110,8 @@ subroutine advance(t)
      dtx = dt/float(3-k)
      ! dynamics tendencies.
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
-     if (.not. explicit) then
-         ! semi-implicit adjustment.
-         call semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
-                        divspec_save,virtempspec_save,lnpsspec_save,k,dtx)
-     endif
      ! compute physics tendencies at beginning, hold constant within RK3 sub time steps.
+     ! (process-split approach)
      if (.not. adiabatic .and. .not. postphys) then
         if (k == 0) then
            call getphytend(dvrtspecdt_phy,ddivspecdt_phy,dvirtempspecdt_phy,dtracerspecdt_phy,dlnpsspecdt_phy,t,dt)
@@ -125,7 +122,14 @@ subroutine advance(t)
         dtracerspecdt = dtracerspecdt + dtracerspecdt_phy
         dlnpsspecdt = dlnpsspecdt + dlnpsspecdt_phy
      endif 
-     ! update
+     ! semi-implicit adjustment includes physics tendencies for process-split
+     ! physics.
+     if (.not. explicit) then
+         ! semi-implicit adjustment.
+         call semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
+                        divspec_save,virtempspec_save,lnpsspec_save,k,dtx)
+     endif
+     ! update for RK3 sub-step.
      vrtspec=vrtspec_save+dtx*dvrtspecdt
      divspec=divspec_save+dtx*ddivspecdt
      virtempspec=virtempspec_save+dtx*dvirtempspecdt
@@ -144,6 +148,7 @@ subroutine advance(t)
       !$omp end parallel do
   enddo
   ! apply physics parameterizations as an adjustment to fields updated by dynamics.
+  ! (time-split approach)
   if (.not. adiabatic .and. postphys) then
      ! update variables on grid.
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,&

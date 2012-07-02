@@ -11,7 +11,7 @@
 ! getvadv: calculate vertical advection terms.
 
  use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac
- use kinds, only: r_kind
+ use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
@@ -55,6 +55,8 @@
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
    real(r_kind) kappa,delta
    integer k,nt
+   real(8) t1,t2,t0
+   integer(8) count, count_rate, count_max
 
    ! should tendencies be computed, or just spectral -> grid?
    if (present(just_do_inverse_transform)) then
@@ -80,6 +82,9 @@
 
    ! compute u,v,virt temp, vorticity, divergence, ln(ps)
    ! and specific humidity on grid from spectral coefficients.
+   call system_clock(count, count_rate, count_max)
+   t1 = count*1.d0/count_rate
+   t0=t1
 !$omp parallel do private(k)
    do k=1,nlevs
       call getuv(vrtspec(:,k),divspec(:,k),ug(:,:,k),vg(:,:,k),rerth)
@@ -95,6 +100,9 @@
       enddo
    enddo
 !$omp end parallel do 
+   call system_clock(count, count_rate, count_max)
+   t2 = count*1.d0/count_rate
+   !print *,'1 time=',t2-t1
    ! lnps on grid.
    call spectogrd(lnpsspec, lnpsg)
    ! gradient of surface pressure.
@@ -155,6 +163,9 @@
       enddo
       !$omp end parallel do 
    endif
+   call system_clock(count, count_rate, count_max)
+   t1 = count*1.d0/count_rate
+   !print *,'2 time=',t1-t2
    ! compute tendencies of virt temp, ort and div in spectral space
 !$omp parallel do private(k)
    do k=1,nlevs
@@ -179,6 +190,9 @@
       (lap(:)/rerth**2)*workspec(:,k)
    enddo
 !$omp end parallel do 
+   call system_clock(count, count_rate, count_max)
+   t2 = count*1.d0/count_rate
+   !print *,'3 time=',t2-t1
    ! compute tendency of tracers (including specific humidity) in spectral space.
    do nt=1,ntrac
    ! use positive-definite vertical advection.
@@ -195,6 +209,9 @@
    enddo
 !$omp end parallel do 
    enddo
+   call system_clock(count, count_rate, count_max)
+   t1 = count*1.d0/count_rate
+   !print *,'4 time=',t1-t2,t1-t0
 
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
@@ -213,7 +230,7 @@
    complex(r_kind), intent(in), dimension(ndimspec,nlevs) :: &
    divspec_prev,virtempspec_prev
    complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
-   real(r_kind),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
+   real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
    complex(r_kind), dimension(ndimspec,nlevs) :: &
    divspec_new,virtempspec_new,espec,fspec
    complex(r_kind), dimension(ndimspec) :: lnpsspec_new,gspec

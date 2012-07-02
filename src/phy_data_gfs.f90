@@ -67,6 +67,7 @@ module phy_data
  real(r_kind),allocatable,public, dimension(:,:,:,:) :: phy_f3d !micro-physics 3d parameters
  real(r_kind),allocatable,public, dimension(:,:,:)   :: phy_f2d !micro-physics 2d parameters
  real(r_kind),allocatable,public, dimension(:) :: pl_lat,pl_pres,pl_time,ozddy !ozone lats,press,time
+ real(r_kind),allocatable,public, dimension(:,:,:) :: cldcov ! 3d cloud fraction
  integer,allocatable,public,dimension(:) :: ozjindx1,ozjindx2 ! indices for lats
  !    solcon        - sun-earth distance adjusted solar constant (w/m2)  
  !    slag          - equation of time in radians                        
@@ -315,6 +316,10 @@ module phy_data
    allocate(phy_f3d(nlons,nlats,nlevs,num_p3d))
    allocate(phy_f2d(nlons,nlats,num_p2d))
    phy_f3d=0; phy_f2d=0
+
+   ! 3d cloud fraction diagnosed by radiation.
+   allocate(cldcov(nlons,nlats,nlevs))
+   cldcov=0.
 
    ! read mtnvar
    allocate(hprime(nlons,nlats,nmtvr))
@@ -936,7 +941,7 @@ module phy_data
      gv10m   , &
      gzorl   , &
      goro    )
-  deallocate(phy_f3d,phy_f2d)
+  deallocate(cldcov,phy_f3d,phy_f2d)
   deallocate(ozjindx1,ozjindx2,ozddy)
   deallocate(hlw,swh,fluxr)
  end subroutine destroy_phydata
@@ -1106,7 +1111,8 @@ module phy_data
 
  subroutine wrtout_flx(fhour,ta,filename)
    implicit none
-   real(r_kind),intent(in) :: fhour,ta
+   real(r_kind),intent(in) :: fhour
+   real(r_double),intent(in) :: ta
    character(len=120),intent(in) :: filename
    integer, parameter :: noflx=7 
    real(r_kind) secswr,seclwr,zhour,fha
