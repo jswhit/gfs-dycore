@@ -127,12 +127,12 @@ module params
  ! timestep, held constant in RK3 sub-steps.  If .true., tendency is applied
  ! after dynamics update as an adjustment (no physics tendencies in RK3
  ! sub-steps).
- ! postphys = .false. is similar to "process-split" physics, postphys=.true.
- ! is "time-split" physics (in the terminology of Williamson (2002): 
+ ! postphys = .false. is similar to "process-split" physics, 
+ ! postphys = .true. is "time-split" physics (in the terminology of Williamson (2002): 
  ! http://journals.ametsoc.org/doi/abs/10.1175/1520-0493%282002%29130%3C2024%3ATSVPSC%3E2.0.CO%3B2).
  ! wrf uses postphys=.false. for everything except microphysics, which 
  ! is applied as an adjustment after the RK3 update (time-split).
- ! The operational GFS uses time split physics.
+ ! The operational GFS uses time-split physics.
  ! time-split physics incurs the small extra cost of computing inverse transforms
  ! at the end of the dynamics time step.
  logical :: postphys = .true. 
