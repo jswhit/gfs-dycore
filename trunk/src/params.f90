@@ -2,7 +2,7 @@ module params
 ! holds model parameters
 ! Public subroutines:
 ! read_namelist: read namelist
- use kinds, only: r_kind
+ use kinds, only: r_kind,r_double
  use sigio_module, only: sigio_head, sigio_srhead, sigio_sropen, sigio_sclose
 
  implicit none
@@ -11,7 +11,7 @@ module params
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
  ntout,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
- ncw,taustratdamp,&
+ postphys,timestepsperhr,ncw,taustratdamp,&
 ! gfs phys parameters.
  nmtvr,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
@@ -24,7 +24,8 @@ module params
  integer            :: fhmax ! hours to run
  integer            :: fhout ! interval for IO
  integer            :: fhzer ! interval to zero accumulated arrays
- real(r_kind)     :: dt    ! time step (secs)
+ real(r_double)     :: deltim=0    ! namelist input time step (secs)
+ real(r_double)     :: dt    ! time step (secs) (=deltim or 3600/timestepsperhr)
  integer    :: ntmax ! time steps to run
  integer    :: nlons ! number of longitudes on grid
  integer    :: nlats ! number of latitudes on grid
@@ -122,17 +123,33 @@ module params
  logical :: trans_trac = .true. ! convective transport of tracers? (RAS only)
  integer :: nst_fcst=0 ! 0 - AM only, 1 - uncoupled, 2 - coupled
  logical :: moist_adj = .false. 
+ ! postphys=.false. means physics tendency computed at beginning of dynamics
+ ! timestep, held constant in RK3 sub-steps.  If .true., tendency is applied
+ ! after dynamics update as an adjustment (no physics tendencies in RK3
+ ! sub-steps).
+ ! postphys = .false. is similar to "process-split" physics, postphys=.true.
+ ! is "time-split" physics (in the terminology of Williamson (2002): 
+ ! http://journals.ametsoc.org/doi/abs/10.1175/1520-0493%282002%29130%3C2024%3ATSVPSC%3E2.0.CO%3B2).
+ ! wrf uses postphys=.false. for everything except microphysics, which 
+ ! is applied as an adjustment after the RK3 update (time-split).
+ ! The operational GFS uses time split physics.
+ ! time-split physics incurs the small extra cost of computing inverse transforms
+ ! at the end of the dynamics time step.
+ logical :: postphys = .true. 
  real(r_kind) :: bkgd_vdif_m = 3.0 ! background vertical diffusion for momentum
  real(r_kind) :: bkgd_vdif_h = 1.0 ! background vertical diffusion for heat, q
  real(r_kind) :: bkgd_vdif_s = 0.2 ! sigma threshold for background mom. diffusn 
+ ! if dt not given, but timestepsperhr is, dt=3600/timestepsperhr
+ real(r_double) :: timestepsperhr = -1
 
- namelist/nam_dyn/initfile,sfcinitfile,fhmax,dt,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
+ namelist/nam_dyn/initfile,sfcinitfile,fhmax,&
+ deltim,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
  fhout,fhzer,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,taustratdamp,&
  fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s
+ pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys
 
  contains
 
@@ -144,7 +161,6 @@ module params
    fhmax = 0
    fhout = 0
    fhzer = 0
-   dt = 0
    read(5,nam_dyn)
    if (initfile == "") then
       print *,'initfile must be specified in namelist'
@@ -158,13 +174,25 @@ module params
       print *,'fhout must be specified in namelist'
       stop
    endif
-   if (dt == 0) then
-      print *,'dt must be specified in namelist'
-      stop
+   if (deltim == 0) then
+      if (timestepsperhr < 0) then
+         print *,'deltim or timestepsperhr must be specified in namelist'
+         stop
+      else
+         dt = 3600./timestepsperhr
+      endif
+   else
+      dt=deltim
+      timestepsperhr = nint(3600./dt)
    endif
-   if (mod(3600.d0,dt) .ne. 0) then
+   if (abs(3600.-dt*timestepsperhr) > 1.e-10) then
       print *,'1 hour must be an integer number of timesteps'
       stop
+   endif
+   if (postphys) then
+      print *,'using time-split physics..'
+   else
+      print *,'using process-split physics..'
    endif
    lu = 7
    call sigio_sropen(lu,trim(initfile),iret)
