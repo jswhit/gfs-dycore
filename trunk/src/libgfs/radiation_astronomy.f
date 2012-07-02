@@ -785,7 +785,7 @@
  103  format('  DECLINATION OF THE SUN',f12.7,' DEGS, OR ',a1,i3,       &
      &       ' DEGS',i4,' MINS',f6.1,' SECS'/'  EQUATION OF TIME',6x,   &
      &       f12.7,' MINS, OR',f10.2,' SECS, OR',f9.6,' RADIANS'/       &
-     &       '  SOLAR CONSTANT',8X,F12.7,' (DISTANCE AJUSTED)'//)
+     &       '  SOLAR CONSTANT',8X,F12.7,' (DISTANCE ADJUSTED)'//)
 
 !
       return
