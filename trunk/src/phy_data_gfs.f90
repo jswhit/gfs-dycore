@@ -1171,7 +1171,7 @@ module phy_data
    if (ierr .ne. 0) print *,' iostat after baclose of flxf ile ',ierr
 
    fha = ta/3600.
-   zhour = fhour - mod(fhour,real(fhzer)) ! last time accum arrays zeroed
+   zhour = fhour - fha ! last time accum arrays zeroed
    SECSWR=MAX(ta,FHSWR*3600.)
    SECLWR=MAX(ta,FHLWR*3600.)
    ICEN2 = sighead%icen2; IGEN = sighead%igen
