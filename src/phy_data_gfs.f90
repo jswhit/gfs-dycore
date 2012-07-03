@@ -324,7 +324,7 @@ module phy_data
    ! read mtnvar
    allocate(hprime(nlons,nlats,nmtvr))
    allocate(hprime4(nlons,nlats,nmtvr))
-   open(nmtn,form='unformatted',convert='big_endian')
+   open(nmtn,file='mtnvar.dat',form='unformatted',convert='big_endian')
    READ(nmtn) hprime4
    close(nmtn)
    hprime = hprime4
@@ -332,7 +332,7 @@ module phy_data
 
    ! read ozone forcing for prognostic ozone
    if (ntoz > 0) then ! prognostic ozone
-      open(kozpl,form='unformatted',convert='big_endian')
+      open(kozpl,file='o3forcing.dat',form='unformatted',convert='big_endian')
       rewind (kozpl)
       read (kozpl) pl_coeff, latsozp, levozp, timeoz
       allocate (pl_lat(latsozp), pl_pres(levozp),pl_time(timeoz+1))
