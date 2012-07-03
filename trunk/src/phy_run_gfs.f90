@@ -497,13 +497,9 @@
      ! compute tendencies, 
      ! update grid data.
      dtdt(i,j,:) = adt-virtempg(i,j,:)
-     !virtempg(i,j,:) = adt
      dtracersdt(i,j,:,:) = adq-tracerg(i,j,:,:)
-     !tracerg(i,j,:,:) = adq
      dudt(i,j,:) = adu-ug(i,j,:)
-     !ug(i,j,:) = adu
      dvdt(i,j,:) = adv-vg(i,j,:)
-     !vg(i,j,:) = adv
      dpsdt(i,j) = rqtk(1) ! not used
      ! avoid array temporaries by using these instead
      ! of passing non-contiguous slices.

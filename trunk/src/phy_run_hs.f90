@@ -6,7 +6,7 @@
 ! in vort and div eqns.
 
  use params, only: nlevs,nlons,nlats,ndimspec,ntrac
- use kinds, only: r_kind
+ use kinds, only: r_kind, r_double
  use shtns, only: grdtospec, lats
  use grid_data, only: vrtg,divg,virtempg
  use pressure_data, only:  prs,psg

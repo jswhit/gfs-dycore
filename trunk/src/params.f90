@@ -127,12 +127,12 @@ module params
  ! timestep, held constant in RK3 sub-steps.  If .true., tendency is applied
  ! after dynamics update as an adjustment (no physics tendencies in RK3
  ! sub-steps).
- ! postphys = .false. is similar to "process-split" physics, 
- ! postphys = .true. is "time-split" physics (in the terminology of Williamson (2002): 
+ ! postphys = .false. is similar to "process-split" physics, postphys=.true.
+ ! is "time-split" physics (in the terminology of Williamson (2002): 
  ! http://journals.ametsoc.org/doi/abs/10.1175/1520-0493%282002%29130%3C2024%3ATSVPSC%3E2.0.CO%3B2).
  ! wrf uses postphys=.false. for everything except microphysics, which 
  ! is applied as an adjustment after the RK3 update (time-split).
- ! The operational GFS uses time-split physics.
+ ! The operational GFS uses time split physics.
  ! time-split physics incurs the small extra cost of computing inverse transforms
  ! at the end of the dynamics time step.
  logical :: postphys = .true. 
@@ -142,7 +142,7 @@ module params
  ! if dt not given, but timestepsperhr is, dt=3600/timestepsperhr
  real(r_double) :: timestepsperhr = -1
 
- namelist/nam_dyn/initfile,sfcinitfile,fhmax,&
+ namelist/nam_mrf/initfile,sfcinitfile,fhmax,&
  deltim,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
  fhout,fhzer,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,taustratdamp,&
  fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
@@ -161,7 +161,7 @@ module params
    fhmax = 0
    fhout = 0
    fhzer = 0
-   read(5,nam_dyn)
+   read(5,nam_mrf)
    if (initfile == "") then
       print *,'initfile must be specified in namelist'
       stop
@@ -235,8 +235,8 @@ module params
      print *,'only',ntracin,' tracers in input file, need',ntrac
      stop
    endif
-   print *,'namelist nam_dyn:'
-   write(6, nam_dyn)
+   print *,'namelist nam_mrf:'
+   write(6, nam_mrf)
  end subroutine read_namelist
 
 end module params
