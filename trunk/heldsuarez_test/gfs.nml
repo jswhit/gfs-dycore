@@ -1,8 +1,8 @@
- &nam_dyn
+ &nam_mrf
  initfile="sanl.dat",
  fhmax=28800,
  fhout=24,
- dt=1200,
+ deltim=1200,
  explicit=.false.,
  jablowill=.false.,
  heldsuarez=.true.
