@@ -47,7 +47,6 @@ subroutine run()
      ta = ta + dt ! time in accumulaton interval.
      fh = t/3600.
      fha = ta/3600.
-     if (abs(fh-fhzer) .lt. tiny(dt)) ta=0. ! reset accum time.
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
      spd = sqrt(ug**2+vg**2) ! max wind speed
@@ -72,6 +71,7 @@ subroutine run()
      end if
      write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),t2-t1
 9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', cpu time = ',f0.3)
+     if (abs(fh-fhzer) .lt. tiny(dt)) ta=0. ! reset accum time.
   enddo
 
   return

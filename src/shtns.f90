@@ -98,11 +98,9 @@
       endif
       call shtns_destroy()
       call shtns_use_threads(nth) ! number of openmp threads.
-      call shtns_init_sh_gauss(SHT_PHI_CONTIGUOUS, ntrunc, ntrunc, 1, nlat, nlon)
-      ! switch to on-the-fly algorithm
-      !call shtns_precompute(SHT_GAUSS_FLY, SHT_PHI_CONTIGUOUS, &
-      !                      SHT_DEFAULT_POLAR_OPT, nlat, nlon)
-      call shtns_calc_nlm(nlm, ntrunc, ntrunc, 1)
+      call shtns_set_size(ntrunc,ntrunc,1,SHT_ORTHONORMAL+SHT_NO_CS_PHASE)
+      call shtns_precompute(SHT_GAUSS_FLY,SHT_PHI_CONTIGUOUS,SHT_DEFAULT_POLAR_OPT,nlat,nlon)
+      call shtns_calc_nlm(nlm,ntrunc,ntrunc,1)
       current_nlat = nlat
       current_nlon = nlon
       current_ntrunc = ntrunc
