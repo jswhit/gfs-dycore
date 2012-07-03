@@ -191,7 +191,7 @@ module dyn_init
    gamma = 0.005
    deltat = 4.8e5
    etat = 0.2
-   lonc = 10.*pi/9.
+   lonc = pi/9.
    latc = 2.*pi/9.
    pertrad = rerth/10.
    do k=1,nlevs
@@ -237,7 +237,7 @@ module dyn_init
    real(r_kind) :: lonc,latc,up,pertrad
    integer k
    print *,'replacing initial conds with held and suarez test case..'
-   lonc = 10*pi/9.
+   lonc = pi/9.
    up = 1.
    pertrad = rerth/10.
    latc = 2.*pi/9.
