@@ -47,7 +47,7 @@
       module module_radiation_astronomy  !
 !........................................!
 !
-      use machine,                 only : kind_phys
+      use machine,                 only : kind_phys,kind_dbl_prec
       use physcons,                only : con_solr, con_pi
       use module_iounitdef,        only : NIRADSF
 !
@@ -304,10 +304,11 @@
      &       coszen(nlons,nlats), coszdg(nlons,nlats)
 
 !  ---  locals:
-      real (kind=kind_phys), parameter :: f24   = 24.0     ! hours/day
-      real (kind=kind_phys), parameter :: f1440 = 1440.0   ! minutes/day
+      real (kind_dbl_prec), parameter :: f24   = 24.0     ! hours/day
+      real (kind_dbl_prec), parameter :: f1440 = 1440.0   ! minutes/day
 
-      real (kind=kind_phys) :: solhr, fjd, fjd1, dlt, r1, alp, solc
+      real (kind_dbl_prec) :: fjd, fjd1
+      real(kind=kind_phys) solhr, dlt, r1, alp, solc
 
       integer :: jd, jd1, iyear, imon, iday, ihr, imin
       integer :: iw3jdn
@@ -437,7 +438,7 @@
       implicit none
 
 !  ---  inputs:
-      real (kind=kind_phys), intent(in) :: fjd
+      real (kind_dbl_prec), intent(in) :: fjd
       integer,               intent(in) :: jd
 
 !  ---  outputs:
@@ -709,7 +710,8 @@
 !  ---  inputs:
       integer, intent(in) :: jd
 
-      real (kind=kind_phys), intent(in) :: fjd, dlt, alp, r1, slag, solc
+      real (kind=kind_phys), intent(in) :: dlt, alp, r1, slag, solc
+      real (kind_dbl_prec), intent(in) :: fjd
 
 !  ---  outputs: ( none )
 
