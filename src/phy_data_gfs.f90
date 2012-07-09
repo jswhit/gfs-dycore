@@ -644,7 +644,6 @@ module phy_data
  end subroutine flx_init
 
  subroutine set_soilveg()
-   integer, parameter :: nlunit=5
    integer i
    REAL WLTSMC1,REFSMC1
 ! ----------------------------------------------------------------------
@@ -793,11 +792,11 @@ module phy_data
    CSOIL_DATA =2.00E+6
 ! ----------------------------------------------------------------------
 ! READ NAMELIST FILE TO OVERRIDE DEFAULT PARAMETERS ONLY ONCE.
-! NAMELIST_NAME must be 50 characters or less.
 ! ----------------------------------------------------------------------
    WRITE(6,*) 'READ NAMELIST SOIL_VEG'
-   rewind(nlunit)
-   READ(nlunit, SOIL_VEG)
+   open(912,form="formatted",file="gfs.nml")
+   READ(912, SOIL_VEG)
+   close(912)
    IF (DEFINED_SOIL .GT. MAX_SOILTYP) THEN
       WRITE(6,*) 'Warning: DEFINED_SOIL too large in namelist'
       STOP 222

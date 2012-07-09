@@ -161,7 +161,9 @@ module params
    fhmax = 0
    fhout = 0
    fhzer = 0
-   read(5,nam_mrf)
+   open(912,file='gfs.nml',form='formatted')
+   read(912,nam_mrf)
+   close(912)
    if (initfile == "") then
       print *,'initfile must be specified in namelist'
       stop
