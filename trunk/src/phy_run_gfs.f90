@@ -20,7 +20,7 @@
     alnsf,alvwf,alnwf,facsf,facwf,fice,tisfc,coszen,cv,cvt,cvb,sfcemis,&
     sfcnsw,sfcdsw,sfalb,sfcdlw,tsflw,slc,smc,stc,slope,shdmin,shdmax, &
     vfrac,tg3,stype,vtype,oro,oro_uf,uustar,phy_f3d,phy_f2d,&
-    cldcov,fluxr,hlw,swh, &
+    pl_lat,cldcov,fluxr,hlw,swh, &
     hice  ,    fice  ,        &
     tisfc ,    tsea  ,        &
     tprcp ,    cv    ,        &
@@ -62,7 +62,7 @@
     bengsh
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
-               grav => con_g
+               grav => con_g, pi => con_pi
 
  implicit none
  private
@@ -86,7 +86,7 @@
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind), parameter :: qmin = 1.e-10 ! min value for clipping tracers
    real(r_kind), parameter :: typical_pgr = 95000.0
-   real(r_kind)  :: fscav(ntrac-ncld-1),ozp(levozp,pl_coeff),&
+   real(r_kind)  :: fscav(ntrac-ncld-1),&
    fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(1),delta,rk,&
    gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
    f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
@@ -129,7 +129,7 @@
    delta = cvap/cp-1. ! used for virt temp to sensible temp computation
    dtp = dtx
 
-   allocate(ozplout(levozp,nlats,pl_coeff))
+   allocate(ozplout(levozp,pl_coeff,nlats))
    allocate(coszdg(nlons,nlats))
    allocate(dtdt(nlons,nlats,nlevs),dudt(nlons,nlats,nlevs),dvdt(nlons,nlats,nlevs))
    allocate(dtracersdt(nlons,nlats,nlevs,ntrac))
@@ -349,7 +349,7 @@
 ! physics loop over horiz. grid points.
 !$omp parallel do private(n,k,i,j,&
 !$omp& gt,gu,gv,gq,vvel,prsi,prsl,prsik,prslk,&
-!$omp& phii,phil,dphi,ozp,dpshc,dum1,&
+!$omp& phii,phil,dphi,dpshc,dum1,&
 !$omp& adt,adu,adv,adq,slc_tmp,stc_tmp,smc_tmp,&
 !$omp& phy3d,phy2d,hlw_tmp,swh_tmp,hprime_tmp,&
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
@@ -384,7 +384,6 @@
       !   phil(k) = phii(k) + dphi
       !   phii(k+1) = phil(k) + dphi
       !enddo
-      ozp(:,:) = ozplout(:,j,:)
       dpshc(1)     = 0.3  * prsi(1)
       phy3d(:,:) = phy_f3d(i,j,:,:)
       phy2d(:) = phy_f2d(i,j,:)
@@ -400,7 +399,7 @@
             ccwf,dlqf,ctei_rm,clstp,dtp,dtp,fhour,solhr,                &
             slag,sdec,cdec,sin(lats(i,j)),cos(lats(i,j)),psg(i,j),gu,gv,&
             gt,gq,vvel,prsi,prsl,prslk,prsik,phii,phil,                 &
-            rann,ozp,pl_pres,dpshc,                                     &
+            rann,ozplout(:,:,j),pl_pres,dpshc,                          &
             hprime_tmp,lons(i,j),lats(i,j),                             &
             slope (i,j),    shdmin(i,j),                                &
             shdmax(i,j),    snoalb(i,j),                                &
@@ -510,6 +509,15 @@
      stc(i,j,:) = stc_tmp(:)
    enddo ! end loop over horiz grid points
 !$omp end parallel do 
+   !print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
+   !print *,'min/max dudt',minval(dudt),maxval(dudt)
+   !print *,'min/max dvdt',minval(dvdt),maxval(dvdt)
+   !print *,'min/max dtracer1dt',minval(dtracersdt(:,:,:,1)),maxval(dtracersdt(:,:,:,1))
+   !print *,'min/max dtracer2dt',minval(dtracersdt(:,:,:,2)),maxval(dtracersdt(:,:,:,2))
+   !print *,'min/max dtracer3dt',minval(dtracersdt(:,:,:,3)),maxval(dtracersdt(:,:,:,3))
+   !print *,'min/max tracer1',minval(tracerg(:,:,:,1)),maxval(tracerg(:,:,:,1))
+   !print *,'min/max tracer2',minval(tracerg(:,:,:,2)),maxval(tracerg(:,:,:,2))
+   !print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
    if (testomp) then
       call system_clock(count, count_rate, count_max)
       tend = count*1.d0/count_rate
@@ -587,7 +595,7 @@
     ! (using NCEP w3lib)
     real(r_kind), intent(in) :: fhour
     integer, dimension(8), intent(out) :: id,jd
-    real(r_kind), dimension(5):: fh
+    real(4), dimension(5):: fh
     integer, intent(in),  dimension(4) :: idate_start
     fh=0; id=0; jd=0
     fh(2)=fhour    ! relative time interval in hours
@@ -619,7 +627,7 @@
 !
       real(r_kind) ozplin(latsozp,levozp,pl_coeff,timeoz)
       real(r_kind) DDY(nlats)
-      real(r_kind) ozplout(levozp,nlats,pl_coeff)
+      real(r_kind) ozplout(levozp,pl_coeff,nlats)
       real(r_kind) RINC(5), rjday
       integer jdow, jdoy, jday
 !
@@ -659,7 +667,7 @@
             J1  = JINDX1(J)
             J2  = JINDX2(J)
             TEM = 1.0 - DDY(J)
-            ozplout(L,j,nc) = &
+            ozplout(L,nc,j) = &
             tx1*(TEM*ozplin(J1,L,nc,n1)+DDY(J)*ozplin(J2,L,nc,n1)) &
           + tx2*(TEM*ozplin(J1,L,nc,n2)+DDY(J)*ozplin(J2,L,nc,n2))
           ENDDO

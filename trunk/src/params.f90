@@ -218,7 +218,8 @@ module params
    endif 
    tmax = fhmax*3600. 
    ntmax = nint((tmax-tstart)/dt)
-   ntout = nint(real(fhout)*3600/dt)
+   ntout = fhout*timestepsperhr
+   print *,'output every ',ntout,' time steps'
    if (jablowill .and. heldsuarez) then
       print *,'conflicting namelist options'
       print *,'heldsuarez and jablowill both cannot be .true.'

@@ -340,7 +340,7 @@ module phy_data
       rewind (kozpl)
       read (kozpl) pl_coeff, latsozp, levozp, timeoz, pl_lat4, pl_pres4,  &
                    pl_time4
-      pl_pres(:) = pl_pres4(:)
+      pl_pres(:) = log(100.0*pl_pres4(:))  ! Natural log of pres in Pa
       pl_lat(:)  = pl_lat4(:)
       pl_time(:) = pl_time4(:)
       ! these are not relevant for prognostic ozone, but some 
@@ -1172,6 +1172,7 @@ module phy_data
 
    fha = ta/3600.
    zhour = fhour - fha ! last time accum arrays zeroed
+   !print *,'fha,fhour,zhour=',fha,fhour,zhour
    SECSWR=MAX(ta,FHSWR*3600.)
    SECLWR=MAX(ta,FHLWR*3600.)
    ICEN2 = sighead%icen2; IGEN = sighead%igen
@@ -1477,6 +1478,7 @@ module phy_data
    enddo
 
    call twodtooned(1000.*geshem*rtime,wrkga)
+   !print *,'min/max prate',minval(wrkga),maxval(wrkga),rtime
    call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
                0,IPCPR,ISFC,0,0,IYR,IMO,IDA,IHR,&
                IFHOUR,IFHR,ITHR,IAVG,0,0,ICEN2,IDS(IPCPR),IENS,&
@@ -1705,37 +1707,37 @@ module phy_data
     '52)Total cloud cover (percent) convective cloud layer         '
    IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
 
-!  wrkga = 0.
-!  do n=1,nlons*nlats
-!     j = 1+(n-1)/nlons
-!     i = n-(j-1)*nlons
-!     if (cv(i,j) .gt. 0) then
-!        wrkga(n) = cvt(i,j)*1.e3
-!     endif
-!  enddo
-!  call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
-!              1,IPRS,ICVTL,0,0,IYR,IMO,IDA,IHR,&
-!              IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
-!              0.,0.,0.,0.,0.,0.,G,LG,IERR)
-!  if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
-!   '53)Pressure (Pa) convective cloud top level                   '
-!  IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
+   wrkga = 0.
+   do n=1,nlons*nlats
+      j = 1+(n-1)/nlons
+      i = n-(j-1)*nlons
+      if (cv(i,j) .gt. 0) then
+         wrkga(n) = cvt(i,j)*1.e3
+      endif
+   enddo
+   call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
+               1,IPRS,ICVTL,0,0,IYR,IMO,IDA,IHR,&
+               IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
+               0.,0.,0.,0.,0.,0.,G,LG,IERR)
+   if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
+    '53)Pressure (Pa) convective cloud top level                   '
+   IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
 
-!  wrkga = 0.
-!  do n=1,nlons*nlats
-!     j = 1+(n-1)/nlons
-!     i = n-(j-1)*nlons
-!     if (cv(i,j) .gt. 0) then
-!        wrkga(n) = cvb(i,j)*1.e3
-!     endif
-!  enddo
-!  call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
-!              1,IPRS,ICVBL,0,0,IYR,IMO,IDA,IHR,&
-!              IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
-!              0.,0.,0.,0.,0.,0.,G,LG,IERR)
-!  if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
-!   '54)Pressure (Pa) convective cloud bottom level                '
-!  IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
+   wrkga = 0.
+   do n=1,nlons*nlats
+      j = 1+(n-1)/nlons
+      i = n-(j-1)*nlons
+      if (cv(i,j) .gt. 0) then
+         wrkga(n) = cvb(i,j)*1.e3
+      endif
+   enddo
+   call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
+               1,IPRS,ICVBL,0,0,IYR,IMO,IDA,IHR,&
+               IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
+               0.,0.,0.,0.,0.,0.,G,LG,IERR)
+   if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
+    '54)Pressure (Pa) convective cloud bottom level                '
+   IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
 
 !.................................................
 !...   SAVE B.L. CLOUD AMOUNT

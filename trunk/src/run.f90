@@ -7,9 +7,10 @@ use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
   postphys
+use shtns, only: lats
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
-use phy_data, only: wrtout_sfc, wrtout_flx
+use phy_data, only: wrtout_sfc, wrtout_flx, geshem
 use dyn_init, only: wrtout_sig
 use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
                           tracerspec, disspec, dmp_prof, diff_prof
@@ -25,6 +26,8 @@ subroutine run()
   implicit none
   integer nt,my_id
   real(r_kind) fh,fha
+  !real(r_kind) sumwt,precipmean
+  !integer i,j
   real(r_double) ta,t
   real(8) t1,t2
   real(r_kind), dimension(nlons,nlats,nlevs) :: spd
@@ -50,28 +53,38 @@ subroutine run()
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
      spd = sqrt(ug**2+vg**2) ! max wind speed
+     write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),t2-t1
+9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', cpu time = ',f0.3)
+     !precipmean = 0.
+     !sumwt = 9.
+     !do j=1,nlats
+     !do i=1,nlons
+     !   precipmean = precipmean + geshem(i,j)*cos(lats(i,j))
+     !   sumwt = sumwt + cos(lats(i,j))
+     !enddo
+     !enddo
+     !precipmean = precipmean/sumwt
+     !write(6,*) 'global mean precip = ',precipmean
      ! write out data at specified intervals.
      ! data always written at first time step.
      if (nt .eq. 1 .or. (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0)) then
-        write(filename,8999) int(fh)
+        write(filename,8999) nint(fh)
 8999    format('sig.f',i0.3) ! at least three digits used
-        print *,'writing to ',trim(filename)
+        print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_sig(fh,filename)
         ! write out boundary and flux files if using gfs physics.
         if (.not. heldsuarez .and. .not. jablowill) then
-        write(filename,9000) int(fh)
+        write(filename,9000) nint(fh)
 9000    format('sfc.f',i0.3) ! at least three digits used
-        print *,'writing to ',trim(filename)
+        print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_sfc(fh,filename)
-        write(filename,9001) int(fh)
+        write(filename,9001) nint(fh)
 9001    format('flx.f',i0.3) ! at least three digits used
-        print *,'writing to ',trim(filename)
+        print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_flx(fh,ta,filename)
         endif
      end if
-     write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),t2-t1
-9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', cpu time = ',f0.3)
-     if (abs(fh-fhzer) .lt. tiny(dt)) ta=0. ! reset accum time.
+     if (abs(fha-fhzer) .lt. 1.e-5) ta=0. ! reset accum time.
   enddo
 
   return
