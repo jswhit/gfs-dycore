@@ -6,11 +6,11 @@ FRRM=-FR
 OPTSB=-O3 -convert big_endian -xHOST -recursive
 OPTSBT=$(OPTSB) -traceback
 
-F77=gfortran
-F90=gfortran
-FRRM=-ffree-form
-OPTSB=-O3 -march=native -frecursive -ffast-math -pipe -fomit-frame-pointer -fno-range-check
-OPTSBT=$(OPTSB) -fbacktrace
+#F77=gfortran
+#F90=gfortran
+#FRRM=-ffree-form
+#OPTSB=-O3 -march=native -frecursive -ffast-math -pipe -fomit-frame-pointer -fno-range-check
+#OPTSBT=$(OPTSB) -fbacktrace
 
 OPTSM=$(OPTSBT)
 OPTSIOM=$(OPTSBT)

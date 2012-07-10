@@ -1,4 +1,4 @@
-#intel fortran (jet,zeus)
+#intel fortran 
 FC            = ifort
 OMPFLAG       =  -openmp
 FFLAGS        = -O3 -xHOST -assume byterecl -warn all -implicitnone -traceback  -convert big_endian $(OMPFLAG)
@@ -10,7 +10,7 @@ LIBS          = -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.
 # zeus
 #LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a w3lib/libw3.a
 
-##gnu fortran (mac)
+##gnu fortran 
 #FC = gfortran
 #OMPFLAG = -fopenmp
 ##FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
@@ -131,7 +131,6 @@ phy_finalize.o:     phy_finalize.f90
 phy_run.o:      phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o
 		$(FC) $(FFLAGS) -Ilibgfs -c phy_run.f90
 	        
-
 dyn_finalize.o:  dyn_finalize.f90 shtns.o spectral_data.o pressure_data.o grid_data.o
 
 dyn_run.o:	dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o vadvfilt.o

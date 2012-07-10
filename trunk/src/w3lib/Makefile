@@ -32,11 +32,11 @@ CC      = gcc
 ARFLAGS =
 
 # OPTIONS FOR GFORTRAN
-F77     = gfortran
-FFLAGS  = -O3 -march=native 
-CFLAGS  = -O2 -DLINUX
-CC      = gcc
-ARFLAGS = 
+#F77     = gfortran
+#FFLAGS  = -O3 -march=native 
+#CFLAGS  = -O2 -DLINUX
+#CC      = gcc
+#ARFLAGS = 
 
 # OPTIONS FOR LINUX G95
 #F77     = g95
