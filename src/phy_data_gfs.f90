@@ -794,7 +794,7 @@ module phy_data
 ! READ NAMELIST FILE TO OVERRIDE DEFAULT PARAMETERS ONLY ONCE.
 ! ----------------------------------------------------------------------
    WRITE(6,*) 'READ NAMELIST SOIL_VEG'
-   open(912,form="formatted",file="gfs.nml")
+   open(912,form="formatted",file="gfs_namelist")
    READ(912, SOIL_VEG)
    close(912)
    IF (DEFINED_SOIL .GT. MAX_SOILTYP) THEN
