@@ -84,22 +84,28 @@
 
       contains
 
-      subroutine shtns_init(nlon,nlat,ntrunc,nthreads)
+      subroutine shtns_init(nlon,nlat,ntrunc,nthreads,polar_opt)
 ! initialize library, allocate arrays.
       integer, intent(in) :: nlon,nlat,ntrunc
       integer, intent(in), optional :: nthreads
+      real(r_double), intent(in), optional :: polar_opt
       real(r_double), dimension(:), allocatable :: lats1
-      real(r_double) pi
+      real(r_double) pi,popt
       integer m,n,i,j,nth
       if (present(nthreads)) then
          nth = nthreads
       else
          nth = 1
       endif
+      if (present(polar_opt)) then
+         popt = polar_opt
+      else
+         popt = SHT_DEFAULT_POLAR_OPT
+      endif
       call shtns_destroy()
       call shtns_use_threads(nth) ! number of openmp threads.
       call shtns_set_size(ntrunc,ntrunc,1,SHT_ORTHONORMAL+SHT_NO_CS_PHASE)
-      call shtns_precompute(SHT_GAUSS_FLY,SHT_PHI_CONTIGUOUS,SHT_DEFAULT_POLAR_OPT,nlat,nlon)
+      call shtns_precompute(SHT_GAUSS_FLY,SHT_PHI_CONTIGUOUS,popt,nlat,nlon)
       call shtns_calc_nlm(nlm,ntrunc,ntrunc,1)
       current_nlat = nlat
       current_nlon = nlon
