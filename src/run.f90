@@ -10,7 +10,7 @@ use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
 use shtns, only: lats
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
-use phy_data, only: wrtout_sfc, wrtout_flx, geshem
+use phy_data, only: wrtout_sfc, wrtout_flx
 use dyn_init, only: wrtout_sig
 use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
                           tracerspec, disspec, dmp_prof, diff_prof
