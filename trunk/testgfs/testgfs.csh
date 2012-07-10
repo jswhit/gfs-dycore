@@ -40,7 +40,7 @@ setenv LONB 768
 #  /bin/cp -f $FIXGLOBAL/$file $file2
 #end
 
-cat  > gfs.nml <<EOF
+cat  > gfs_namelist <<EOF
  &nam_mrf
  initfile="sanl.dat",
  sfcinitfile="sfcanl.dat",
@@ -69,7 +69,7 @@ EOF
 setenv OMP_NUM_THREADS 12
 /bin/rm -f sig.f* sfc.f* flx.f* pgrb.f*
 #export FCSTVARS="ras=.false.,nsout=0,lsm=1,tfiltc=0.85,liope=.true.,zhao_mic=.true.,ncw=50,150,crtrh=0.85,0.85,0.85,flgmin=0.220 ,IALB=$ialb,ccnorm=.false.,OUT_VIRTTEMP=.true.,LDIAG3D=.false.,mstrat=.false.,ctei_rm=0.50,MOM4ICE=.false.,cnvgwd=.false.,RUN_ENTHALPY=.false.,IOVR_SW=$IOVR_SW,zflxtvd=.true.,sashal=.true.,old_monin=.false.,newsas=.true.,ICTM=1,"
-time ../bin/gfs < gfs.nml
+time ../bin/gfs 
 
 #setenv POSTGPSH /lfs1/projects/gfsenkf/hybda_realtime2012_scripts/global_postgpp.sh 
 #setenv POSTGPVARS "IDRT=0,IDRTC=4,IOC=$LONB,JOC=$LATB,MOO=255,MOOSLP=0"
