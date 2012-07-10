@@ -161,7 +161,7 @@ module params
    fhmax = 0
    fhout = 0
    fhzer = 0
-   open(912,file='gfs.nml',form='formatted')
+   open(912,file='gfs_namelist',form='formatted')
    read(912,nam_mrf)
    close(912)
    if (initfile == "") then
