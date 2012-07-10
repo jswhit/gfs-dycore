@@ -3,6 +3,7 @@ FC            = ifort
 OMPFLAG       =  -openmp
 FFLAGS        = -O3 -xHOST -assume byterecl -warn all -implicitnone -traceback  -convert big_endian $(OMPFLAG)
 EXEC          = ../bin/gfs
+EXEC_TEST     = ../bin/gfs_test
 LDFLAGS       = $(OMPFLAG) -mkl=sequential 
 # jet
 LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a w3lib/libw3.a
@@ -14,11 +15,13 @@ LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3 libg
 ##gnu fortran (mac)
 FC = gfortran
 OMPFLAG = -fopenmp
-#####FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
+#FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
 FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OMPFLAG) 
 EXEC          = ../bin/gfs
+EXEC_TEST     = ../bin/gfs_test
 LDFLAGS       = $(OMPFLAG)  
 LIBS          = -L/Users/jwhitaker/lib -lshtns -lfftw3 -llapack libgfs/libgfs.a w3lib/libw3.a 
+LIBS_TEST     = -L/Users/jwhitaker/lib -lshtns -lfftw3 -llapack w3lib/libw3.a 
 
 .SUFFIXES: .o .f90 .F90
 
@@ -51,6 +54,9 @@ MAIN	= driver.f90
 gfs: $(OBJS) 
 	$(FC) $(LDFLAGS) -o $(EXEC) $(MAIN) $(OBJS) $(LIBS)
 
+gfs-test: $(OBJS) 
+	$(FC) $(LDFLAGS) -o $(EXEC_TEST) $(MAIN) $(OBJS) $(LIBS_TEST)
+
 all: $(gfs)
 
 libgfs : force_look
@@ -69,13 +75,13 @@ clean:
 	ln -fs phy_finalize_gfs.f90 phy_finalize.f90
 	ln -fs phy_run_gfs.f90 phy_run.f90
 
-# uncomment this for Held-Suarez test
-#clean:
-#	rm -f $(OBJS) *.mod *genmod* $(EXEC)
-#	ln -fs phy_init_stub.f90 phy_init.f90
-#	ln -fs phy_data_gfs.f90 phy_data.f90
-#	ln -fs phy_finalize_stub.f90 phy_finalize.f90
-#	ln -fs phy_run_hs.f90 phy_run.f90
+# Held-Suarez/Jablonowski-Williamson test
+clean-test:
+	rm -f $(OBJS) *.mod *genmod* $(EXEC_TEST)
+	ln -fs phy_init_stub.f90 phy_init.f90
+	ln -fs phy_data_stub.f90 phy_data.f90
+	ln -fs phy_finalize_stub.f90 phy_finalize.f90
+	ln -fs phy_run_hs.f90 phy_run.f90
 
 .f90.o:
 	$(FC) $(FFLAGS) -c $< 
