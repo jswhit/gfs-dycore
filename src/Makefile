@@ -6,22 +6,20 @@ EXEC          = ../bin/gfs
 EXEC_TEST     = ../bin/gfs_test
 LDFLAGS       = $(OMPFLAG) -mkl=sequential 
 # jet
-LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a w3lib/libw3.a
-#LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a /scratch1/portfolios/NCEPDEV/da/save/Michael.Lueken//nwprod/lib/libw3lib-2.0_4.a /scratch1/portfolios/NCEPDEV/da/save/Michael.Lueken//nwprod/lib/libbacio_4.a
-#w3lib/libw3.a
+LIBS          = -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a w3lib/libw3.a
 # zeus
-#LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3
+#LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a w3lib/libw3.a
 
 ##gnu fortran (mac)
-FC = gfortran
-OMPFLAG = -fopenmp
-#FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
-FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OMPFLAG) 
-EXEC          = ../bin/gfs
-EXEC_TEST     = ../bin/gfs_test
-LDFLAGS       = $(OMPFLAG)  
-LIBS          = -L/Users/jwhitaker/lib -lshtns -lfftw3 -llapack libgfs/libgfs.a w3lib/libw3.a 
-LIBS_TEST     = -L/Users/jwhitaker/lib -lshtns -lfftw3 -llapack w3lib/libw3.a 
+#FC = gfortran
+#OMPFLAG = -fopenmp
+##FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
+#FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OMPFLAG) 
+#EXEC          = ../bin/gfs
+#EXEC_TEST     = ../bin/gfs_test
+#LDFLAGS       = $(OMPFLAG)  
+#LIBS          = -L/Users/jwhitaker/lib -lshtns -lfftw3 -llapack libgfs/libgfs.a w3lib/libw3.a 
+#LIBS_TEST     = -L/Users/jwhitaker/lib -lshtns -lfftw3 -llapack w3lib/libw3.a 
 
 .SUFFIXES: .o .f90 .F90
 
