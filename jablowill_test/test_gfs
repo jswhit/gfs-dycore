@@ -8,4 +8,4 @@
 #$ -o gfs_dycore.out
 
 setenv OMP_NUM_THREADS 12
-../bin/gfs < gfs.nml
+../bin/gfs_test
