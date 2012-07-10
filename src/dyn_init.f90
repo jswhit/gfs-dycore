@@ -12,7 +12,7 @@ module dyn_init
  use sigio_module, only: sigio_sclose,sigio_swohdc,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
  use params, only: &
- nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,jablowill,&
+ nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,jablowill,polar_opt,&
  heldsuarez,explicit,tstart,idate_start,hdif_fac,hdif_fac2,fshk,ntrac,taustratdamp
  use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, lap, lats, lons
  use spectral_data, only: vrtspec,divspec,virtempspec,tracerspec,topospec,lnpsspec,&
@@ -36,7 +36,7 @@ module dyn_init
     ! allocate arrays
     call init_specdata()
     ! initialize spherical harmonic lib
-    call shtns_init(nlons,nlats,ntrunc)
+    call shtns_init(nlons,nlats,ntrunc,nthreads=1,polar_opt=polar_opt)
     ! read initial conditions
     lu = 7
     call sigio_srohdc(lu,trim(initfile),sighead,sigdata,iret)
