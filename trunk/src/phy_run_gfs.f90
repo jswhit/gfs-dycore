@@ -14,7 +14,7 @@
  use shtns, only: grdtospec, getvrtdivspec, lons, lats
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use pressure_data, only:  prs,psg,pk,ak,bk
- use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,&
+ use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
     slmsk,sheleg,sncovr,snoalb,zorl,hprime,alvsf,ozjindx1,ozjindx2,ozddy,&
     alnsf,alvwf,alnwf,facsf,facwf,fice,tisfc,coszen,cv,cvt,cvb,sfcemis,&
@@ -568,10 +568,17 @@
 !$omp parallel do private(k,nt)
    do k=1,nlevs
       call grdtospec(dtdt(:,:,k), dvirtempspecdt(:,k))
+      call getvrtdivspec(dudt(:,:,k),dvdt(:,:,k),dvrtspecdt(:,k),ddivspecdt(:,k),rerth)
       do nt=1,ntrac
          call grdtospec(dtracersdt(:,:,k,nt), dtracerspecdt(:,k,nt))
       enddo
-      call getvrtdivspec(dudt(:,:,k),dvdt(:,:,k),dvrtspecdt(:,k),ddivspecdt(:,k),rerth)
+      ! apply "gloopb filter"
+      dvirtempspecdt(:,k) = bfilt(:)*dvirtempspecdt(:,k)
+      dvrtspecdt(:,k) = bfilt(:)*dvrtspecdt(:,k)
+      ddivspecdt(:,k) = bfilt(:)*ddivspecdt(:,k)
+      do nt=1,ntrac
+         dtracerspecdt(:,k,nt) = bfilt(:)*dtracerspecdt(:,k,nt)
+      enddo
    enddo
 !$omp end parallel do 
    !call grdtospec(dpsdt, dlnpsspecdt)
