@@ -1,4 +1,4 @@
 * digital filter
 * gloopb spatial filtering on physics tendencies (done)
-* 'coef00' stuff? (what does it do anyway?)
+* 'coef00' stuff? (seems to be a damping applied to global mean on each level for tv,ozone,clwater?)
 * surface cycling
