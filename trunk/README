@@ -16,12 +16,14 @@ To build:
 cd src; edit Makefile for your system.
 
 for full gfs model, run
-  make clean
-  make libgfs
+  make clean (clean and setup symlinks)
+  make w3lib (build ncep w3lib)
+  make libgfs (build library containing gfs physics routines)
   make gfs (executable is bin/gfs)
 
 for Held-Suarez and Jablonowsky-Williamson test, run
-  make clean-test
+  make clean-test (clean and setup symlinks)
+  make w3lib (build ncep w3lib)
   make gfs-test (executable is bin/gfs_test)
 
 To test:
