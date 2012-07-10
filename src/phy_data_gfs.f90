@@ -5,12 +5,12 @@ module phy_data
 ! destroy_phydata: deallocate arrays.
 ! flx_init: initialize flx arrays.
  use kinds, only: r_kind, r_single, r_double
- use params, only: nlons,nlats,nlevs,sfcinitfile,nmtvr,ntoz,ntclw,num_p3d,num_p2d,&
-      sighead,fhswr,fhlwr,idate_start,fhzer
+ use params, only: nlons,nlats,nlevs,ndimspec,sfcinitfile,nmtvr,ntoz,ntclw,num_p3d,num_p2d,&
+      ntrunc,sighead,fhswr,fhlwr,idate_start,fhzer
  use sfcio_module, only: sfcio_srohdc, sfcio_head, sfcio_data, sfcio_axdata, &
       sfcio_alhead, sfcio_aldata, sfcio_swohdc
  use physcons, only : tgice => con_tice, con_pi
- use shtns, only : lats
+ use shtns, only : lats,degree
  implicit none
  private
  public :: init_phydata, destroy_phydata, flx_init, wrtout_sfc, wrtout_flx
@@ -74,6 +74,8 @@ module phy_data
  !    sdec, cdec    - sin and cos of the solar declination angle         
  real(r_kind),public :: solcon,slag,sdec,cdec
 
+ ! spectral filter for physics tendencies ("gloopb filter")
+ real(r_kind), allocatable, public, dimension(:) :: bfilt
  ! 'sfc' fields (including orog).
  ! sea-surface temp K
  real(r_kind),allocatable,public, dimension(:,:)   :: tsea 
@@ -304,12 +306,24 @@ module phy_data
    integer, parameter ::  nread=14
    integer, parameter ::  nmtn=24
    integer, parameter ::  kozpl=28
-   integer iret,vegtyp
-   real(r_kind) rsnow,lat
+   integer iret,vegtyp,nf0,nf1
+   real(r_kind) rsnow,lat,fd2
    real(r_single), allocatable, dimension(:,:,:) :: hprime4
    real(r_single), allocatable, dimension(:) :: tempin,pl_lat4,pl_pres4,pl_time4
-   integer i,j,k,n
+   integer i,j,k,n,nc
 
+   ! spectral filter for physics tendencies ("gloopb filter")
+   allocate(bfilt(ndimspec))
+   bfilt=1 ! (no filtering)
+   nf0 = (ntrunc+1)*2/3  ! highest wavenumber gloopb filter keeps fully
+   nf1 = (ntrunc+1)      ! lowest wavenumber gloopb filter removes fully
+   fd2 = 1./(nf1-nf0)**2
+   do nc=1,ndimspec
+      n = degree(nc)
+      bfilt(nc) = max(1.-fd2*max(n-nf0,0)**2,0.)
+   enddo
+
+   ! set land model parameters.
    call set_soilveg()
 
    ! microphysics arrays
@@ -943,6 +957,7 @@ module phy_data
   deallocate(cldcov,phy_f3d,phy_f2d)
   deallocate(ozjindx1,ozjindx2,ozddy)
   deallocate(hlw,swh,fluxr)
+  deallocate(bfilt)
  end subroutine destroy_phydata
 
  SUBROUTINE ORORD(LUGB,IORO,JORO,ORO,FNOROG)
