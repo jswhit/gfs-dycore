@@ -11,7 +11,7 @@ module params
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
  ntout,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
- postphys,timestepsperhr,ncw,taustratdamp,&
+ postphys,timestepsperhr,ncw,taustratdamp,polar_opt,&
 ! gfs phys parameters.
  nmtvr,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
@@ -52,6 +52,7 @@ module params
  integer    :: idate_start(4) ! starting date (hr,month,day,year)
  integer    :: ntout ! time step interval for IO
  integer    :: ndiss=0 ! hyperdiffusion order (0 for GFS defaults)
+ real(r_double) :: polar_opt=1.e-10 ! polar optimization threshold for transforms
  ! efolding scale for smallest resolvable wave (0 for GFS defaults)
  real(r_kind) :: efold=0. 
  real(r_kind) :: hdif_fac=1.0 ! multiplier for height-dep part of hyper-diff
@@ -145,7 +146,7 @@ module params
  namelist/nam_mrf/initfile,sfcinitfile,fhmax,&
  deltim,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
  fhout,fhzer,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,taustratdamp,&
- fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
+ fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,polar_opt,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
