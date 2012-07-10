@@ -13,7 +13,16 @@ fftw3 FFT library (fftw.org)
 
 To build:
 
-cd src; edit Makefile for your system; run make (executable put in bin).
+cd src; edit Makefile for your system.
+
+for full gfs model, run
+  make clean
+  make libgfs
+  make gfs (executable is bin/gfs)
+
+for Held-Suarez and Jablonowsky-Williamson test, run
+  make clean-test
+  make gfs-test (executable is bin/gfs_test)
 
 To test:
 
@@ -24,10 +33,5 @@ compare resulting plots to zonalmeanu.png and zonalmeant.png.
 to run jablonowski and williamson test case, cd to jablowill_test and run test_gfs.
 plot surface pressure using python/plotps.py and compare resulting plot with ps.png
 and figure 9 in paper (jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12).
-
-TODO:
-
-* add gfs physics. (DONE)
-* MPI?
 
 Contact:  Jeff Whitaker <jeffrey.s.whitaker@noaa.gov>
