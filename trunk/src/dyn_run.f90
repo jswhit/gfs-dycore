@@ -22,7 +22,7 @@
  calc_pressdata
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
-               grav => con_g
+               grav => con_g, fv => con_fvirt, kappa => con_rocp
  use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,tref,pkref,alfaref
 
  implicit none
@@ -53,7 +53,6 @@
    real(r_kind), dimension(:,:), allocatable :: dlnpsdt,dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
-   real(r_kind) kappa,delta
    integer k,nt
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
@@ -144,16 +143,19 @@
    endif
    ! add pressure gradient force to vertical advection terms
    ! compute energy conversion term.
-   kappa = rd/cp; delta = cvap/cp-1.
    dlnpsdx = 2.*omega*sin(lats) ! temp storage of planetary vorticity
    if (ntrac > 0) then
       ! energy conversion term, store in vadvq
       !$omp parallel do private(k)
       do k=1,nlevs
+         ! section 1.5 in ON 461 (eqn 1.0.3).
          vadvq(:,:,k) = &
-         ! this is what Sela's docs (ON461, eqn 1.0.3) say it should be
          kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)*&
-         ((1.+eps*tracerg(:,:,k,1))/(1.+delta*tracerg(:,:,k,1)))
+         (1.+fv*tracerg(:,:,k,1))/(1.+(cvap/cp-1.)*tracerg(:,:,k,1))
+         ! GFS appears to missing term in numerator (1. + fv*q)?
+         ! GFS has (in gfidi_hyb.f)
+         !vadvq(:,:,k) = &
+         !kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)/(1.+(cvap/cp-1.)*tracerg(:,:,k,1))
       enddo
       !$omp end parallel do 
    else
