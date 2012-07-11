@@ -81,6 +81,8 @@
       REAL(r_kind), DIMENSION(:), ALLOCATABLE :: lap, invlap
       REAL(r_kind), DIMENSION(:,:), ALLOCATABLE :: lats, lons
       INTEGER, DIMENSION(:), ALLOCATABLE :: degree, order
+      real(r_double) :: popt ! polar optimization thresh
+      integer :: nth ! number of threads to use
 
       contains
 
@@ -90,8 +92,8 @@
       integer, intent(in), optional :: nthreads
       real(r_double), intent(in), optional :: polar_opt
       real(r_double), dimension(:), allocatable :: lats1
-      real(r_double) pi,popt
-      integer m,n,i,j,nth
+      real(r_double) pi
+      integer m,n,i,j
       if (present(nthreads)) then
          nth = nthreads
       else
@@ -167,7 +169,7 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          call shtns_init(nlon,nlat,ntrunc)
+          call shtns_init(nlon,nlat,ntrunc,nth,popt)
       end if
       if (default_real .ne. 2) then
          ! if inputs not double precision convert,
@@ -199,7 +201,7 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          call shtns_init(nlon,nlat,ntrunc)
+          call shtns_init(nlon,nlat,ntrunc,nth,popt)
       end if
       if (default_real .ne. 2) then
          allocate(datagrid_tmp(nlon,nlat))
@@ -232,7 +234,7 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          call shtns_init(nlon,nlat,ntrunc)
+          call shtns_init(nlon,nlat,ntrunc,nth,popt)
       end if
       if (default_real .ne. 2) then
          allocate(ugrid_tmp(nlon,nlat))
@@ -274,7 +276,7 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          call shtns_init(nlon,nlat,ntrunc)
+          call shtns_init(nlon,nlat,ntrunc,nth,popt)
       end if
       if (default_real .ne. 2) then
          allocate(ugrid_tmp(nlon,nlat))
@@ -312,7 +314,7 @@
       if (nlon .ne. current_nlon .or. &
           nlat .ne. current_nlat .or. &
           ntrunc .ne. current_ntrunc) then
-          call shtns_init(nlon,nlat,ntrunc)
+          call shtns_init(nlon,nlat,ntrunc,nth,popt)
       end if
       if (default_real .ne. 2) then
          allocate(ugrid_tmp(nlon,nlat))
