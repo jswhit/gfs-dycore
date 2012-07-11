@@ -7,7 +7,7 @@ module pressure_data
 ! destroy_pressdata: deallocate arrays.
  use params, only: nlons,nlats,nlevs
  use kinds, only: r_kind
- use physcons, only: con_rd,con_cp
+ use physcons, only: con_rd,con_cp,rk => con_rocp
  implicit none
  private
  public :: ak,bk,ck,dbk,bkl,psg,pk,alfa,rlnp,dpk,&
@@ -57,10 +57,8 @@ module pressure_data
 
  subroutine calc_pressdata(lnpsg)
     real(r_kind),  intent(in) :: lnpsg(nlons,nlats)
-    real(r_kind) rk
 ! update pressure related variables using latest estimate of lnps
     integer k
-    rk = con_rd/con_cp
 ! compute sigma coordinate quantities (bottom to top).
     do k=1,nlevs+1
        si(nlevs+2-k)= ak(k)/101300.0+bk(k) ! si are now sigmas

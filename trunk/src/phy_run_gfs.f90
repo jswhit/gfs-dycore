@@ -62,7 +62,7 @@
     bengsh
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
-               grav => con_g, pi => con_pi
+               grav => con_g, pi => con_pi, fv => con_fvirt, rk => con_rocp
 
  implicit none
  private
@@ -87,7 +87,7 @@
    real(r_kind), parameter :: qmin = 1.e-10 ! min value for clipping tracers
    real(r_kind), parameter :: typical_pgr = 95000.0
    real(r_kind)  :: fscav(ntrac-ncld-1),&
-   fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(1),delta,rk,&
+   fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(1),&
    gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
    f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
    prslk(nlevs),gq(nlevs,ntrac),prsik(nlevs+1),si_loc(nlevs+1),phii(nlevs+1),&
@@ -125,8 +125,6 @@
    integer(8) count, count_rate, count_max
    logical :: testomp=.false.  ! openmp debug flag
 
-   rk = rd/cp
-   delta = cvap/cp-1. ! used for virt temp to sensible temp computation
    dtp = dtx
 
    allocate(ozplout(levozp,pl_coeff,nlats))
@@ -247,10 +245,10 @@
           ! tracers (humidity, ozone, cloud condensate)
           ! clipped to qmin
           do nt=1,ntrac
-              gq(k,nt) = max(qmin,tracerg(i,j,k,nt))
+             gq(k,nt) = max(qmin,tracerg(i,j,k,nt))
           enddo
           ! compute sensible temp.
-          gt(k) = virtempg(i,j,k)/(1.+delta*gq(k,1))
+          gt(k) = virtempg(i,j,k)/(1.+fv*gq(k,1))
        enddo
        ! omega in cb/sec
        vvel(:) = dlnpdtg(i,j,:)*prsl
@@ -363,7 +361,7 @@
       gq = tracerg(i,j,:,:)
       ! compute sensible temp (clip humidity in computation).
       do k=1,nlevs
-         gt(k) = virtempg(i,j,k)/(1.+delta*max(qmin,gq(k,1)))
+         gt(k) = virtempg(i,j,k)/(1.+fv*max(qmin,gq(k,1)))
       enddo
       ! omega in Pa/sec
       vvel(:) = dlnpdtg(i,j,:)*prs(i,j,:)
@@ -491,7 +489,7 @@
      ! convert sensible temp back to virt temp.
      ! (clip humidity in conversion)
      do k=1,nlevs
-        adt(k) = adt(k)*(1.+delta*max(qmin,adq(k,1)))
+        adt(k) = adt(k)*(1.+fv*max(qmin,adq(k,1)))
      enddo
      ! compute tendencies, 
      ! update grid data.

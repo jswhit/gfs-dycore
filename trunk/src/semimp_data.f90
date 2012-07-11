@@ -6,7 +6,8 @@ module semimp_data
  use kinds, only: r_kind, default_real, r_double
  use params, only: dt,ntrunc,nlons,nlats,nlevs
  use pressure_data, only: ak,bk
- use physcons, only: rd => con_rd, cp => con_cp, rerth => con_rerth
+ use physcons, only: rd => con_rd, cp => con_cp, rerth => con_rerth,&
+                     kappa => con_rocp
  implicit none
  private
  public :: init_semimpdata, destroy_semimpdata
@@ -19,7 +20,7 @@ module semimp_data
  contains
 
  subroutine init_semimpdata()
-   real(r_double) kappa,rnn1,dtx
+   real(r_double) rnn1,dtx
    integer irow,icol,icolbeg,i,j,k,n,icolend,nn,iret
    real(r_double), allocatable, dimension(:,:) :: yecm,tecm,ym,rim
    real(r_double), allocatable, dimension(:) :: vecm
@@ -37,7 +38,6 @@ module semimp_data
    allocate(vecm(nlevs))
    allocate(rim(nlevs,nlevs)) ! identity matrix
 
-   kappa = rd/cp
    ref_temp = 300.
    ref_press = 800.e2
    tref = ref_temp
