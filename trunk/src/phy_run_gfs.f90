@@ -123,7 +123,7 @@
    integer, parameter :: ipsdlim = 1.0e8      ! upper limit for random seeds
    real(8) tstart,tend
    integer(8) count, count_rate, count_max
-   logical :: testomp=.true.  ! openmp debug flag
+   logical :: testomp=.false.  ! openmp debug flag
 
    dtp = dtx
 
