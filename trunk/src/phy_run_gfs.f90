@@ -123,7 +123,7 @@
    integer, parameter :: ipsdlim = 1.0e8      ! upper limit for random seeds
    real(8) tstart,tend
    integer(8) count, count_rate, count_max
-   logical :: testomp=.false.  ! openmp debug flag
+   logical :: testomp=.true.  ! openmp debug flag
 
    dtp = dtx
 
@@ -140,8 +140,16 @@
    nszer = int(fhzer*timestepsperhr)
    if (t > 0) then
       nstep = nint(t/dt)
-      lsswr = mod(nstep,nswr) .eq. 0
-      lslwr = mod(nstep,nlwr) .eq. 0
+      if (nswr .eq. 0) then
+         lsswr = .true.
+      else
+         lsswr = mod(nstep,nswr) .eq. 0
+      endif
+      if (nlwr .eq. 0) then
+         lslwr = .true.
+      else
+         lslwr = mod(nstep,nlwr) .eq. 0
+      endif
       lszer = mod(nstep,nszer) .eq. 0
    else
       nstep=0
@@ -182,8 +190,16 @@
    if (lsswr .or. lslwr) then ! call radiation
 
 ! the following block of code is adapted from gloopr.f
-   dtsw  = 3600.0 * fhswr
-   dtlw  = 3600.0 * fhlwr
+   if (fhswr .lt. dtx) then
+      dtsw = dtx
+   else
+      dtsw  = 3600.0 * fhswr
+   endif
+   if (fhlwr .lt. dtx) then
+      dtlw = dtx
+   else
+      dtlw  = 3600.0 * fhlwr
+   endif
    call radinit                                                      &
 !  ---  input:
      &     ( si_loc, NLEVS, 1, idat, jdat, ICTM, ISOL, ICO2,         &
@@ -334,8 +350,7 @@
 ! interpolate oz forcing to model latitudes, day of year.
    ozplout = 0.
    if (ntoz .gt. 0) then
-      call ozinterpol(nlats,idate_start,fhour, &
-      ozjindx1,ozjindx2,ozplin,ozplout,ozddy)
+      call ozinterpol(jdat,ozplout)
    endif
    ! random number needed for RAS and old SAS
    rann(:) = 0.6
@@ -598,88 +613,59 @@
  subroutine getvaliddate(fhour,idate_start,id,jd)
     ! Compute valid time from initial date and forecast hour
     ! (using NCEP w3lib)
+    !     JD       INTEGER NCEP ABSOLUTE DATE AND TIME
+    !              (YEAR, MONTH, DAY, TIME ZONE,
+    !              HOUR, MINUTE, SECOND, MILLISECOND)
     real(r_kind), intent(in) :: fhour
     integer, dimension(8), intent(out) :: id,jd
     real(4), dimension(5):: fh
     integer, intent(in),  dimension(4) :: idate_start
     fh=0; id=0; jd=0
-    fh(2)=fhour    ! relative time interval in hours
+    fh(2)=fhour          ! relative time interval in hours
     id(1)=idate_start(4) ! year
     id(2)=idate_start(2) ! month
     id(3)=idate_start(3) ! day
-    id(4)=0        ! time zone
+    id(4)=0              ! time zone
     id(5)=idate_start(1) ! hour
     call w3movdat(fh,id,jd)
-    !     JDAT       INTEGER NCEP ABSOLUTE DATE AND TIME
-    !                (YEAR, MONTH, DAY, TIME ZONE,
-    !                 HOUR, MINUTE, SECOND, MILLISECOND)
-    !idate_valid(1)=jd(5) ! hour
-    !idate_valid(2)=jd(2) ! mon
-    !idate_valid(3)=jd(3) ! day
-    !idate_valid(4)=jd(1) ! year
-    return
  end subroutine getvaliddate
 
-  SUBROUTINE ozinterpol(nlats,IDATE,FHOUR,&
-      jindx1,jindx2,ozplin,ozplout,ddy)
-      implicit none
-      integer  j,j1,j2,l,nc,n1,n2
-      real(r_kind) fhour,tem, tx1, tx2
-!
-      integer  JINDX1(nlats), JINDX2(nlats)
-      integer  idate(4),nlats
-      integer  IDAT(8),JDAT(8)
-!
-      real(r_kind) ozplin(latsozp,levozp,pl_coeff,timeoz)
-      real(r_kind) DDY(nlats)
-      real(r_kind) ozplout(levozp,pl_coeff,nlats)
-      real(r_kind) RINC(5), rjday
-      integer jdow, jdoy, jday
-!
-      IDAT=0
-      IDAT(1)=IDATE(4)
-      IDAT(2)=IDATE(2)
-      IDAT(3)=IDATE(3)
-      IDAT(5)=IDATE(1)
-      RINC=0.
-      RINC(2)=FHOUR
-      CALL W3MOVDAT(RINC,IDAT,JDAT)
-!
-      jdow = 0
-      jdoy = 0
-      jday = 0
-      call w3doxdat(jdat,jdow,jdoy,jday)
-      rjday = jdoy + jdat(5) / 24.
-      IF (RJDAY .LT. PL_time(1)) RJDAY = RJDAY+365.
-!
-      n2 = timeoz + 1
-      do j=1,timeoz
-        if (rjday .lt. pl_time(j)) then
-          n2 = j
-          exit
-        endif
-      enddo
-      n1 = n2 - 1
-      if (n1 <= 0)     n1 = n1 + timeoz
-      if (n2 > timeoz) n2 = n2 - timeoz
-
-      tx1 = (pl_time(n2) - rjday) / (pl_time(n2) - pl_time(n1))
-      tx2 = 1.0 - tx1
-!
-      do nc=1,pl_coeff
-        DO L=1,levozp
-          DO J=1,nlats
-            J1  = JINDX1(J)
-            J2  = JINDX2(J)
-            TEM = 1.0 - DDY(J)
-            ozplout(L,nc,j) = &
-            tx1*(TEM*ozplin(J1,L,nc,n1)+DDY(J)*ozplin(J2,L,nc,n1)) &
-          + tx2*(TEM*ozplin(J1,L,nc,n2)+DDY(J)*ozplin(J2,L,nc,n2))
-          ENDDO
-        ENDDO
-      enddo
-!
-      RETURN
-  end subroutine ozinterpol
+ SUBROUTINE ozinterpol(jdat,ozplout)
+   ! interpolate climatological ozone forcing in space and time.
+   implicit none
+   integer  j,j1,j2,l,nc,n1,n2,jdow,jdoy,jday
+   real(r_kind) rjday, tx1, tx2
+   integer,intent(in) :: JDAT(8)
+   real(r_kind), intent(out) ::  ozplout(levozp,pl_coeff,nlats)
+   jdow = 0
+   jdoy = 0
+   jday = 0
+   call w3doxdat(jdat,jdow,jdoy,jday)
+   rjday = jdoy + jdat(5) / 24.
+   IF (RJDAY .LT. PL_time(1)) RJDAY = RJDAY+365.
+   n2 = timeoz + 1
+   do j=1,timeoz
+     if (rjday .lt. pl_time(j)) then
+       n2 = j
+       exit
+     endif
+   enddo
+   n1 = n2 - 1
+   if (n1 <= 0)     n1 = n1 + timeoz
+   if (n2 > timeoz) n2 = n2 - timeoz
+   tx1 = (pl_time(n2) - rjday) / (pl_time(n2) - pl_time(n1))
+   tx2 = 1.0 - tx1
+   do nc=1,pl_coeff
+     DO L=1,levozp
+       DO J=1,nlats
+         J1  = OZJINDX1(J)
+         J2  = OZJINDX2(J)
+         ozplout(L,nc,j) = &
+         tx1*((1.-OZDDY(J))*ozplin(J1,L,nc,n1)+OZDDY(J)*ozplin(J2,L,nc,n1)) +&
+         tx2*((1.-OZDDY(J))*ozplin(J1,L,nc,n2)+OZDDY(J)*ozplin(J2,L,nc,n2))
+       ENDDO
+     ENDDO
+   enddo
+ end subroutine ozinterpol
 
 end module phy_run

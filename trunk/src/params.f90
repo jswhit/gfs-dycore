@@ -66,8 +66,10 @@ module params
  integer :: nmtvr=14 ! number of fields in mtnvar file.
  real(r_kind) :: taustratdamp=5.*86400. ! extra linear drag near top of model
 ! parameters relevant for GFS physics
- real(r_kind) :: fhlwr=1 ! interval in hours to call long-wave radiation
- real(r_kind) :: fhswr=1 ! interval in hours to call short-wave radiation
+ ! interval in hours to call long-wave radiation (0 mean every time step)
+ real(r_kind) :: fhlwr=1 
+ ! interval in hours to call short-wave radiation (0 mean every time step)
+ real(r_kind) :: fhswr=1 
  ! ictm controls source for controls source for time sensitive external data (e.g. CO2,
  ! solcon, aerosols, etc)
  integer :: ictm=0 ! use data at initial cond time, or latest available.
