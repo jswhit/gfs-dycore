@@ -6,7 +6,7 @@ module phy_data
 ! flx_init: initialize flx arrays.
  use kinds, only: r_kind, r_single, r_double
  use params, only: nlons,nlats,nlevs,ndimspec,sfcinitfile,nmtvr,ntoz,ntclw,num_p3d,num_p2d,&
-      ntrunc,sighead,fhswr,fhlwr,idate_start,fhzer
+      ntrunc,sighead,fhswr,fhlwr,idate_start,fhzer,dt
  use sfcio_module, only: sfcio_srohdc, sfcio_head, sfcio_data, sfcio_axdata, &
       sfcio_alhead, sfcio_aldata, sfcio_swohdc
  use physcons, only : tgice => con_tice, con_pi
@@ -1129,7 +1129,7 @@ module phy_data
    real(r_double),intent(in) :: ta
    character(len=120),intent(in) :: filename
    integer, parameter :: noflx=7 
-   real(r_kind) secswr,seclwr,zhour,fha
+   real(r_kind) secswr,seclwr,zhour,fha,dtsw,dtlw
    integer,PARAMETER :: NFLD=25
    integer ilpds,iyr,imo,ida,ihr,ifhr,ithr,lg,ierr
    real(4) RTIMER(NFLD),rtime,rtimsw,rtimlw
@@ -1187,8 +1187,18 @@ module phy_data
    fha = ta/3600.
    zhour = fhour - fha ! last time accum arrays zeroed
    !print *,'fha,fhour,zhour=',fha,fhour,zhour
-   SECSWR=MAX(ta,FHSWR*3600.)
-   SECLWR=MAX(ta,FHLWR*3600.)
+   if (fhswr .lt. dt) then
+      dtsw = dt
+   else
+      dtsw  = 3600.0 * fhswr
+   endif
+   if (fhlwr .lt. dt) then
+      dtlw = dt
+   else
+      dtlw  = 3600.0 * fhlwr
+   endif
+   SECSWR=MAX(ta,DTSW)
+   SECLWR=MAX(ta,DTLW)
    ICEN2 = sighead%icen2; IGEN = sighead%igen
 
    CALL IDSDEF(1,IDS)
@@ -1721,37 +1731,37 @@ module phy_data
     '52)Total cloud cover (percent) convective cloud layer         '
    IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
 
-   wrkga = 0.
-   do n=1,nlons*nlats
-      j = 1+(n-1)/nlons
-      i = n-(j-1)*nlons
-      if (cv(i,j) .gt. 0) then
-         wrkga(n) = cvt(i,j)*1.e3
-      endif
-   enddo
-   call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
-               1,IPRS,ICVTL,0,0,IYR,IMO,IDA,IHR,&
-               IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
-               0.,0.,0.,0.,0.,0.,G,LG,IERR)
-   if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
-    '53)Pressure (Pa) convective cloud top level                   '
-   IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
+!  wrkga = 0.
+!  do n=1,nlons*nlats
+!     j = 1+(n-1)/nlons
+!     i = n-(j-1)*nlons
+!     if (cv(i,j) .gt. 0) then
+!        wrkga(n) = cvt(i,j)*1.e3
+!     endif
+!  enddo
+!  call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
+!              1,IPRS,ICVTL,0,0,IYR,IMO,IDA,IHR,&
+!              IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
+!              0.,0.,0.,0.,0.,0.,G,LG,IERR)
+!  if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
+!   '53)Pressure (Pa) convective cloud top level                   '
+!  IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
 
-   wrkga = 0.
-   do n=1,nlons*nlats
-      j = 1+(n-1)/nlons
-      i = n-(j-1)*nlons
-      if (cv(i,j) .gt. 0) then
-         wrkga(n) = cvb(i,j)*1.e3
-      endif
-   enddo
-   call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
-               1,IPRS,ICVBL,0,0,IYR,IMO,IDA,IHR,&
-               IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
-               0.,0.,0.,0.,0.,0.,G,LG,IERR)
-   if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
-    '54)Pressure (Pa) convective cloud bottom level                '
-   IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
+!  wrkga = 0.
+!  do n=1,nlons*nlats
+!     j = 1+(n-1)/nlons
+!     i = n-(j-1)*nlons
+!     if (cv(i,j) .gt. 0) then
+!        wrkga(n) = cvb(i,j)*1.e3
+!     endif
+!  enddo
+!  call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
+!              1,IPRS,ICVBL,0,0,IYR,IMO,IDA,IHR,&
+!              IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IPRS),IENS,&
+!              0.,0.,0.,0.,0.,0.,G,LG,IERR)
+!  if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
+!   '54)Pressure (Pa) convective cloud bottom level                '
+!  IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
 
 !.................................................
 !...   SAVE B.L. CLOUD AMOUNT
@@ -2228,14 +2238,14 @@ module phy_data
     '106)Field capacity [fraction] land surface   '
    IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
  
-   call twodtooned(suntim,wrkga)
-   call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,133,ICEN,IGEN,&
-               0,ISUNTM,ISFC,0,0,IYR,IMO,IDA,IHR,&
-               IFHOUR,IFHR,ITHR,IACC,0,0,ICEN2,IDS(ISUNTM),IENS,&
-               0.,0.,0.,0.,0.,0.,G,LG,IERR)
-   if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
-    '107)Accumulated sunshine duration time (sec) '
-   IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
+!  call twodtooned(suntim,wrkga)
+!  call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,133,ICEN,IGEN,&
+!              0,ISUNTM,ISFC,0,0,IYR,IMO,IDA,IHR,&
+!              IFHOUR,IFHR,ITHR,IACC,0,0,ICEN2,IDS(ISUNTM),IENS,&
+!              0.,0.,0.,0.,0.,0.,G,LG,IERR)
+!  if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&
+!   '107)Accumulated sunshine duration time (sec) '
+!  IF(IERR.EQ.0) CALL WRYTE(noflx,LG,G)
 
    PRINT *,'GRIB FLUX FILE WRITTEN ',fhour,idate_start
    call baclose(noflx,ierr)
