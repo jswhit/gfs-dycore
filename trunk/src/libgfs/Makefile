@@ -3,7 +3,7 @@ EXEC	 = ./libgfs.a
 F77=ifort
 F90=ifort
 FRRM=-FR
-OPTSB=-O3 -convert big_endian -xHOST -recursive
+OPTSB=-O3 -convert big_endian -xHOST -auto
 OPTSBT=$(OPTSB) -traceback
 
 #F77=gfortran
