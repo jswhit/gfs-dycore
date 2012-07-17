@@ -251,12 +251,14 @@
        j = 1+(n-1)/nlons
        i = n-(j-1)*nlons
        do k=1,nlevs+1
-          ! interface pressure, bottom to top, in cb (kPa)
-          prsi(k) = pk(i,j,nlevs-k+2)/1000.
+          ! interface pressure, bottom to top (Pa)
+          prsi(k) = pk(i,j,nlevs-k+2)
        enddo
-       ! layer pressure, bottom to top, in cb (kPa)
-       prsl(:) = prs(i,j,:)/1000.
-       prslk = prsl
+       ! layer pressure, bottom to top
+       !prsl(1:nlevs) = 0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
+       prsl(:) = prs(i,j,:)
+       prslk = (prsl/1.e5)**rk ! Exner function (non-dimensional)
+       prsl = 0.001*prsl; prsi = 0.001*prsi ! convert to cb (kPa)
        do k=1,nlevs
           ! tracers (humidity, ozone, cloud condensate)
           ! clipped to qmin
@@ -267,7 +269,8 @@
           gt(k) = virtempg(i,j,k)/(1.+fv*gq(k,1))
        enddo
        ! omega in cb/sec
-       vvel(:) = dlnpdtg(i,j,:)*prsl
+       !vvel(:) = dlnpdtg(i,j,:)*prsl
+       vvel(:) = dlnpdtg(i,j,:)*0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
 !  ---  assign random seeds for sw and lw radiations
        if ( ISUBC_LW==2 .or. ISUBC_SW==2 ) then
            icsdsw(1) = ixseed(i,j,1)
@@ -378,8 +381,6 @@
       do k=1,nlevs
          gt(k) = virtempg(i,j,k)/(1.+fv*max(qmin,gq(k,1)))
       enddo
-      ! omega in Pa/sec
-      vvel(:) = dlnpdtg(i,j,:)*prs(i,j,:)
       ! horizontal winds.
       gu(:) = ug(i,j,:); gv(:) = vg(i,j,:)
       do k=1,nlevs+1
@@ -387,16 +388,14 @@
          prsi(k) = pk(i,j,nlevs-k+2)
       enddo
       ! layer pressure, bottom to top, in Pa.
+      !prsl(1:nlevs) = 0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
       prsl(:) = prs(i,j,:)
-      prslk = prsl**rk
-      prsik = prsi**rk
-      phil(nlevs) = 0. ! will be recomputed in gbphys
-      !phii(1) = 0. ! topographic height not included
-      !do k=1,nlevs
-      !   dphi = (prsi(k)-prsi(k+1))*(rd*virtempg(i,j,k))/(prsi(k) + prsi(k+1))
-      !   phil(k) = phii(k) + dphi
-      !   phii(k+1) = phil(k) + dphi
-      !enddo
+      prslk = (prsl/1.e5)**rk ! Exner function
+      prsik = (prsi/1.e5)**rk
+      phil(nlevs) = 0. ! forces recomputation in gbphys (get_prs).
+      ! omega in Pa/sec
+      !vvel(:) = dlnpdtg(i,j,:)*prsl
+      vvel(:) = dlnpdtg(i,j,:)*0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
       dpshc(1)     = 0.3  * prsi(1)
       phy3d(:,:) = phy_f3d(i,j,:,:)
       phy2d(:) = phy_f2d(i,j,:)
