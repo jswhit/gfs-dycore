@@ -211,7 +211,7 @@
    call astronomy                                                    &
 !  ---  inputs:
        ( nlons, nlats, lons, lats,                                   &
-         fhswr, jdat, lsswr,                                         &
+         dtswr*3600., jdat, lsswr,                                   &
 !  ---  outputs:
          solcon, slag, sdec, cdec, coszen, coszdg                    &
         )
