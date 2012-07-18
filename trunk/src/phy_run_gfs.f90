@@ -5,7 +5,7 @@
 ! getphytend: compute tendencies in spectral space.
 
  use params, only: nlevs,nlons,nlats,ntrunc,ndimspec,ntrac,nmtvr,idate_start,dt,&
- fhzer,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
+ postphys,fhzer,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
@@ -211,7 +211,7 @@
    call astronomy                                                    &
 !  ---  inputs:
        ( nlons, nlats, lons, lats,                                   &
-         dtswr/3600., jdat, lsswr,                                   &
+         dtsw/3600., jdat, lsswr,                                    &
 !  ---  outputs:
          solcon, slag, sdec, cdec, coszen, coszdg                    &
         )
@@ -314,9 +314,9 @@
 
    enddo ! loop over horiz grid points
 !$omp end parallel do 
+   print *,'min/max swh',minval(swh),maxval(swh)
+   print *,'min/max hlw',minval(hlw),maxval(hlw)
    if (testomp) then
-      print *,'min/max swh',minval(swh),maxval(swh)
-      print *,'min/max hlw',minval(hlw),maxval(hlw)
       call system_clock(count, count_rate, count_max)
       tend = count*1.d0/count_rate
       print *,'time in grrad = ',tend-tstart
@@ -348,8 +348,10 @@
    nnrcm=1 ! random numbers only used for old sas and ras
    ncw=1 ! only used for Ferrier microphysics (not yet supported)
    clstp=1.0 ! legacy parameter, not used
-! hour of day at end of previous time step.
+! hour of day at beginning of time step
    solhr = mod(fhour + idate_start(1), 24.0) 
+! for time-split physics, solhr is end of time step
+   if (postphys) solhr = solhr + dt/3600.
 ! interpolate oz forcing to model latitudes, day of year.
    ozplout = 0.
    if (ntoz .gt. 0) then
@@ -521,28 +523,18 @@
      stc(i,j,:) = stc_tmp(:)
    enddo ! end loop over horiz grid points
 !$omp end parallel do 
-   !print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
-   !print *,'min/max dudt',minval(dudt),maxval(dudt)
-   !print *,'min/max dvdt',minval(dvdt),maxval(dvdt)
-   !print *,'min/max dtracer1dt',minval(dtracersdt(:,:,:,1)),maxval(dtracersdt(:,:,:,1))
-   !print *,'min/max dtracer2dt',minval(dtracersdt(:,:,:,2)),maxval(dtracersdt(:,:,:,2))
-   !print *,'min/max dtracer3dt',minval(dtracersdt(:,:,:,3)),maxval(dtracersdt(:,:,:,3))
-   !print *,'min/max tracer1',minval(tracerg(:,:,:,1)),maxval(tracerg(:,:,:,1))
-   !print *,'min/max tracer2',minval(tracerg(:,:,:,2)),maxval(tracerg(:,:,:,2))
-   !print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
+   print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
+   print *,'min/max dudt',minval(dudt),maxval(dudt)
+   print *,'min/max dvdt',minval(dvdt),maxval(dvdt)
+   print *,'min/max dtracer1dt',minval(dtracersdt(:,:,:,1)),maxval(dtracersdt(:,:,:,1))
+   print *,'min/max dtracer2dt',minval(dtracersdt(:,:,:,2)),maxval(dtracersdt(:,:,:,2))
+   print *,'min/max dtracer3dt',minval(dtracersdt(:,:,:,3)),maxval(dtracersdt(:,:,:,3))
+   print *,'min/max tracer1',minval(tracerg(:,:,:,1)),maxval(tracerg(:,:,:,1))
+   print *,'min/max tracer2',minval(tracerg(:,:,:,2)),maxval(tracerg(:,:,:,2))
+   print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
    if (testomp) then
       call system_clock(count, count_rate, count_max)
       tend = count*1.d0/count_rate
-      print *,'time in gbphys = ',tend-tstart
-      print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
-      print *,'min/max dudt',minval(dudt),maxval(dudt)
-      print *,'min/max dvdt',minval(dvdt),maxval(dvdt)
-      print *,'min/max dtracer1dt',minval(dtracersdt(:,:,:,1)),maxval(dtracersdt(:,:,:,1))
-      print *,'min/max dtracer2dt',minval(dtracersdt(:,:,:,2)),maxval(dtracersdt(:,:,:,2))
-      print *,'min/max dtracer3dt',minval(dtracersdt(:,:,:,3)),maxval(dtracersdt(:,:,:,3))
-      print *,'min/max tracer1',minval(tracerg(:,:,:,1)),maxval(tracerg(:,:,:,1))
-      print *,'min/max tracer2',minval(tracerg(:,:,:,2)),maxval(tracerg(:,:,:,2))
-      print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
 !$omp parallel
       i = omp_get_num_threads()
 !$omp end parallel
