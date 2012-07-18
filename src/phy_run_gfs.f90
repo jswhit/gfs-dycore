@@ -315,10 +315,10 @@
 !$omp end parallel do 
    print *,'min/max swh',minval(swh),maxval(swh)
    print *,'min/max hlw',minval(hlw),maxval(hlw)
+   call system_clock(count, count_rate, count_max)
+   tend = count*1.d0/count_rate
+   print *,'time in grrad = ',tend-tstart
    if (testomp) then
-      call system_clock(count, count_rate, count_max)
-      tend = count*1.d0/count_rate
-      print *,'time in grrad = ',tend-tstart
 !$omp parallel
       i = omp_get_num_threads()
 !$omp end parallel
@@ -530,9 +530,10 @@
    print *,'min/max tracer1',minval(tracerg(:,:,:,1)),maxval(tracerg(:,:,:,1))
    print *,'min/max tracer2',minval(tracerg(:,:,:,2)),maxval(tracerg(:,:,:,2))
    print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
+   call system_clock(count, count_rate, count_max)
+   tend = count*1.d0/count_rate
+   print *,'time in gbphys = ',tend-tstart
    if (testomp) then
-      call system_clock(count, count_rate, count_max)
-      tend = count*1.d0/count_rate
 !$omp parallel
       i = omp_get_num_threads()
 !$omp end parallel
