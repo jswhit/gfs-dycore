@@ -269,8 +269,7 @@
           gt(k) = virtempg(i,j,k)/(1.+fv*gq(k,1))
        enddo
        ! omega in cb/sec
-       !vvel(:) = dlnpdtg(i,j,:)*prsl
-       vvel(:) = dlnpdtg(i,j,:)*0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
+       vvel(:) = dlnpdtg(i,j,:)*prsl
 !  ---  assign random seeds for sw and lw radiations
        if ( ISUBC_LW==2 .or. ISUBC_SW==2 ) then
            icsdsw(1) = ixseed(i,j,1)
@@ -396,9 +395,8 @@
       prsik = (prsi/1.e5)**rk
       phil(nlevs) = 0. ! forces recomputation in gbphys (get_prs).
       ! omega in Pa/sec
-      !vvel(:) = dlnpdtg(i,j,:)*prsl
-      vvel(:) = dlnpdtg(i,j,:)*0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
-      dpshc(1)     = 0.3  * prsi(1)
+      vvel(:) = dlnpdtg(i,j,:)*prsl
+      dpshc(1)     = 0.3*prsi(1) ! max press depth for shallow convection.
       phy3d(:,:) = phy_f3d(i,j,:,:)
       phy2d(:) = phy_f2d(i,j,:)
       hprime_tmp(:) = hprime(i,j,:)
