@@ -84,12 +84,12 @@ subroutine run()
         ! write out surface and flux data in middle of dfi window.
         if (nt .eq. ntdfi) then
            fh = t/3600.
+           write(sfcinitfile,9000) nint(fh)
+           print *,'writing to ',trim(sfcinitfile),' fh=',fh
+           call wrtout_sfc(fh,sfcinitfile)
            write(filename,9001) nint(fh)
            print *,'writing to ',trim(filename),' fh=',fh
            call wrtout_flx(fh,ta,filename)
-           write(filename,9000) nint(fh)
-           print *,'writing to ',trim(filename),' fh=',fh
-           call wrtout_sfc(fh,filename)
         ! write first time step output
         else if (nt .eq. 1) then
            write(filename,8999) nint(fh)
@@ -110,7 +110,7 @@ subroutine run()
      ! deallocate work space.
      deallocate(vrtspec_dfi,divspec_dfi,virtempspec_dfi,lnpsspec_dfi,tracerspec_dfi,dfi_wts)
      ! reset surface data to values at middle of window (also zeros flux arrays).
-     sfcinitfile = filename; call init_phydata(); ta = 0.
+     call init_phydata(); ta = 0.
      ! reset time.
      t = tstart + ntdfi*dt; ntstart = ntdfi+1
      ! write out spectral data after dfi.
