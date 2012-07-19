@@ -297,6 +297,7 @@ module phy_data
  real(r_kind),public,allocatable:: fluxr(:,:,:)
  real(r_kind),public,allocatable:: swh(:,:,:)
  real(r_kind),public,allocatable:: hlw(:,:,:)
+ logical :: is_allocated = .false.
 
  contains
 
@@ -312,6 +313,31 @@ module phy_data
    real(r_single), allocatable, dimension(:) :: tempin,pl_lat4,pl_pres4,pl_time4
    integer i,j,k,n,nc
 
+   if (sfcinitfile == "") then
+      print *,'sfcinitfile must be specified in namelist'
+      stop
+   endif
+   print *,' nread=',nread,' sfcinitfile=',sfcinitfile
+   call sfcio_srohdc(nread,sfcinitfile,head,data,iret)
+   write(6,99) nread,head%fhour,head%idate,&
+   head%lonb,head%latb,head%lsoil,head%ivs,iret
+99 FORMAT(1H ,'in fixio nread=',i3,2x,'HOUR=',f8.2,3x,'IDATE=', &
+   4(1X,I4),4x,'lonsfc,latsfc,lsoil,ivssfc,iret=',5i8)
+   if(iret.ne.0) then
+     write(6,*) 'error reading ',trim(sfcinitfile)
+     stop
+   endif
+   if (head%lonb .ne. nlons .or. head%latb .ne. nlats) then
+     write(6,*) 'sfcfile dims',head%lonb,head%latb,' expecting ',nlons,nlats
+     stop
+   endif
+   lsoil = head%lsoil
+
+   ! only do this part on first call when arrays not allocated.
+   ! when called after dfi, it will skip this bloack
+   if (.not. is_allocated) then
+
+   is_allocated = .true.
    ! spectral filter for physics tendencies ("gloopb filter")
    allocate(bfilt(ndimspec))
    bfilt=1 ! (no filtering)
@@ -329,11 +355,9 @@ module phy_data
    ! microphysics arrays
    allocate(phy_f3d(nlons,nlats,nlevs,num_p3d))
    allocate(phy_f2d(nlons,nlats,num_p2d))
-   phy_f3d=0; phy_f2d=0
 
    ! 3d cloud fraction diagnosed by radiation.
    allocate(cldcov(nlons,nlats,nlevs))
-   cldcov=0.
 
    ! read mtnvar
    allocate(hprime(nlons,nlats,nmtvr))
@@ -403,143 +427,46 @@ module phy_data
 !   read unfiltered orography
     CALL ORORD(101,nlons,nlats,oro_uf,'orography_uf')
     print *,'read grb orography_uf'
-
-   if (sfcinitfile == "") then
-      print *,'sfcinitfile must be specified in namelist'
-      stop
-   endif
-   print *,' nread=',nread,' sfcinitfile=',sfcinitfile
-   call sfcio_srohdc(nread,sfcinitfile,head,data,iret)
-   write(6,99) nread,head%fhour,head%idate,&
-   head%lonb,head%latb,head%lsoil,head%ivs,iret
-99 FORMAT(1H ,'in fixio nread=',i3,2x,'HOUR=',f8.2,3x,'IDATE=', &
-   4(1X,I4),4x,'lonsfc,latsfc,lsoil,ivssfc,iret=',5i8)
-   if(iret.ne.0) then
-     write(6,*) 'error reading ',trim(sfcinitfile)
-     stop
-   endif
-   if (head%lonb .ne. nlons .or. head%latb .ne. nlats) then
-     write(6,*) 'sfcfile dims',head%lonb,head%latb,' expecting ',nlons,nlats
-     stop
-   endif
-   lsoil = head%lsoil
-   allocate(tsea(nlons,nlats))
-   tsea = data%tsea
-   allocate(smc(nlons,nlats,lsoil))
-   smc = data%smc
-   allocate(stc(nlons,nlats,lsoil))
-   stc = data%stc
-   allocate(tg3(nlons,nlats))
-   tg3 = data%tg3
-   allocate(zorl(nlons,nlats))
-   zorl = data%zorl
-   allocate(cv(nlons,nlats))
-   cv = data%cv
-   allocate(cvb(nlons,nlats))
-   cvb = data%cvb
-   allocate(cvt(nlons,nlats))
-   cvt = data%cvt
-   ! not needed anyway (only used for diagnostic clouds).
-   ! file contains missing values
-   cv = 0; cvb = 0; cvt = 0;
-   allocate(alvsf(nlons,nlats))
-   alvsf = data%alvsf
-   allocate(alvwf(nlons,nlats))
-   alvwf = data%alvwf
-   allocate(alnwf(nlons,nlats))
-   alnwf = data%alnwf
-   allocate(alnsf(nlons,nlats))
-   alnsf = data%alnsf
-   allocate(slmsk(nlons,nlats))
-   slmsk = data%slmsk
-   allocate(vfrac(nlons,nlats))
-   vfrac = data%vfrac
-   allocate(canopy(nlons,nlats))
-   canopy = data%canopy
-   allocate(f10m(nlons,nlats))
-   f10m = data%f10m
-   allocate(t2m(nlons,nlats))
-   t2m = data%t2m
-   allocate(q2m(nlons,nlats))
-   q2m = data%q2m
-   allocate(vtype(nlons,nlats))
-   vtype = data%vtype
-   allocate(stype(nlons,nlats))
-   stype = data%stype
-   allocate(facsf(nlons,nlats))
-   facsf = data%facsf
-   allocate(facwf(nlons,nlats))
-   facwf = data%facwf
-   allocate(uustar(nlons,nlats))
-   uustar = data%uustar
-   allocate(ffmm(nlons,nlats))
-   ffmm = data%ffmm
-   allocate(ffhh(nlons,nlats))
-   ffhh = data%ffhh
-   allocate(hice(nlons,nlats))
-   hice = data%hice
-   allocate(fice(nlons,nlats))
-   fice = data%fice
-   allocate(tisfc(nlons,nlats))
-   tisfc = data%tisfc
-
-   ! if tisfc<0, determine from sst, ice concentration and tgice (constant)
-   if (tisfc(1,1) < 0.) then
-      do j=1,nlats
-      do i=1,nlons
-         tisfc(i,j) = tsea(i,j)
-         if (slmsk(i,j) >= 2. .and. fice(i,j) >= 0.5) then
-            tisfc(i,j) = tsea(i,j) - tgice*(1.-fice(i,j))/fice(i,j)
-            tisfc(i,j) = min(tisfc(i,j),tgice)
-         end if
-      enddo
-      enddo
-   endif
-
-   allocate(tprcp(nlons,nlats))
-   tprcp = data%tprcp
-   allocate(srflag(nlons,nlats))
-   srflag = data%srflag
-   allocate(snwdph(nlons,nlats))
-   snwdph = data%snwdph
-   allocate(slc(nlons,nlats,lsoil))
-   slc = data%slc
-   allocate(shdmin(nlons,nlats))
-   shdmin = data%shdmin
-   allocate(shdmax(nlons,nlats))
-   shdmax = data%shdmax
-   allocate(slope(nlons,nlats))
-   slope = data%slope
-   allocate(snoalb(nlons,nlats))
-   snoalb = data%snoalb
-   ! orog read directly from grib file.
-   !allocate(oro(nlons,nlats))
-   !oro = data%oro
-   allocate(sheleg(nlons,nlats))
-   sheleg = data%sheleg
-
-! initialize snow fraction(sheleg is in mm)
-   allocate(sncovr(nlons,nlats))
-   do j=1,nlats
-   do i=1,nlons
-      sncovr(i,j) = 0.!
-      if (slmsk(i,j) > 0.001) then
-         vegtyp = VTYPE(i,j)
-         if( vegtyp .eq. 0 ) vegtyp = 7	
-         RSNOW  = 0.001*SHELEG(i,j)/SNUPX(vegtyp)
-         IF (0.001*SHELEG(i,j) < SNUPX(vegtyp)) THEN
-           SNCOVR(i,j) = 1.0 - ( EXP(-SALP_DATA*RSNOW) - &
-                                 RSNOW*EXP(-SALP_DATA))
-         ELSE
-           SNCOVR(i,j) = 1.0
-         ENDIF
-      endif
-   enddo
-   enddo
-
-   call sfcio_axdata(data,iret)
-
-   allocate(               &
+    ! allocate arrays for data in sfc file.
+    allocate(tsea(nlons,nlats))
+    allocate(smc(nlons,nlats,lsoil))
+    allocate(stc(nlons,nlats,lsoil))
+    allocate(tg3(nlons,nlats))
+    allocate(zorl(nlons,nlats))
+    allocate(cv(nlons,nlats))
+    allocate(cvb(nlons,nlats))
+    allocate(cvt(nlons,nlats))
+    allocate(alvsf(nlons,nlats))
+    allocate(alvwf(nlons,nlats))
+    allocate(alnwf(nlons,nlats))
+    allocate(alnsf(nlons,nlats))
+    allocate(slmsk(nlons,nlats))
+    allocate(vfrac(nlons,nlats))
+    allocate(canopy(nlons,nlats))
+    allocate(f10m(nlons,nlats))
+    allocate(t2m(nlons,nlats))
+    allocate(q2m(nlons,nlats))
+    allocate(vtype(nlons,nlats))
+    allocate(stype(nlons,nlats))
+    allocate(facsf(nlons,nlats))
+    allocate(facwf(nlons,nlats))
+    allocate(uustar(nlons,nlats))
+    allocate(ffmm(nlons,nlats))
+    allocate(ffhh(nlons,nlats))
+    allocate(hice(nlons,nlats))
+    allocate(fice(nlons,nlats))
+    allocate(tisfc(nlons,nlats))
+    allocate(tprcp(nlons,nlats))
+    allocate(srflag(nlons,nlats))
+    allocate(snwdph(nlons,nlats))
+    allocate(slc(nlons,nlats,lsoil))
+    allocate(shdmin(nlons,nlats))
+    allocate(shdmax(nlons,nlats))
+    allocate(slope(nlons,nlats))
+    allocate(snoalb(nlons,nlats))
+    allocate(sheleg(nlons,nlats))
+    allocate(sncovr(nlons,nlats))
+    allocate(               &
     SFALB   (nlons,nlats), &
     SFCDSW  (nlons,nlats), &
     COSZEN  (nlons,nlats), &
@@ -609,7 +536,90 @@ module phy_data
     allocate(fluxr(nlons,nlats,nfxr))
     allocate(swh(nlons,nlats,nlevs))
     allocate(hlw(nlons,nlats,nlevs))
-    call flx_init()
+
+   endif ! skip to here if arrays already allocated
+
+   phy_f3d=0; phy_f2d=0
+   cldcov=0.
+
+   tsea = data%tsea
+   smc = data%smc
+   stc = data%stc
+   tg3 = data%tg3
+   zorl = data%zorl
+   cv = data%cv
+   cvb = data%cvb
+   cvt = data%cvt
+   ! not needed anyway (only used for diagnostic clouds).
+   ! file contains missing values
+   cv = 0; cvb = 0; cvt = 0;
+   alvsf = data%alvsf
+   alvwf = data%alvwf
+   alnwf = data%alnwf
+   alnsf = data%alnsf
+   slmsk = data%slmsk
+   vfrac = data%vfrac
+   canopy = data%canopy
+   f10m = data%f10m
+   t2m = data%t2m
+   q2m = data%q2m
+   vtype = data%vtype
+   stype = data%stype
+   facsf = data%facsf
+   facwf = data%facwf
+   uustar = data%uustar
+   ffmm = data%ffmm
+   ffhh = data%ffhh
+   hice = data%hice
+   fice = data%fice
+   tisfc = data%tisfc
+
+   ! if tisfc<0, determine from sst, ice concentration and tgice (constant)
+   if (tisfc(1,1) < 0.) then
+      do j=1,nlats
+      do i=1,nlons
+         tisfc(i,j) = tsea(i,j)
+         if (slmsk(i,j) >= 2. .and. fice(i,j) >= 0.5) then
+            tisfc(i,j) = tsea(i,j) - tgice*(1.-fice(i,j))/fice(i,j)
+            tisfc(i,j) = min(tisfc(i,j),tgice)
+         end if
+      enddo
+      enddo
+   endif
+
+   tprcp = data%tprcp
+   srflag = data%srflag
+   snwdph = data%snwdph
+   slc = data%slc
+   shdmin = data%shdmin
+   shdmax = data%shdmax
+   slope = data%slope
+   snoalb = data%snoalb
+   ! orog read directly from grib file.
+   !oro = data%oro
+   sheleg = data%sheleg
+
+! initialize snow fraction(sheleg is in mm)
+   do j=1,nlats
+   do i=1,nlons
+      sncovr(i,j) = 0.!
+      if (slmsk(i,j) > 0.001) then
+         vegtyp = VTYPE(i,j)
+         if( vegtyp .eq. 0 ) vegtyp = 7	
+         RSNOW  = 0.001*SHELEG(i,j)/SNUPX(vegtyp)
+         IF (0.001*SHELEG(i,j) < SNUPX(vegtyp)) THEN
+           SNCOVR(i,j) = 1.0 - ( EXP(-SALP_DATA*RSNOW) - &
+                                 RSNOW*EXP(-SALP_DATA))
+         ELSE
+           SNCOVR(i,j) = 1.0
+         ENDIF
+      endif
+   enddo
+   enddo
+
+   call sfcio_axdata(data,iret)
+
+   call flx_init()
 
  end subroutine init_phydata
 
@@ -958,6 +968,7 @@ module phy_data
   deallocate(ozjindx1,ozjindx2,ozddy)
   deallocate(hlw,swh,fluxr)
   deallocate(bfilt)
+  is_allocated = .false.
  end subroutine destroy_phydata
 
  SUBROUTINE ORORD(LUGB,IORO,JORO,ORO,FNOROG)
