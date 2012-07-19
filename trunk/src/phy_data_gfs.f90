@@ -547,9 +547,9 @@ module phy_data
    stc = data%stc
    tg3 = data%tg3
    zorl = data%zorl
-   cv = data%cv
-   cvb = data%cvb
-   cvt = data%cvt
+   !cv = data%cv
+   !cvb = data%cvb
+   !cvt = data%cvt
    ! not needed anyway (only used for diagnostic clouds).
    ! file contains missing values
    cv = 0; cvb = 0; cvt = 0;
@@ -586,6 +586,7 @@ module phy_data
       enddo
       enddo
    endif
+
 
    tprcp = data%tprcp
    srflag = data%srflag
@@ -1071,67 +1072,63 @@ module phy_data
    integer,parameter :: version=200501
    type(sfcio_head), save :: head
    type(sfcio_data) data
-   integer iret,lonsperlar(nlats),lu
+   integer iret,lu
    lu = 7
-   lonsperlar=nlons
-   head%clabsfc = CHAR(0)//CHAR(0)//CHAR(0)//CHAR(0)// &
-                  CHAR(0)//CHAR(0)//CHAR(0)//CHAR(0)
-   head%latb    = nlats
-   head%lonb    = nlons
-   head%ivs     = version
-   head%lsoil   = lsoil
-   if (.not. allocated(head%lpl)) call sfcio_alhead(head,iret)
-   head%lpl     = lonsperlar(1:nlats/2)
-   if (lsoil .eq. 4) then
-     head%zsoil   = (/-0.1,-0.4,-1.0,-2.0/)
-   elseif (lsoil .eq. 2) then
-     head%zsoil   = (/-0.1,-2.0/)
+
+   call sfcio_srohdc(lu,sfcinitfile,head,data,iret)
+   if(iret.ne.0) then
+     write(6,*) 'error reading ',trim(sfcinitfile)
+     stop
    endif
    head%fhour   = fhour
    head%idate   = idate_start
-   call sfcio_aldata(head,data,iret)
-   data%tsea=tsea
-   data%smc=smc
-   data%sheleg=sheleg
-   data%stc=stc
-   data%tg3=tg3
-   data%zorl=zorl
-   data%alvsf=alvsf
-   data%alvwf=alvwf
-   data%alnsf=alnsf
-   data%alnwf=alnwf
-   data%slmsk=slmsk
-   data%vfrac=vfrac
-   data%canopy=canopy
-   data%f10m=f10m
-   data%t2m=t2m
-   data%q2m=q2m
-   data%vtype=vtype
-   data%stype=stype
-   data%facsf=facsf
-   data%facwf=facwf
-   data%uustar=uustar
-   data%ffmm=ffmm
-   data%ffhh=ffhh
-   data%hice=hice
-   data%fice=fice
-   data%tisfc=tisfc
+   data%tsea = tsea
+   data%smc = smc
+   data%sheleg = sheleg
+   data%stc = stc
+   data%tg3 = tg3
+   data%zorl = zorl
+   data%alvsf = alvsf
+   data%alvwf = alvwf
+   data%alnsf = alnsf
+   data%alnwf = alnwf
+   data%slmsk = slmsk
+   data%vfrac = vfrac
+   data%canopy = canopy
+   data%f10m = f10m
+   data%t2m = t2m
+   data%q2m = q2m
+   data%vtype = vtype
+   data%stype = stype
+   data%facsf = facsf
+   data%facwf = facwf
+   data%uustar = uustar
+   data%ffmm = ffmm
+   data%ffhh = ffhh
+   data%hice = hice
+   data%fice = fice
+   data%tisfc = tisfc
 !the addition of 8 Noah-related records starts here ...............
-   data%tprcp=tprcp
-   data%srflag=srflag
-   data%snwdph=snwdph
-   data%slc=slc
-   data%shdmin=shdmin
-   data%shdmax=shdmax
-   data%slope=slope
-   data%snoalb=snoalb
-   data%orog=oro
+   data%tprcp = tprcp
+   data%srflag = srflag
+   data%snwdph = snwdph
+   data%slc = slc
+   data%shdmin = shdmin
+   data%shdmax = shdmax
+   data%slope = slope
+   data%snoalb = snoalb
+   data%orog = oro
 ! Not needed for version 200501
    !data%cv=cv
    !data%cvb=cvb
    !data%cvt=cvt
    call sfcio_swohdc(lu,filename,head,data,iret)
+   if(iret.ne.0) then
+     write(6,*) 'error writing ',trim(filename)
+     stop
+   endif
    call sfcio_axdata(data,iret)
+
  end subroutine wrtout_sfc
 
  subroutine wrtout_flx(fhour,ta,filename)
