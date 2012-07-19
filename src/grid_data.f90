@@ -24,8 +24,9 @@ module grid_data
 ! (called by dyntend):
 ! etadot: vertical motion in hybrid sigma-pressure (top to bottom)
 ! dlnpdtg: d(lnp)/dt = omega/p (compute in subroutine omega from module dyn_run)
+! dlnpsdt: local tendency of ln(ps)
  real(r_kind), allocatable, public, dimension(:,:) :: &
- lnpsg,dphisdx,dphisdy,phis
+ dlnpsdt,lnpsg,dlnpdst,dphisdx,dphisdy,phis
 
  contains
  subroutine init_griddata()
@@ -41,11 +42,12 @@ module grid_data
     allocate(phis(nlons,nlats))
     allocate(dphisdy(nlons,nlats))
     allocate(dphisdx(nlons,nlats))
+    allocate(dlnpsdt(nlons,nlats))
  end subroutine init_griddata
  subroutine destroy_griddata()
     deallocate(ug,vg,vrtg,divg,virtempg,dlnpdtg,etadot)
     deallocate(tracerg)
-    deallocate(lnpsg,phis,dphisdx,dphisdy)
+    deallocate(lnpsg,phis,dphisdx,dphisdy,dlnpsdt)
  end subroutine destroy_griddata
 
 end module grid_data

@@ -6,17 +6,17 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  postphys
+  sfcinitfile, postphys, ntdfi
 use shtns, only: lats
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
-use phy_data, only: wrtout_sfc, wrtout_flx
+use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
 use dyn_init, only: wrtout_sig
 use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
                           tracerspec, disspec, dmp_prof, diff_prof
 ! these arrays used to print diagnostics after each time step.
 use pressure_data, only: psg
-use grid_data, only: ug,vg
+use grid_data, only: ug,vg,dlnpsdt
 private
 public :: run
 contains
@@ -24,24 +24,100 @@ contains
 subroutine run()
   use omp_lib, only: omp_get_num_threads, omp_get_thread_num
   implicit none
-  integer nt,my_id
-  real(r_kind) fh,fha
-  !real(r_kind) sumwt,precipmean
-  !integer i,j
+  integer nt,ntstart,my_id
+  real(r_kind) fh,fha,pstendmean
   real(r_double) ta,t
   real(8) t1,t2
   real(r_kind), dimension(nlons,nlats,nlevs) :: spd
+  real(r_kind), dimension(nlons,nlats) :: pstend,coslat
+  complex(r_kind), dimension(:,:), allocatable :: &
+  vrtspec_dfi,divspec_dfi,virtempspec_dfi
+  complex(r_kind), dimension(:,:,:), allocatable :: tracerspec_dfi
+  complex(r_kind), dimension(:), allocatable :: lnpsspec_dfi
+  real(r_kind), dimension(:), allocatable :: dfi_wts
   integer(8) count, count_rate, count_max
   character(len=500) filename
 
+  coslat = cos(lats)
 !$omp parallel
   my_id = omp_get_thread_num()
   if (my_id .eq. 0) print *,'running with',omp_get_num_threads(),' threads'
 !$omp end parallel
-  ! time step loop
   t = tstart
   ta = 0.
-  do nt=1,ntmax
+  ntstart = 1
+  ! digital filter loop.
+  if (ntdfi > 0) then
+     print *,'in dfi time step loop...'
+     ! allocate work space
+     allocate(vrtspec_dfi(ndimspec,nlevs),divspec_dfi(ndimspec,nlevs))
+     allocate(virtempspec_dfi(ndimspec,nlevs),lnpsspec_dfi(ndimspec))
+     allocate(tracerspec_dfi(ndimspec,nlevs,ntrac),dfi_wts(0:2*ntdfi))
+     ! compute dfi weights
+     call set_dfi_wts(dfi_wts)
+     ! intialize weighted time averages.
+     vrtspec_dfi = vrtspec_dfi + dfi_wts(0)*vrtspec
+     divspec_dfi = divspec_dfi + dfi_wts(0)*divspec
+     virtempspec_dfi = virtempspec_dfi + dfi_wts(0)*virtempspec
+     tracerspec_dfi = tracerspec_dfi + dfi_wts(0)*tracerspec
+     lnpsspec_dfi = lnpsspec_dfi + dfi_wts(0)*lnpsspec
+     do nt=1,2*ntdfi
+        call system_clock(count, count_rate, count_max)
+        t1 = count*1.d0/count_rate
+        call advance(t)
+        t = t + dt ! absolute forecast time.
+        ta = ta + dt ! absolute forecast time.
+        vrtspec_dfi = vrtspec_dfi + dfi_wts(nt)*vrtspec
+        divspec_dfi = divspec_dfi + dfi_wts(nt)*divspec
+        virtempspec_dfi = virtempspec_dfi + dfi_wts(nt)*virtempspec
+        tracerspec_dfi = tracerspec_dfi + dfi_wts(nt)*tracerspec
+        lnpsspec_dfi = lnpsspec_dfi + dfi_wts(nt)*lnpsspec
+        call system_clock(count, count_rate, count_max)
+        t2 = count*1.d0/count_rate
+        spd = sqrt(ug**2+vg**2) ! max wind speed
+        pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
+        pstendmean = sqrt(sum(pstend*coslat)/sum(coslat))
+        write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+        ! write out surface and flux data in middle of dfi window.
+        if (nt .eq. ntdfi) then
+           fh = t/3600.
+           write(filename,9000) nint(fh)
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_sfc(fh,filename)
+           write(filename,9001) nint(fh)
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_flx(fh,ta,filename)
+        ! write first time step output
+        else if (nt .eq. 1) then
+           write(filename,8999) nint(fh)
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_sig(fh,filename)
+           write(filename,9000) nint(fh)
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_sfc(fh,filename)
+           write(filename,9001) nint(fh)
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_flx(fh,ta,filename)
+        end if
+     enddo
+     print *,'done with dfi loop, resetting fields and restarting...'
+     ! reset model state to weighted time average.
+     vrtspec = vrtspec_dfi; divspec = divspec_dfi; virtempspec = virtempspec_dfi
+     lnpsspec = lnpsspec_dfi; tracerspec = tracerspec_dfi
+     ! reset surface data to values at middle of window (also zeros flux arrays).
+     sfcinitfile = filename; call init_phydata(); ta = 0.
+     ! reset time.
+     t = tstart + ntdfi*dt; ntstart = ntdfi+1
+     ! write out spectral data after dfi.
+     fh = t/3600.
+     write(filename,8999) nint(fh)
+     print *,'writing to ',trim(filename),' fh=',fh
+     call wrtout_sig(fh,filename)
+     ! deallocate work space.
+     deallocate(vrtspec_dfi,divspec_dfi,virtempspec_dfi,lnpsspec_dfi,tracerspec_dfi,dfi_wts)
+  endif
+  ! main time step loop
+  do nt=ntstart,ntmax
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
      ! advance solution with RK3
@@ -53,18 +129,10 @@ subroutine run()
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
      spd = sqrt(ug**2+vg**2) ! max wind speed
-     write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),t2-t1
-9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', cpu time = ',f0.3)
-     !precipmean = 0.
-     !sumwt = 9.
-     !do j=1,nlats
-     !do i=1,nlons
-     !   precipmean = precipmean + geshem(i,j)*cos(lats(i,j))
-     !   sumwt = sumwt + cos(lats(i,j))
-     !enddo
-     !enddo
-     !precipmean = precipmean/sumwt
-     !write(6,*) 'global mean precip = ',precipmean
+     pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
+     pstendmean = sqrt(sum(pstend*coslat)/sum(coslat))
+     write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', pstend = ',f0.3,', cpu time = ',f0.3)
      ! write out data at specified intervals.
      ! data always written at first time step.
      if (nt .eq. 1 .or. (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0)) then
@@ -73,7 +141,6 @@ subroutine run()
         print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_sig(fh,filename)
         ! write out boundary and flux files if using gfs physics.
-        if (.not. heldsuarez .and. .not. jablowill) then
         write(filename,9000) nint(fh)
 9000    format('sfc.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename),' fh=',fh
@@ -82,7 +149,6 @@ subroutine run()
 9001    format('flx.f',i0.3) ! at least three digits used
         print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_flx(fh,ta,filename)
-        endif
      end if
      if (abs(fha-fhzer) .lt. 1.e-5) ta=0. ! reset accum time.
   enddo
@@ -175,5 +241,26 @@ subroutine advance(t)
      !lnpsspec=lnpsspec+dt*dlnpsspecdt_phy ! physics does not modify ps
   end if
 end subroutine advance
+
+subroutine set_dfi_wts(dfi_wts)
+ real(r_kind), intent(out) :: dfi_wts(0:2*ntdfi)
+ real(r_kind) totsum,sx,wx
+ integer kstep
+ dfi_wts = 1.
+ totsum = 0.
+ do kstep=0,2*ntdfi
+    sx     = acos(-1.)*(kstep-ntdfi)/ntdfi
+    wx     = acos(-1.)*(kstep-ntdfi)/(ntdfi+1)
+    if (kstep .NE. ntdfi) then
+       dfi_wts(kstep) = sin(wx)/wx*sin(sx)/sx
+    endif
+    totsum = totsum + dfi_wts(kstep)
+ enddo
+ dfi_wts = dfi_wts/totsum
+ print *,'lanczos dfi wts:'
+ do kstep=0,2*ntdfi
+    print *,kstep-ntdfi,dfi_wts(kstep)
+ enddo
+end subroutine set_dfi_wts
 
 end module run_mod

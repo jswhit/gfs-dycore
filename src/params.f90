@@ -10,8 +10,8 @@ module params
 
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
- ntout,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
- postphys,timestepsperhr,ncw,taustratdamp,polar_opt,&
+ ntout,fhdfi,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
+ postphys,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,&
 ! gfs phys parameters.
  nmtvr,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
@@ -24,9 +24,12 @@ module params
  integer            :: fhmax ! hours to run
  integer            :: fhout ! interval for IO
  integer            :: fhzer ! interval to zero accumulated arrays
+! half window length (hrs) for digital filter launch (=0 mean no dfi)
+ integer            :: fhdfi=0
  real(r_double)     :: deltim=0    ! namelist input time step (secs)
  real(r_double)     :: dt    ! time step (secs) (=deltim or 3600/timestepsperhr)
  integer    :: ntmax ! time steps to run
+ integer    :: ntdfi ! number of time steps in dfi window is 2*ntdfi+1
  integer    :: nlons ! number of longitudes on grid
  integer    :: nlats ! number of latitudes on grid
  integer    :: nlevs ! number of levels on grid
@@ -146,7 +149,7 @@ module params
  real(r_double) :: timestepsperhr = -1
 
  namelist/nam_mrf/initfile,sfcinitfile,fhmax,&
- deltim,dry,efold,ndiss,jablowill,heldsuarez,explicit,&
+ deltim,dry,efold,ndiss,jablowill,heldsuarez,explicit,fhdfi,&
  fhout,fhzer,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,taustratdamp,&
  fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,polar_opt,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
@@ -224,11 +227,13 @@ module params
    tmax = fhmax*3600. 
    ntmax = nint((tmax-tstart)/dt)
    ntout = fhout*timestepsperhr
+   ntdfi = fhdfi*timestepsperhr
    print *,'output every ',ntout,' time steps'
    if (jablowill .and. heldsuarez) then
       print *,'conflicting namelist options'
       print *,'heldsuarez and jablowill both cannot be .true.'
    endif
+   if (ntdfi > 0) print *,'digital filter half-window length',fhdfi,' hrs'
    ! for these idealized tests, model is dry.
    if (jablowill .or. heldsuarez) dry = .true.
    if (jablowill) adiabatic = .true.

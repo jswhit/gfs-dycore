@@ -17,7 +17,7 @@
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
  tracerspec, topospec
  use grid_data, only: ug,vg,vrtg,virtempg,divg,tracerg,dlnpdtg,etadot,lnpsg,&
- phis,dphisdx,dphisdy
+ phis,dphisdx,dphisdy,dlnpsdt
  use pressure_data, only:  ak, bk, ck, dbk, dpk, rlnp, pk, alfa, dpk, psg,&
  calc_pressdata
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
@@ -50,7 +50,7 @@
    complex(r_kind), intent(out), dimension(ndimspec) :: dlnpsspecdt
 ! local variables.
    complex(r_kind), dimension(:,:),allocatable :: workspec
-   real(r_kind), dimension(:,:), allocatable :: dlnpsdt,dlnpsdx,dlnpsdy
+   real(r_kind), dimension(:,:), allocatable :: dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
    integer k,nt
@@ -68,7 +68,6 @@
    ! for these to avoid segfaults in openmp.
    allocate(dlnpsdx(nlons,nlats))
    allocate(dlnpsdy(nlons,nlats))
-   allocate(dlnpsdt(nlons,nlats))
    allocate(prsgx(nlons,nlats,nlevs))
    allocate(prsgy(nlons,nlats,nlevs))
    allocate(vadvu(nlons,nlats,nlevs))
@@ -123,7 +122,7 @@
    if (early_return) then
       deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
       deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
-      deallocate(dlnpsdx,dlnpsdy,dlnpsdt)
+      deallocate(dlnpsdx,dlnpsdy)
       return
    endif
    call grdtospec(dlnpsdt,dlnpsspecdt)
@@ -149,13 +148,14 @@
       !$omp parallel do private(k)
       do k=1,nlevs
          ! section 1.5 in ON 461 (eqn 1.0.3).
-         vadvq(:,:,k) = &
-         kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)*&
-         (1.+fv*tracerg(:,:,k,1))/(1.+(cvap/cp-1.)*tracerg(:,:,k,1))
-         ! GFS appears to missing term in numerator (1. + fv*q)?
-         ! GFS has (in gfidi_hyb.f)
          !vadvq(:,:,k) = &
-         !kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)/(1.+(cvap/cp-1.)*tracerg(:,:,k,1))
+         !kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)*&
+         !(1.+fv*tracerg(:,:,k,1))/(1.+(cvap/cp-1.)*tracerg(:,:,k,1))
+         ! GFS appears to missing term in numerator (1. + fv*q)?
+         ! GFS has (in gfidi_hyb.f).  This form is consistent with
+         ! ECMWF IFS documentation.
+         vadvq(:,:,k) = &
+         kappa*dlnpdtg(:,:,k)*virtempg(:,:,k)/(1.+(cvap/cp-1.)*tracerg(:,:,k,1))
       enddo
       !$omp end parallel do 
    else
@@ -217,7 +217,7 @@
 
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
-   deallocate(dlnpsdx,dlnpsdy,dlnpsdt)
+   deallocate(dlnpsdx,dlnpsdy)
 
    return
  end subroutine getdyntend
@@ -280,7 +280,7 @@
     real(r_kind), intent(out), dimension(nlons,nlats,nlevs) :: dlnpdtg
     ! etadot (vertical velocity in hybrid coords) on layer interfaces.
     real(r_kind), intent(out), dimension(nlons,nlats,nlevs+1) :: etadot
-    real(r_kind), intent(out), dimension(nlons,nlats) :: dlnpsdt
+    real(r_kind), intent(inout), dimension(nlons,nlats) :: dlnpsdt
 ! work space:
     real(r_kind), intent(inout), dimension(nlons,nlats,nlevs) :: &
     workb,workc,cg,cb,db
