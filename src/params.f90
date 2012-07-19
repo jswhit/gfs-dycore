@@ -232,8 +232,14 @@ module params
    if (jablowill .and. heldsuarez) then
       print *,'conflicting namelist options'
       print *,'heldsuarez and jablowill both cannot be .true.'
+      stop
    endif
    if (ntdfi > 0) print *,'digital filter half-window length',fhdfi,' hrs'
+   if (mod(ntdfi,int(fhswr*timestepsperhr)) .ne. 0 .or. &
+       mod(ntdfi,int(fhlwr*timestepsperhr)) .ne. 0) then
+      print *,'middle of dfi window must be on a radiation time step'
+      stop
+   endif
    ! for these idealized tests, model is dry.
    if (jablowill .or. heldsuarez) dry = .true.
    if (jablowill) adiabatic = .true.
