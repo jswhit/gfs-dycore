@@ -157,7 +157,6 @@ subroutine run()
      if (abs(fha-fhzer) .lt. 1.e-5) ta=0. ! reset accum time.
   enddo
 
-  return
 end subroutine run
 
 subroutine advance(t)
@@ -247,6 +246,7 @@ subroutine advance(t)
 end subroutine advance
 
 subroutine set_dfi_wts(dfi_wts)
+ ! set Lanczos filter weights for digital filter 
  real(r_kind), intent(out) :: dfi_wts(0:2*ntdfi)
  real(r_kind) totsum,sx,wx
  integer kstep
