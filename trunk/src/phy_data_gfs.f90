@@ -1127,9 +1127,9 @@ module phy_data
    data%snoalb=snoalb
    data%orog=oro
 ! Not needed for version 200501
-   data%cv=cv
-   data%cvb=cvb
-   data%cvt=cvt
+   !data%cv=cv
+   !data%cvb=cvb
+   !data%cvt=cvt
    call sfcio_swohdc(lu,filename,head,data,iret)
    call sfcio_axdata(data,iret)
  end subroutine wrtout_sfc

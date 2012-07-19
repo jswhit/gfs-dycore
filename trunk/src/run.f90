@@ -56,11 +56,11 @@ subroutine run()
      ! compute dfi weights
      call set_dfi_wts(dfi_wts)
      ! intialize weighted time averages.
-     vrtspec_dfi = vrtspec_dfi + dfi_wts(0)*vrtspec
-     divspec_dfi = divspec_dfi + dfi_wts(0)*divspec
-     virtempspec_dfi = virtempspec_dfi + dfi_wts(0)*virtempspec
-     tracerspec_dfi = tracerspec_dfi + dfi_wts(0)*tracerspec
-     lnpsspec_dfi = lnpsspec_dfi + dfi_wts(0)*lnpsspec
+     vrtspec_dfi = dfi_wts(0)*vrtspec
+     divspec_dfi = dfi_wts(0)*divspec
+     virtempspec_dfi = dfi_wts(0)*virtempspec
+     tracerspec_dfi = dfi_wts(0)*tracerspec
+     lnpsspec_dfi = dfi_wts(0)*lnpsspec
      do nt=1,2*ntdfi
         call system_clock(count, count_rate, count_max)
         t1 = count*1.d0/count_rate
@@ -81,12 +81,12 @@ subroutine run()
         ! write out surface and flux data in middle of dfi window.
         if (nt .eq. ntdfi) then
            fh = t/3600.
-           write(filename,9000) nint(fh)
-           print *,'writing to ',trim(filename),' fh=',fh
-           call wrtout_sfc(fh,filename)
            write(filename,9001) nint(fh)
            print *,'writing to ',trim(filename),' fh=',fh
            call wrtout_flx(fh,ta,filename)
+           write(filename,9000) nint(fh)
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_sfc(fh,filename)
         ! write first time step output
         else if (nt .eq. 1) then
            write(filename,8999) nint(fh)
@@ -104,6 +104,8 @@ subroutine run()
      ! reset model state to weighted time average.
      vrtspec = vrtspec_dfi; divspec = divspec_dfi; virtempspec = virtempspec_dfi
      lnpsspec = lnpsspec_dfi; tracerspec = tracerspec_dfi
+     ! deallocate work space.
+     deallocate(vrtspec_dfi,divspec_dfi,virtempspec_dfi,lnpsspec_dfi,tracerspec_dfi,dfi_wts)
      ! reset surface data to values at middle of window (also zeros flux arrays).
      sfcinitfile = filename; call init_phydata(); ta = 0.
      ! reset time.
@@ -113,8 +115,6 @@ subroutine run()
      write(filename,8999) nint(fh)
      print *,'writing to ',trim(filename),' fh=',fh
      call wrtout_sig(fh,filename)
-     ! deallocate work space.
-     deallocate(vrtspec_dfi,divspec_dfi,virtempspec_dfi,lnpsspec_dfi,tracerspec_dfi,dfi_wts)
   endif
   ! main time step loop
   do nt=ntstart,ntmax
