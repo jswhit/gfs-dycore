@@ -39,13 +39,16 @@ subroutine run()
   character(len=500) filename
 
   coslat = cos(lats)
+
 !$omp parallel
   my_id = omp_get_thread_num()
   if (my_id .eq. 0) print *,'running with',omp_get_num_threads(),' threads'
 !$omp end parallel
+
   t = tstart
   ta = 0.
   ntstart = 1
+
   ! digital filter loop.
   if (ntdfi > 0) then
      print *,'in dfi time step loop...'
@@ -116,6 +119,7 @@ subroutine run()
      print *,'writing to ',trim(filename),' fh=',fh
      call wrtout_sig(fh,filename)
   endif
+
   ! main time step loop
   do nt=ntstart,ntmax
      call system_clock(count, count_rate, count_max)
