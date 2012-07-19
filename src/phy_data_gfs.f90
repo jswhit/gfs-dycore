@@ -317,7 +317,7 @@ module phy_data
       print *,'sfcinitfile must be specified in namelist'
       stop
    endif
-   print *,' nread=',nread,' sfcinitfile=',sfcinitfile
+   print *,' nread=',nread,' sfcinitfile=',trim(sfcinitfile)
    call sfcio_srohdc(nread,sfcinitfile,head,data,iret)
    write(6,99) nread,head%fhour,head%idate,&
    head%lonb,head%latb,head%lsoil,head%ivs,iret
