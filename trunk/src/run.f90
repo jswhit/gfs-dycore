@@ -36,7 +36,7 @@ subroutine run()
   complex(r_kind), dimension(:), allocatable :: lnpsspec_dfi
   real(r_kind), dimension(:), allocatable :: dfi_wts
   integer(8) count, count_rate, count_max
-  character(len=500) filename
+  character(len=500) filename,filename_save
 
   coslat = cos(lats)
 
@@ -84,9 +84,9 @@ subroutine run()
         ! write out surface and flux data in middle of dfi window.
         if (nt .eq. ntdfi) then
            fh = t/3600.
-           write(sfcinitfile,9000) nint(fh)
-           print *,'writing to ',trim(sfcinitfile),' fh=',fh
-           call wrtout_sfc(fh,sfcinitfile)
+           write(filename_save,9000) nint(fh)
+           print *,'writing to ',trim(filename_save),' fh=',fh
+           call wrtout_sfc(fh,filename_save)
            write(filename,9001) nint(fh)
            print *,'writing to ',trim(filename),' fh=',fh
            call wrtout_flx(fh,ta,filename)
@@ -110,7 +110,7 @@ subroutine run()
      ! deallocate work space.
      deallocate(vrtspec_dfi,divspec_dfi,virtempspec_dfi,lnpsspec_dfi,tracerspec_dfi,dfi_wts)
      ! reset surface data to values at middle of window (also zeros flux arrays).
-     call init_phydata(); ta = 0.
+     sfcinitfile = filename_save; call init_phydata(); ta = 0.
      ! reset time.
      t = tstart + ntdfi*dt; ntstart = ntdfi+1
      ! write out spectral data after dfi.
