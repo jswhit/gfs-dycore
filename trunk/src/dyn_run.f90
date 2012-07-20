@@ -42,7 +42,6 @@
    ! runge-kutta scheme instead of assellin-filtered leap-frog.
    logical, optional, intent(in) :: just_do_inverse_transform
    logical :: early_return = .false. ! if true. spectral-> grid only
-   logical :: vadvfilt = .false. ! filtering of vertical advection
    complex(r_kind), intent(out), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt
    complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
@@ -134,12 +133,6 @@
    call getvadv(ug,etadot,vadvu)
    call getvadv(vg,etadot,vadvv)
    call getvadv(virtempg,etadot,vadvt)
-   if (vadvfilt) then
-      ! filter vertical advection to preserve stability.
-      call vcnhyb(nlons*nlats,nlevs,1,dt,pk,etadot,vadvu)
-      call vcnhyb(nlons*nlats,nlevs,1,dt,pk,etadot,vadvv)
-      call vcnhyb(nlons*nlats,nlevs,1,dt,pk,etadot,vadvt)
-   endif
    ! add pressure gradient force to vertical advection terms
    ! compute energy conversion term.
    dlnpsdx = 2.*omega*sin(lats) ! temp storage of planetary vorticity
@@ -199,7 +192,6 @@
    do nt=1,ntrac
    ! use positive-definite vertical advection.
    call getvadv_tracers(tracerg(:,:,:,nt),etadot,vadvq)
-   if (vadvfilt) call vcnhyb(nlons*nlats,nlevs,1,dt,pk,etadot,vadvq)
 !$omp parallel do private(k)
    do k=1,nlevs
       ! gradient of specific humidity on grid.
@@ -213,7 +205,6 @@
    enddo
    call system_clock(count, count_rate, count_max)
    t1 = count*1.d0/count_rate
-   !print *,'4 time=',t1-t2,t1-t0
 
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
