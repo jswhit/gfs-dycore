@@ -42,7 +42,6 @@ OBJS=	 params.o \
          phy_run.o\
          phy_init.o\
 	 phy_finalize.o\
-	 vadvfilt.o\
 	 funcphys.o\
 	 shtns.o
 
@@ -114,8 +113,6 @@ spectral_data.o:  	spectral_data.f90 kinds.o
 
 phy_data.o:  	phy_data.f90 kinds.o params.o sfcio_module.o physcons.o funcphys.o
 
-vadvfilt.o: vadvfilt.f90
-
 semimp_data.o: semimp_data.f90 kinds.o shtns.o pressure_data.o physcons.o
 
 grid_data.o:  	grid_data.f90 kinds.o params.o
@@ -133,6 +130,6 @@ phy_run.o:      phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o k
 	        
 dyn_finalize.o:  dyn_finalize.f90 shtns.o spectral_data.o pressure_data.o grid_data.o
 
-dyn_run.o:	dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o vadvfilt.o
+dyn_run.o:	dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o 
 
 run.o:   	run.f90 dyn_run.o phy_run.o kinds.o params.o
