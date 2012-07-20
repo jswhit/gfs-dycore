@@ -1,7 +1,7 @@
  module dyn_run
 ! calculation of model tendencies.
 ! Public subroutines:
-! getdyntend:  dynamics tendencies (not including linear damping and idffusion)
+! getdyntend:  dynamics tendencies (not including linear damping and diffusion)
 ! (called in run.f90)
 ! semimpadj:  adjustment to tendencies from semi-implicit step.
 ! (only called in run.f90 if explicit=.false.)
