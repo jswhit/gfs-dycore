@@ -448,18 +448,21 @@
 
 !$omp parallel do private(k)
    do k=1,nlevs-1
-      datag_d(:,:,k) = datag(:,:,nlevs-k) - datag(:,:,nlevs+1-k)
-      datag_half(:,:,k) = 0.5*datag_d(:,:,k)
+      datag_half(:,:,k) = 0.5*(datag(:,:,nlevs-k)+datag(:,:,nlevs+1-k))
    enddo
 !$omp end parallel do 
-
    datag_half(:,:,0) = datag(:,:,nlevs)
    datag_half(:,:,nlevs) = datag(:,:,1)
+!$omp parallel do private(k)
+   do k=1,nlevs-1
+      datag_d(:,:,k) = datag(:,:,nlevs-k) - datag(:,:,nlevs+1-k)
+   enddo
+!$omp end parallel do 
 
 !$omp parallel do private(i,j)
    do j=1,nlats
    do i=1,nlons
-      if (datag(i,j,nlevs) >= 0) then
+      if (datag(i,j,nlevs) >= 0.) then
          datag_d(i,j,0) = datag(i,j,nlevs) - &
          max(0.,2.*datag(i,j,nlevs)-datag(i,j,nlevs-1))
       else
@@ -481,13 +484,13 @@
       do i=1,nlons
          if(etadot(i,j,k+1) > 0.) then  !etadot is from top to bottom
             rrkp = 0.
-            if (datag_d(i,j,k) /= 0.) rrkp = datag_d(i,j,k-1)/datag_d(i,j,k)
+            if (datag_d(i,j,k) .ne. 0.) rrkp = datag_d(i,j,k-1)/datag_d(i,j,k)
             phkp = (rrkp+abs(rrkp))/(1.+abs(rrkp))
             datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
                                 phkp*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
          else
             rrk1m = 0.
-            if (datag_d(i,j,k) /= 0.) rrk1m = datag_d(i,j,k+1)/datag_d(i,j,k)
+            if (datag_d(i,j,k) .ne. 0.) rrk1m = datag_d(i,j,k+1)/datag_d(i,j,k)
             phkp1m = (rrk1m+abs(rrk1m))/(1.+abs(rrk1m))
             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
                                 phkp1m*(datag_half(i,j,k)-datag(i,j,nlevs-k))
