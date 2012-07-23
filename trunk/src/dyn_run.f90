@@ -440,60 +440,85 @@
    real(r_kind), intent(in), dimension(nlons,nlats,nlevs+1) :: etadot
    real(r_kind), intent(out), dimension(nlons,nlats,nlevs) :: vadv
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
+   !real(r_kind), dimension(nlons,nlats) :: rkp,rk1m
    integer i,j,k
-   real(r_kind) rrkp,rrk1m,phkp,phkp1m
+   !integer i,k
+   real(r_kind) rrkp,rrk1m
+   !real(8) t1,t2
+   !integer(8) count, count_rate, count_max
 
    allocate(datag_half(nlons,nlats,0:nlevs))
    allocate(datag_d(nlons,nlats,0:nlevs))
 
 !$omp parallel do private(k)
    do k=1,nlevs-1
-      datag_half(:,:,k) = 0.5*(datag(:,:,nlevs-k)+datag(:,:,nlevs+1-k))
+      datag_d(:,:,k) = datag(:,:,nlevs-k) - datag(:,:,nlevs+1-k)
+      datag_half(:,:,k) = 0.5*datag_d(:,:,k)
    enddo
 !$omp end parallel do 
+
    datag_half(:,:,0) = datag(:,:,nlevs)
    datag_half(:,:,nlevs) = datag(:,:,1)
-!$omp parallel do private(k)
-   do k=1,nlevs-1
-      datag_d(:,:,k) = datag(:,:,nlevs-k) - datag(:,:,nlevs+1-k)
-   enddo
-!$omp end parallel do 
 
-!$omp parallel do private(i,j)
-   do j=1,nlats
+!$omp parallel do private(i)
    do i=1,nlons
-      if (datag(i,j,nlevs) >= 0.) then
-         datag_d(i,j,0) = datag(i,j,nlevs) - &
-         max(0.,2.*datag(i,j,nlevs)-datag(i,j,nlevs-1))
-      else
-         datag_d(i,j,0) = datag(i,j,nlevs) - &
-         min(0.,2.*datag(i,j,nlevs)-datag(i,j,nlevs-1))
-      end if
-      if (datag(i,j,1) >= 0) then
-         datag_d(i,j,nlevs) = max(0.,2.*datag(i,j,1)-datag(i,j,2)) - datag(i,j,1)
-      else
-         datag_d(i,j,nlevs) = min(0.,2.*datag(i,j,1)-datag(i,j,2)) - datag(i,j,1)
-      endif
-   enddo
+      where (datag(i,:,nlevs) >= 0)
+         datag_d(i,:,0) = datag(i,:,nlevs) - &
+         max(0.,2.*datag(i,:,nlevs)-datag(i,:,nlevs-1))
+      elsewhere
+         datag_d(i,:,0) = datag(i,:,nlevs) - &
+         min(0.,2.*datag(i,:,nlevs)-datag(i,:,nlevs-1))
+      end where
+      where (datag(i,:,1) >= 0)
+         datag_d(i,:,nlevs) = max(0.,2.*datag(i,:,1)-datag(i,:,2)) - datag(i,:,1)
+      elsewhere
+         datag_d(i,:,nlevs) = min(0.,2.*datag(i,:,1)-datag(i,:,2)) - datag(i,:,1)
+      end where
    enddo
 !$omp end parallel do 
 
-!$omp parallel do private(k)
+!   call system_clock(count, count_rate, count_max)
+!   t1 = count*1.d0/count_rate
+!!$omp parallel do private(k,rkp,rk1m)
+!   do k=1,nlevs-1
+!      where (etadot(:,:,k+1) > 0)
+!         ! this segfaults with ifort and openmp
+!         !where (abs(datag_d(:,:,k)) > tiny(rkp(1,1))) 
+!         !   rkp = datag_d(:,:,k-1)/datag_d(:,:,k)
+!         !elsewhere
+!         !   rkp = 0.
+!         !end where
+!         ! this works, but is it safe?
+!         rkp = datag_d(:,:,k-1)/datag_d(:,:,k)
+!         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
+!         (rkp+abs(rkp))/(1.+abs(rkp))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
+!      elsewhere
+!         rk1m = datag_d(:,:,k+1)/datag_d(:,:,k)
+!         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
+!         (rk1m+abs(rk1m))/(1.+abs(rk1m))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
+!      end where
+!   enddo
+!!$omp end parallel do 
+!   call system_clock(count, count_rate, count_max)
+!   t2 = count*1.d0/count_rate
+!   print *,'time=',t2-t1
+!   print *,minval(datag_half),maxval(datag_half)
+!   stop
+
+!$omp parallel do private(i,j,k,rrkp,rrk1m)
    do k=1,nlevs-1
       do j=1,nlats
       do i=1,nlons
          if(etadot(i,j,k+1) > 0.) then  !etadot is from top to bottom
             rrkp = 0.
-            if (datag_d(i,j,k) .ne. 0.) rrkp = datag_d(i,j,k-1)/datag_d(i,j,k)
-            phkp = (rrkp+abs(rrkp))/(1.+abs(rrkp))
+            if (abs(datag_d(i,j,k)) > tiny(rrkp)) rrkp = datag_d(i,j,k-1)/datag_d(i,j,k)
             datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
-                                phkp*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
+            (rrkp+abs(rrkp))/(1.+abs(rrkp))*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
          else
             rrk1m = 0.
-            if (datag_d(i,j,k) .ne. 0.) rrk1m = datag_d(i,j,k+1)/datag_d(i,j,k)
-            phkp1m = (rrk1m+abs(rrk1m))/(1.+abs(rrk1m))
+            if (abs(datag_d(i,j,k)) > tiny(rrk1m)) rrk1m = datag_d(i,j,k+1)/datag_d(i,j,k)
             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
-                                phkp1m*(datag_half(i,j,k)-datag(i,j,nlevs-k))
+            (rrk1m+abs(rrk1m))/(1.+abs(rrk1m))*(datag_half(i,j,k)-datag(i,j,nlevs-k))
          endif
       enddo
       enddo
