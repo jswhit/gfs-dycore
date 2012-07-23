@@ -15,6 +15,7 @@ module phy_data
  private
  public :: init_phydata, destroy_phydata, flx_init, wrtout_sfc, wrtout_flx
 
+ type(sfcio_head) sfchead
  integer, public :: lsoil, timeoz, pl_coeff, levozp, latsozp, &
                     levozc, latsozc, timeozc
  INTEGER, parameter, public :: MAX_SLOPETYP=30
@@ -302,7 +303,6 @@ module phy_data
  contains
 
  subroutine init_phydata()
-   type(sfcio_head) head
    type(sfcio_data) data
    integer, parameter ::  nread=14
    integer, parameter ::  nmtn=24
@@ -318,20 +318,20 @@ module phy_data
       stop
    endif
    print *,' nread=',nread,' sfcinitfile=',trim(sfcinitfile)
-   call sfcio_srohdc(nread,sfcinitfile,head,data,iret)
-   write(6,99) nread,head%fhour,head%idate,&
-   head%lonb,head%latb,head%lsoil,head%ivs,iret
+   call sfcio_srohdc(nread,sfcinitfile,sfchead,data,iret)
+   write(6,99) nread,sfchead%fhour,sfchead%idate,&
+   sfchead%lonb,sfchead%latb,sfchead%lsoil,sfchead%ivs,iret
 99 FORMAT(1H ,'in fixio nread=',i3,2x,'HOUR=',f8.2,3x,'IDATE=', &
    4(1X,I4),4x,'lonsfc,latsfc,lsoil,ivssfc,iret=',5i8)
    if(iret.ne.0) then
      write(6,*) 'error reading ',trim(sfcinitfile)
      stop
    endif
-   if (head%lonb .ne. nlons .or. head%latb .ne. nlats) then
-     write(6,*) 'sfcfile dims',head%lonb,head%latb,' expecting ',nlons,nlats
+   if (sfchead%lonb .ne. nlons .or. sfchead%latb .ne. nlats) then
+     write(6,*) 'sfcfile dims',sfchead%lonb,sfchead%latb,' expecting ',nlons,nlats
      stop
    endif
-   lsoil = head%lsoil
+   lsoil = sfchead%lsoil
 
    ! only do this part on first call when arrays not allocated.
    ! when called after dfi, it will skip this bloack
@@ -1070,18 +1070,18 @@ module phy_data
    real(r_kind), intent(in) :: fhour
    character(len=120) filename
    integer,parameter :: version=200501
-   type(sfcio_head), save :: head
    type(sfcio_data) data
    integer iret,lu
    lu = 7
 
-   call sfcio_srohdc(lu,sfcinitfile,head,data,iret)
+   ! sfchead is saved from input file as a private module variable.
+   call sfcio_aldata(sfchead,data,iret)
    if(iret.ne.0) then
-     write(6,*) 'error reading ',trim(sfcinitfile)
+     write(6,*) 'error allocating surface data structure'
      stop
    endif
-   head%fhour   = fhour
-   head%idate   = idate_start
+   sfchead%fhour   = fhour
+   sfchead%idate   = idate_start
    data%tsea = tsea
    data%smc = smc
    data%sheleg = sheleg
@@ -1122,7 +1122,7 @@ module phy_data
    !data%cv=cv
    !data%cvb=cvb
    !data%cvt=cvt
-   call sfcio_swohdc(lu,filename,head,data,iret)
+   call sfcio_swohdc(lu,filename,sfchead,data,iret)
    if(iret.ne.0) then
      write(6,*) 'error writing ',trim(filename)
      stop
