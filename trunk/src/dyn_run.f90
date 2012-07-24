@@ -439,6 +439,7 @@
    real(r_kind), intent(in), dimension(nlons,nlats,nlevs) :: datag
    real(r_kind), intent(in), dimension(nlons,nlats,nlevs+1) :: etadot
    real(r_kind), intent(out), dimension(nlons,nlats,nlevs) :: vadv
+   ! local variables 
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
    integer i,j,k
    real(r_kind) phi(nlons,nlats),eps
