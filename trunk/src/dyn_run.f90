@@ -441,7 +441,7 @@
    real(r_kind), intent(out), dimension(nlons,nlats,nlevs) :: vadv
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
    integer i,j,k
-   real(r_kind) rrkp,rrkm1
+   real(r_kind) phi(nlons,nlats),eps
 
    allocate(datag_half(nlons,nlats,0:nlevs))
    allocate(datag_d(nlons,nlats,0:nlevs))
@@ -473,23 +473,32 @@
    enddo
 !$omp end parallel do 
 
-!$omp parallel do private(i,j,k,rrkp,rrkm1)
+   ! to prevent NaNs in computation of van leer limiter
+   eps = tiny(phi(1,1))
+!$omp parallel do private(i,j,k)
    do k=1,nlevs-1
       do j=1,nlats
       do i=1,nlons
-         if(etadot(i,j,k+1) > 0.) then  !etadot is from top to bottom
-            rrkp = 0.
-            if (abs(datag_d(i,j,k)) > tiny(rrkp)) rrkp = datag_d(i,j,k-1)/datag_d(i,j,k)
-            datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
-            (rrkp+abs(rrkp))/(1.+abs(rrkp))*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
-         else
-            rrkm1 = 0.
-            if (abs(datag_d(i,j,k)) > tiny(rrkm1)) rrkm1 = datag_d(i,j,k+1)/datag_d(i,j,k)
-            datag_half(i,j,k) = datag(i,j,nlevs-k) + &
-            (rrkm1+abs(rrkm1))/(1.+abs(rrkm1))*(datag_half(i,j,k)-datag(i,j,nlevs-k))
+         if (abs(datag_d(i,j,k)) .lt. eps) then
+            datag_d(i,j,k) = sign(eps, datag_d(i,j,k))
          endif
       enddo
       enddo
+   enddo
+!$omp end parallel do 
+
+!$omp parallel do private(i,j,k,phi)
+   ! apply flux limiter.
+   do k=1,nlevs-1
+      where(etadot(:,:,k+1) > 0.)
+         phi = datag_d(:,:,k-1)/datag_d(:,:,k)
+         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
+         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
+      elsewhere
+         phi = datag_d(:,:,k+1)/datag_d(:,:,k)
+         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
+         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
+      end where
    enddo
 !$omp end parallel do 
 
