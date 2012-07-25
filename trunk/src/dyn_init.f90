@@ -8,9 +8,10 @@ module dyn_init
 !  set up linear damping operators (disspec,diff_prof,damp_prof), initialize arrays
 !  for semi-implicit time stepping.
 ! wrtout_sig: write out spectral data.
+! readin_sig: read in spectral data.
  use kinds, only: r_kind, r_single
  use sigio_module, only: sigio_sclose,sigio_swohdc,&
-  sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
+  sigio_srohdc,sigio_aldata,sigio_data,sigio_head,sigio_sropen,sigio_srdata,sigio_axdata
  use params, only: &
  nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,jablowill,polar_opt,&
  heldsuarez,explicit,tstart,idate_start,hdif_fac,hdif_fac2,fshk,ntrac,taustratdamp
@@ -26,44 +27,25 @@ module dyn_init
 
  implicit none
  private
- public :: init_dyn, wrtout_sig
+ public :: init_dyn, wrtout_sig, readin_sig
 
  contains
 
  subroutine init_dyn()
-    type(sigio_data) sigdata
-    integer k,lu,iret,nt
+    integer k
     ! allocate arrays
     call init_specdata()
+    call init_griddata()
     ! initialize spherical harmonic lib
     call shtns_init(nlons,nlats,ntrunc,nthreads=1,polar_opt=polar_opt)
-    ! read initial conditions
-    lu = 7
-    call sigio_srohdc(lu,trim(initfile),sighead,sigdata,iret)
-    if (iret .ne. 0) then
-      print *,'error reading ',trim(initfile),iret
-      stop
-    endif
-    ! convert spectral arrays to double precision complex,
-    ! re-normalize coefficients.
-    call copyspecin(sigdata%ps, lnpsspec)
-    call copyspecin(sigdata%hs, topospec)
-    do k=1,nlevs
-       call copyspecin(sigdata%z(:,k),vrtspec(:,k))
-       call copyspecin(sigdata%d(:,k),divspec(:,k))
-       call copyspecin(sigdata%t(:,k),virtempspec(:,k))
-       do nt=1,ntrac
-          call copyspecin(sigdata%q(:,k,nt),tracerspec(:,k,nt))
-       enddo
-    enddo
+    ! read spectral initial conditions
+    call readin_sig(initfile)
     ! initialize pressure arrays.
     call init_pressdata()
     ! convert to ln(ps) in Pa.
     call spectogrd(lnpsspec, psg)
     psg = 1000.*exp(psg) ! convert to Pa
     call grdtospec(log(psg), lnpsspec) ! back to spectral.
-    call sigio_axdata(sigdata,iret)
-    call sigio_sclose(lu,iret)
     if (sighead%idvc == 2) then ! hybrid coordinate
        do k=1,nlevs+1
           ak(k) = sighead%vcoord(nlevs+2-k,1)
@@ -78,7 +60,6 @@ module dyn_init
        print *,'unknown vertical coordinate type',sighead%idvc
        stop
     end if
-    call init_griddata() ! allocate gridded fields
     ! jablonowoski and williamson test case or
     ! held-suarez test case
     ! (over-ride initial conditions read from file).
@@ -130,6 +111,34 @@ module dyn_init
        nn = nn + 2
     enddo
  end subroutine copyspecout
+ 
+ subroutine readin_sig(filename)
+    type(sigio_data) sigdata
+    type(sigio_head) sighead
+    character(*), intent(in) :: filename
+    integer lu,iret,k,nt
+    ! read initial conditions
+    lu = 7
+    call sigio_srohdc(lu,trim(filename),sighead,sigdata,iret)
+    if (iret .ne. 0) then
+      print *,'error reading ',trim(filename),iret
+      stop
+    endif
+    ! convert spectral arrays to double precision complex,
+    ! re-normalize coefficients.
+    call copyspecin(sigdata%ps, lnpsspec)
+    call copyspecin(sigdata%hs, topospec)
+    do k=1,nlevs
+       call copyspecin(sigdata%z(:,k),vrtspec(:,k))
+       call copyspecin(sigdata%d(:,k),divspec(:,k))
+       call copyspecin(sigdata%t(:,k),virtempspec(:,k))
+       do nt=1,ntrac
+          call copyspecin(sigdata%q(:,k,nt),tracerspec(:,k,nt))
+       enddo
+    enddo
+    call sigio_axdata(sigdata,iret)
+    call sigio_sclose(lu,iret)
+ end subroutine readin_sig
 
  subroutine wrtout_sig(fh,filename)
     ! write out spectral data
