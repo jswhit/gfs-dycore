@@ -133,11 +133,9 @@
    call getvadv(ug,etadot,vadvu)
    call getvadv(vg,etadot,vadvv)
    call getvadv(virtempg,etadot,vadvt)
-   ! add pressure gradient force to vertical advection terms
-   ! compute energy conversion term.
    dlnpsdx = 2.*omega*sin(lats) ! temp storage of planetary vorticity
+   ! compute energy conversion term, store in vadvq.
    if (ntrac > 0) then
-      ! energy conversion term, store in vadvq
       !$omp parallel do private(k)
       do k=1,nlevs
          ! section 1.5 in ON 461 (eqn 1.0.3).
