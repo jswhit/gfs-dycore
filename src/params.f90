@@ -63,7 +63,7 @@ module params
  ! amplitude of vertically varying part of hyper-diff (1 means no variation,
  ! zero gives GFS resolution dependent defaults)
  real(r_kind) :: fshk=0 
- integer :: ntrac=0 ! number of tracers (including specific humidity)
+ integer :: ntrac=3 ! number of tracers (including specific humidity)
  integer :: ntoz=2 ! ozone tracer number
  integer :: ntclw=3 ! cloud condensate tracer number
  integer :: nmtvr=14 ! number of fields in mtnvar file.
@@ -248,8 +248,8 @@ module params
    call sigio_sclose(lu,iret)
    ndimspec = (ntrunc+1)*(ntrunc+2)/2
    if (dry) ntrac=0
-   if (ntrac .gt. ntracin) then
-     print *,'only',ntracin,' tracers in input file, need',ntrac
+   if (ntrac .ne. ntracin) then
+     print *,ntracin,' tracers in input file, expecting',ntrac
      stop
    endif
    print *,'namelist nam_mrf:'

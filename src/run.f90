@@ -7,7 +7,7 @@ use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
   sfcinitfile, postphys, ntdfi
-use shtns, only: lats
+use shtns, only: lats, gauwts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
@@ -24,12 +24,12 @@ contains
 subroutine run()
   use omp_lib, only: omp_get_num_threads, omp_get_thread_num
   implicit none
-  integer nt,ntstart,my_id
+  integer i,nt,ntstart,my_id
   real(r_kind) fh,fha,pstendmean
   real(r_double) ta,t
   real(8) t1,t2
   real(r_kind), dimension(nlons,nlats,nlevs) :: spd
-  real(r_kind), dimension(nlons,nlats) :: pstend,coslat
+  real(r_kind), dimension(nlons,nlats) :: pstend,areawts
   complex(r_kind), dimension(:,:), allocatable :: &
   vrtspec_dfi,divspec_dfi,virtempspec_dfi
   complex(r_kind), dimension(:,:,:), allocatable :: tracerspec_dfi
@@ -38,7 +38,9 @@ subroutine run()
   integer(8) count, count_rate, count_max
   character(len=500) filename,filename_save
 
-  coslat = cos(lats)
+  do i=1,nlons
+     areawts(i,:) = 0.5*gauwts(:)/nlons
+  enddo
 
 !$omp parallel
   my_id = omp_get_thread_num()
@@ -79,7 +81,7 @@ subroutine run()
         t2 = count*1.d0/count_rate
         spd = sqrt(ug**2+vg**2) ! max wind speed
         pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
-        pstendmean = sqrt(sum(pstend*coslat)/sum(coslat))
+        pstendmean = sqrt(sum(pstend*areawts))
         write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
         ! write out surface and flux data in middle of dfi window.
         if (nt .eq. ntdfi) then
@@ -134,23 +136,23 @@ subroutine run()
      t2 = count*1.d0/count_rate
      spd = sqrt(ug**2+vg**2) ! max wind speed
      pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
-     pstendmean = sqrt(sum(pstend*coslat)/sum(coslat))
+     pstendmean = sqrt(sum(pstend*areawts))
      write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
 9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', pstend = ',f0.3,', cpu time = ',f0.3)
      ! write out data at specified intervals.
      ! data always written at first time step.
      if (nt .eq. 1 .or. (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0)) then
         write(filename,8999) nint(fh)
-8999    format('sig.f',i0.3) ! at least three digits used
+8999    format('SIG.F',i0.2) ! at least three digits used
         print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_sig(fh,filename)
         ! write out boundary and flux files if using gfs physics.
         write(filename,9000) nint(fh)
-9000    format('sfc.f',i0.3) ! at least three digits used
+9000    format('SFC.F',i0.2) ! at least three digits used
         print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_sfc(fh,filename)
         write(filename,9001) nint(fh)
-9001    format('flx.f',i0.3) ! at least three digits used
+9001    format('FLX.F',i0.2) ! at least three digits used
         print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_flx(fh,ta,filename)
      end if

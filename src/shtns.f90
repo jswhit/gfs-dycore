@@ -40,6 +40,7 @@
 ! lats,lons: 2-d arrays with lat/lon values (radians) of transform grid.
 ! nlm: number of complex spectral coeffs.
 ! current_nlon, current_nlat: current values of nlons,nlats
+! gauwts: 1-d array (length current_nlat) of gaussian quadrature weights.
 ! current_ntrunc: current spectral truncation
 ! degree: array with degree (n) for each spectral coefficient.
 ! order: array with order (m) for each spectral coefficient.
@@ -55,7 +56,7 @@
       implicit none 
       private 
       public :: shtns_init,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,shtns_destroy
-      public :: lats, lons, nlm, degree, order, lap, invlap,&
+      public :: gauwts, lats, lons, nlm, degree, order, lap, invlap,&
                 current_nlon, current_nlat, current_ntrunc
       INTEGER, PARAMETER :: SHT_NATIVE_LAYOUT=0
       INTEGER, PARAMETER :: SHT_THETA_CONTIGUOUS=256
@@ -78,7 +79,7 @@
       INTEGER, SAVE      :: current_ntrunc = -1  
       INTEGER            :: nlm
 ! arrays allocated when nlon or nlat or ntrunc change.
-      REAL(r_kind), DIMENSION(:), ALLOCATABLE :: lap, invlap
+      REAL(r_kind), DIMENSION(:), ALLOCATABLE :: lap, invlap, gauwts
       REAL(r_kind), DIMENSION(:,:), ALLOCATABLE :: lats, lons
       INTEGER, DIMENSION(:), ALLOCATABLE :: degree, order
       real(r_double) :: popt ! polar optimization thresh
@@ -91,7 +92,7 @@
       integer, intent(in) :: nlon,nlat,ntrunc
       integer, intent(in), optional :: nthreads
       real(r_double), intent(in), optional :: polar_opt
-      real(r_double), dimension(:), allocatable :: lats1
+      real(r_double), dimension(:), allocatable :: lats1,gauwts1
       real(r_double) pi
       integer m,n,i,j
       if (present(nthreads)) then
@@ -117,12 +118,19 @@
          stop
       endif
       if (.not. allocated(lats)) allocate(lats(nlon,nlat))
+      if (.not. allocated(gauwts)) allocate(gauwts(nlat))
       if (.not. allocated(lons)) allocate(lons(nlon,nlat))
       allocate(lats1(nlat))
+      allocate(gauwts1(nlat/2))
       call shtns_cos_array(lats1)
+      call shtns_gauss_wts(gauwts1)
       ! lats is 2d-array (lon,lat), lats1 is 1d
       do i=1,nlon
-          lats(i,:) = asin(lats1)
+         lats(i,:) = asin(lats1)
+      enddo
+      do j=1,nlat/2
+         gauwts(j) = gauwts1(j)
+         gauwts(nlat-j+1) = gauwts1(j)
       enddo
       pi = 4.*atan(1.0)
       do j=1,nlat
@@ -130,7 +138,7 @@
          lons(i,j) = 2.*pi*real(i-1)/nlon
       enddo
       enddo
-      deallocate(lats1)
+      deallocate(lats1,gauwts1)
       if (.not. allocated(degree)) allocate(degree(nlm))
       if (.not. allocated(order)) allocate(order(nlm))
       degree = (/((n,n=m,ntrunc),m=0,ntrunc)/)
@@ -146,6 +154,7 @@
 ! deallocate arrays.
       call shtns_reset()
       if (allocated(lats)) deallocate(lats)
+      if (allocated(gauwts)) deallocate(gauwts)
       if (allocated(lons)) deallocate(lons)
       if (allocated(degree)) deallocate(degree)
       if (allocated(order)) deallocate(order)
