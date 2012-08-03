@@ -53,6 +53,7 @@
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
    integer k,nt
+   logical :: profile = .false. ! print out timeing stats
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
 
@@ -81,8 +82,8 @@
    ! and specific humidity on grid from spectral coefficients.
    call system_clock(count, count_rate, count_max)
    t1 = count*1.d0/count_rate
-   t0=t1
-!$omp parallel do private(k)
+   t0 = t1
+!$omp parallel do private(k) schedule(dynamic)
    do k=1,nlevs
       call getuv(vrtspec(:,k),divspec(:,k),ug(:,:,k),vg(:,:,k),rerth)
       call spectogrd(vrtspec(:,k),vrtg(:,:,k))
@@ -99,7 +100,7 @@
 !$omp end parallel do 
    call system_clock(count, count_rate, count_max)
    t2 = count*1.d0/count_rate
-   !print *,'1 time=',t2-t1
+   if (profile) print *,'1 time=',t2-t1
    ! lnps on grid.
    call spectogrd(lnpsspec, lnpsg)
    ! gradient of surface pressure.
@@ -136,7 +137,7 @@
    dlnpsdx = 2.*omega*sin(lats) ! temp storage of planetary vorticity
    ! compute energy conversion term, store in vadvq.
    if (ntrac > 0) then
-      !$omp parallel do private(k)
+      !$omp parallel do private(k) 
       do k=1,nlevs
          ! section 1.5 in ON 461 (eqn 1.0.3).
          !vadvq(:,:,k) = &
@@ -158,9 +159,9 @@
    endif
    call system_clock(count, count_rate, count_max)
    t1 = count*1.d0/count_rate
-   !print *,'2 time=',t1-t2
+   if (profile) print *,'2 time=',t1-t2
    ! compute tendencies of virt temp, ort and div in spectral space
-!$omp parallel do private(k)
+!$omp parallel do private(k) schedule(dynamic)
    do k=1,nlevs
       ! add pressure gradient force to vertical advection terms
       ! (so prsgy and prsgx can be re-used)
@@ -185,12 +186,12 @@
 !$omp end parallel do 
    call system_clock(count, count_rate, count_max)
    t2 = count*1.d0/count_rate
-   !print *,'3 time=',t2-t1
+   if (profile) print *,'3 time=',t2-t1
    ! compute tendency of tracers (including specific humidity) in spectral space.
    do nt=1,ntrac
    ! use positive-definite vertical advection.
    call getvadv_tracers(tracerg(:,:,:,nt),etadot,vadvq)
-!$omp parallel do private(k)
+!$omp parallel do private(k) schedule(dynamic)
    do k=1,nlevs
       ! gradient of specific humidity on grid.
       call getgrad(tracerspec(:,k,nt),dvirtempdx(:,:,k),dvirtempdy(:,:,k),rerth)
@@ -203,6 +204,8 @@
    enddo
    call system_clock(count, count_rate, count_max)
    t1 = count*1.d0/count_rate
+   if (profile) print *,'4 time=',t1-t2  
+   !print *,'getdyntend time=',t1-t0
 
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
