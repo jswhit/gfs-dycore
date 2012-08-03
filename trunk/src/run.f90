@@ -183,6 +183,9 @@ subroutine advance(t)
   complex(r_kind), dimension(ndimspec) :: dlnpsspecdt,dlnpsspecdt_phy
   integer k, nt, kk
   real(r_double) dtx
+  logical :: profile = .true. ! print out timing stats
+  integer(8) count, count_rate, count_max
+  real(8) t1,t2
   ! save original fields.
   vrtspec_save = vrtspec
   divspec_save = divspec
@@ -193,12 +196,22 @@ subroutine advance(t)
   do k=0,2
      dtx = dt/float(3-k)
      ! dynamics tendencies.
+     call system_clock(count, count_rate, count_max)
+     t1 = count*1.d0/count_rate
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
+     call system_clock(count, count_rate, count_max)
+     t2 = count*1.d0/count_rate
+     if (profile) print *,'time in getdyntend=',t2-t1
      ! compute physics tendencies at beginning, hold constant within RK3 sub time steps.
      ! (process-split approach)
      if (.not. adiabatic .and. .not. postphys) then
         if (k == 0) then
+           call system_clock(count, count_rate, count_max)
+           t1 = count*1.d0/count_rate
            call getphytend(dvrtspecdt_phy,ddivspecdt_phy,dvirtempspecdt_phy,dtracerspecdt_phy,dlnpsspecdt_phy,t,dt)
+           call system_clock(count, count_rate, count_max)
+           t2 = count*1.d0/count_rate
+           if (profile) print *,'time in getphytend=',t2-t1
         endif
         dvrtspecdt = dvrtspecdt + dvrtspecdt_phy 
         ddivspecdt = ddivspecdt + ddivspecdt_phy
@@ -210,8 +223,13 @@ subroutine advance(t)
      ! physics.
      if (.not. explicit) then
          ! semi-implicit adjustment.
+         call system_clock(count, count_rate, count_max)
+         t1 = count*1.d0/count_rate
          call semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
                         divspec_save,virtempspec_save,lnpsspec_save,k,dtx)
+         call system_clock(count, count_rate, count_max)
+         t2 = count*1.d0/count_rate
+         if (profile) print *,'time in semimpadj=',t2-t1
      endif
      ! update for RK3 sub-step.
      vrtspec=vrtspec_save+dtx*dvrtspecdt
@@ -220,6 +238,8 @@ subroutine advance(t)
      if (ntrac > 0) tracerspec=tracerspec_save+dtx*dtracerspecdt
      lnpsspec=lnpsspec_save+dtx*dlnpsspecdt
      ! forward implicit treatment of linear damping/diffusion
+     call system_clock(count, count_rate, count_max)
+     t1 = count*1.d0/count_rate
      !$omp parallel do private(kk,nt)
      do kk=1,nlevs
         vrtspec(:,kk) = vrtspec(:,kk)/(1. - (disspec(:)*diff_prof(kk) - dmp_prof(kk))*dtx)
@@ -230,6 +250,9 @@ subroutine advance(t)
         enddo
       enddo
       !$omp end parallel do
+      call system_clock(count, count_rate, count_max)
+      t2 = count*1.d0/count_rate
+      if (profile) print *,'time in diffusion update=',t2-t1
   enddo
   ! apply physics parameterizations as an adjustment to fields updated by dynamics.
   ! (time-split approach)
@@ -238,7 +261,12 @@ subroutine advance(t)
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,&
           dtracerspecdt,dlnpsspecdt_phy,.true.) ! <- .true. for spectogrd only
      ! compute physics tendencies, apply as an adjustment to updated state
+     call system_clock(count, count_rate, count_max)
+     t1 = count*1.d0/count_rate
      call getphytend(dvrtspecdt_phy,ddivspecdt_phy,dvirtempspecdt_phy,dtracerspecdt_phy,dlnpsspecdt_phy,t,dt)
+     call system_clock(count, count_rate, count_max)
+     t2 = count*1.d0/count_rate
+     if (profile) print *,'time in getphytend=',t2-t1
      vrtspec=vrtspec+dt*dvrtspecdt_phy
      divspec=divspec+dt*ddivspecdt_phy
      virtempspec=virtempspec+dt*dvirtempspecdt_phy
