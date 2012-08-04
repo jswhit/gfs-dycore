@@ -101,22 +101,27 @@
    call system_clock(count, count_rate, count_max)
    t2 = count*1.d0/count_rate
    if (profile) print *,'1 time=',t2-t1
+
    ! lnps on grid.
    call spectogrd(lnpsspec, lnpsg)
+
    ! gradient of surface pressure.
    ! gradient of surface geopotential precomputed in dyn_init,
    ! saved in module grid_data (dphisdx,dphisdy).
    call getgrad(lnpsspec, dlnpsdx, dlnpsdy, rerth)
+
    ! compute pressure on interfaces and model layers using lnpsg
    ! i.e. calculate alpha,delp,rlnp,dpk,psg,pk from ak,bk,lnpsg
    ! results stored in module pressure_data
    call calc_pressdata(lnpsg) 
    !print *,'min/max ps',minval(psg/100.),maxval(psg/100.)
+
    ! get pressure vertical velocity divided by pressure (dlnpdtg),
    ! tendency of lnps, etadot.
    ! etadot goes top to bottom, dlnpdtg goes bottom to top 
    call getomega(ug,vg,divg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot,&
                  vadvu,vadvv,vadvt,vadvq,prsgx) ! work storage
+
    ! return before computing tendencies (after updating
    ! grid data).
    if (early_return) then
@@ -125,16 +130,21 @@
       deallocate(dlnpsdx,dlnpsdy)
       return
    endif
+
+   ! get tendency of lnps on grid.
    call grdtospec(dlnpsdt,dlnpsspecdt)
    ! get pressure gradient terms (prsgx,prsgy)
    call getpresgrad(virtempg,dvirtempdx,dvirtempdy,dphisdx,dphisdy,dlnpsdx,dlnpsdy,&
                     prsgx,prsgy,&
                     vadvu,vadvv,vadvt,vadvq) ! work storage
+
    ! get vertical advection terms  (input etadot is top to bottom)
    call getvadv(ug,etadot,vadvu)
    call getvadv(vg,etadot,vadvv)
    call getvadv(virtempg,etadot,vadvt)
+
    dlnpsdx = 2.*omega*sin(lats) ! temp storage of planetary vorticity
+
    ! compute energy conversion term, store in vadvq.
    if (ntrac > 0) then
       !$omp parallel do private(k) 
@@ -160,6 +170,7 @@
    call system_clock(count, count_rate, count_max)
    t1 = count*1.d0/count_rate
    if (profile) print *,'2 time=',t1-t2
+
    ! compute tendencies of virt temp, ort and div in spectral space
 !$omp parallel do private(k) schedule(dynamic)
    do k=1,nlevs
@@ -187,6 +198,7 @@
    call system_clock(count, count_rate, count_max)
    t2 = count*1.d0/count_rate
    if (profile) print *,'3 time=',t2-t1
+
    ! compute tendency of tracers (including specific humidity) in spectral space.
    do nt=1,ntrac
    ! use positive-definite vertical advection.
@@ -207,6 +219,7 @@
    if (profile) print *,'4 time=',t1-t2  
    !print *,'getdyntend time=',t1-t0
 
+   ! deallocate storage.
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
    deallocate(dlnpsdx,dlnpsdy)
@@ -230,6 +243,7 @@
    complex(r_kind), dimension(ndimspec) :: lnpsspec_new,gspec
    complex(r_kind), dimension(nlevs) :: rhs
    integer n
+
 ! remove 0.5*linear terms from computed tendencies.
 !$omp parallel do private(n)
    do n=1,ndimspec
@@ -239,6 +253,7 @@
       dlnpsspecdt(n) = dlnpsspecdt(n) + 0.5*sum(svhyb(:)*divspec(n,:))
    enddo
 !$omp end parallel do 
+
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
    espec = divspec_prev + dtx*ddivspecdt
@@ -254,10 +269,12 @@
       lnpsspec_new(n) = gspec(n) - 0.5*dtx*sum(svhyb(:)*divspec_new(n,:))
    enddo
 !$omp end parallel do 
+
 ! create new tendencies, including semi-implicit contribution.
    ddivspecdt = (divspec_new - divspec_prev)/dtx
    dvirtempspecdt = (virtempspec_new - virtempspec_prev)/dtx
    dlnpsspecdt = (lnpsspec_new - lnpsspec_prev)/dtx
+
    return
  end subroutine semimpadj
 
