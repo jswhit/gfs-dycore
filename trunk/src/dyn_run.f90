@@ -143,7 +143,8 @@
    call getvadv(vg,etadot,vadvv)
    call getvadv(virtempg,etadot,vadvt)
 
-   dlnpsdx = 2.*omega*sin(lats) ! temp storage of planetary vorticity
+   ! temporary storage of planetary vorticity
+   dlnpsdx = 2.*omega*sin(lats) 
 
    ! compute energy conversion term, store in vadvq.
    if (ntrac > 0) then
@@ -171,7 +172,7 @@
    t1 = count*1.d0/count_rate
    if (profile) print *,'2 time=',t1-t2
 
-   ! compute tendencies of virt temp, ort and div in spectral space
+   ! compute tendencies of virt temp, vort and div in spectral space
 !$omp parallel do private(k) schedule(dynamic)
    do k=1,nlevs
       ! add pressure gradient force to vertical advection terms
