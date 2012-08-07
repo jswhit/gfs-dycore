@@ -461,7 +461,7 @@
    ! local variables 
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
    integer i,j,k
-   real(r_kind) phi(nlons,nlats),epsilon
+   real(r_kind) phi(nlons,nlats),epstiny
 
    allocate(datag_half(nlons,nlats,0:nlevs))
    allocate(datag_d(nlons,nlats,0:nlevs))
@@ -494,13 +494,13 @@
 !$omp end parallel do 
 
    ! to prevent NaNs in computation of van leer limiter
-   epsilon = tiny(phi(1,1))
+   epstiny = tiny(phi(1,1))
 !$omp parallel do private(i,j,k)
    do k=1,nlevs-1
       do j=1,nlats
       do i=1,nlons
-         if (abs(datag_d(i,j,k)) .lt. epsilon) then
-            datag_d(i,j,k) = sign(epsilon, datag_d(i,j,k))
+         if (abs(datag_d(i,j,k)) .lt. epstiny) then
+            datag_d(i,j,k) = sign(epstiny, datag_d(i,j,k))
          endif
       enddo
       enddo
