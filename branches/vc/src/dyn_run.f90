@@ -10,7 +10,7 @@
 ! getpresgrad: calculate pressure gradient terms in momentum eqns.
 ! getvadv: calculate vertical advection terms.
 
- use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac
+ use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac,vcamp
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad
@@ -51,11 +51,14 @@
    complex(r_kind), dimension(:,:),allocatable :: workspec
    real(r_kind), dimension(:,:), allocatable :: dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
-   prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
+   prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy,dvrtdx,dvrtdy
    integer k,nt
    logical :: profile = .false. ! print out timeing stats
+   real(r_kind) epstiny
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
+
+   epstiny = tiny(epstiny)
 
    ! should tendencies be computed, or just spectral -> grid?
    if (present(just_do_inverse_transform)) then
@@ -76,6 +79,10 @@
    allocate(vadvq(nlons,nlats,nlevs))
    allocate(dvirtempdx(nlons,nlats,nlevs))
    allocate(dvirtempdy(nlons,nlats,nlevs))
+   if (vcamp .gt. 0) then
+      allocate(dvrtdx(nlons,nlats,nlevs))
+      allocate(dvrtdy(nlons,nlats,nlevs))
+   endif
    allocate(workspec(ndimspec,nlevs))  
 
    ! compute u,v,virt temp, vorticity, divergence, ln(ps)
@@ -96,6 +103,9 @@
       do nt=1,ntrac
          call spectogrd(tracerspec(:,k,nt),tracerg(:,:,k,nt))
       enddo
+      if (vcamp > 0.) then
+         call getgrad(vrtspec(:,k),dvrtdx(:,:,k),dvrtdy(:,:,k),rerth)
+      end if
    enddo
 !$omp end parallel do 
    call system_clock(count, count_rate, count_max)
@@ -126,6 +136,8 @@
    ! grid data).
    if (early_return) then
       deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
+      if (allocated(dvrtdx)) deallocate(dvrtdx)
+      if (allocated(dvrtdy)) deallocate(dvrtdy)
       deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
       deallocate(dlnpsdx,dlnpsdy)
       return
@@ -186,6 +198,22 @@
       ! flux terms for vort, div eqns
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
       prsgy(:,:,k) = vg(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) - vadvu(:,:,k)
+      ! add vorticity confinement term.
+      if (vcamp > 0.) then
+         ! abs(grad(vrt)) - stored in vadvu
+         vadvu(:,:,k) = sqrt(dvrtdx(:,:,k)**2 + dvrtdy(:,:,k)**2)
+         where (vadvu(:,:,k) > epstiny) 
+            ! grad(vrt)/abs(grad(vrt))
+            ! unit normal vector pointing up vorticity gradient
+            dvrtdx(:,:,k) = dvrtdx(:,:,k)/vadvu(:,:,k)
+            dvrtdy(:,:,k) = dvrtdy(:,:,k)/vadvu(:,:,k)
+            vadvv(:,:,k) = abs(vrtg(:,:,k)) ! store abs(vrt) in vadvv
+            ! upgradient advective velocity is abs(vrt)*grad(vrt)/abs(grad(vrt))
+            ! vcamp has units of velocity
+            prsgx(:,:,k) = prsgx(:,:,k) + vcamp*dvrtdx(:,:,k)*vadvv(:,:,k)
+            prsgy(:,:,k) = prsgy(:,:,k) + vcamp*dvrtdy(:,:,k)*vadvv(:,:,k)
+         end where
+      end if
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
       ! flip sign of vort tend.
       dvrtspecdt(:,k) = -dvrtspecdt(:,k) 
@@ -222,6 +250,8 @@
 
    ! deallocate storage.
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
+   if (allocated(dvrtdx)) deallocate(dvrtdx)
+   if (allocated(dvrtdy)) deallocate(dvrtdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
    deallocate(dlnpsdx,dlnpsdy)
 
@@ -461,7 +491,7 @@
    ! local variables 
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
    integer i,j,k
-   real(r_kind) phi(nlons,nlats),eps
+   real(r_kind) phi(nlons,nlats),epstiny
 
    allocate(datag_half(nlons,nlats,0:nlevs))
    allocate(datag_d(nlons,nlats,0:nlevs))
@@ -494,13 +524,13 @@
 !$omp end parallel do 
 
    ! to prevent NaNs in computation of van leer limiter
-   eps = tiny(phi(1,1))
+   epstiny = tiny(phi(1,1))
 !$omp parallel do private(i,j,k)
    do k=1,nlevs-1
       do j=1,nlats
       do i=1,nlons
-         if (abs(datag_d(i,j,k)) .lt. eps) then
-            datag_d(i,j,k) = sign(eps, datag_d(i,j,k))
+         if (abs(datag_d(i,j,k)) .lt. epstiny) then
+            datag_d(i,j,k) = sign(epstiny, datag_d(i,j,k))
          endif
       enddo
       enddo
