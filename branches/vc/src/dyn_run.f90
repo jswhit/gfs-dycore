@@ -79,7 +79,7 @@
    allocate(vadvq(nlons,nlats,nlevs))
    allocate(dvirtempdx(nlons,nlats,nlevs))
    allocate(dvirtempdy(nlons,nlats,nlevs))
-   if (vcamp .gt. 0) then
+   if (vcamp .gt. epstiny) then
       allocate(dvrtdx(nlons,nlats,nlevs))
       allocate(dvrtdy(nlons,nlats,nlevs))
    endif
@@ -103,7 +103,7 @@
       do nt=1,ntrac
          call spectogrd(tracerspec(:,k,nt),tracerg(:,:,k,nt))
       enddo
-      if (vcamp > 0.) then
+      if (vcamp > epstiny) then
          call getgrad(vrtspec(:,k),dvrtdx(:,:,k),dvrtdy(:,:,k),rerth)
       end if
    enddo
@@ -199,7 +199,7 @@
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
       prsgy(:,:,k) = vg(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) - vadvu(:,:,k)
       ! add vorticity confinement term.
-      if (vcamp > 0.) then
+      if (vcamp > epstiny) then
          ! abs(grad(vrt)) - stored in vadvu
          vadvu(:,:,k) = sqrt(dvrtdx(:,:,k)**2 + dvrtdy(:,:,k)**2)
          where (vadvu(:,:,k) > epstiny) 
@@ -207,11 +207,10 @@
             ! unit normal vector pointing up vorticity gradient
             dvrtdx(:,:,k) = dvrtdx(:,:,k)/vadvu(:,:,k)
             dvrtdy(:,:,k) = dvrtdy(:,:,k)/vadvu(:,:,k)
-            vadvv(:,:,k) = abs(vrtg(:,:,k)) ! store abs(vrt) in vadvv
             ! upgradient advective velocity is abs(vrt)*grad(vrt)/abs(grad(vrt))
             ! vcamp has units of velocity
-            prsgx(:,:,k) = prsgx(:,:,k) + vcamp*dvrtdx(:,:,k)*vadvv(:,:,k)
-            prsgy(:,:,k) = prsgy(:,:,k) + vcamp*dvrtdy(:,:,k)*vadvv(:,:,k)
+            prsgx(:,:,k) = prsgx(:,:,k) + vcamp*dvrtdx(:,:,k)*abs(vrtg(:,:,k))
+            prsgy(:,:,k) = prsgy(:,:,k) + vcamp*dvrtdy(:,:,k)*abs(vrtg(:,:,k))
          end where
       end if
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
