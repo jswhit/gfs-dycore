@@ -17,7 +17,9 @@ module params
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h
+ pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h, &
+! vorticity confinement parameters
+ vcamp
 
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
@@ -36,7 +38,7 @@ module params
  integer    :: ntrunc ! spectral truncation
  integer    :: ndimspec ! spectral array dimension
  type(sigio_head),save  :: sighead ! header struct from initfile
- logical    :: dry = .false. ! no moisture, cloud condensate or ozone.
+ logical    :: dry = .false. ! no moisture
  logical    :: adiabatic = .false. ! don't call physics
  ! held-suarez forcing
  logical    :: heldsuarez = .false.
@@ -121,6 +123,7 @@ module params
  real(r_kind) :: evpco=2.e-5 ! Zhao scheme evap coefficient for lg-scale rain
  real(r_kind) :: wminco(2)=(/1.e-5,1.e-5/) !  water and ice minimum threshold for Zhao 
  real(r_kind) :: flgmin(2)=(/0.2,0.2/) ! (Ferrier only) range of minimum large ice fraction
+ real(r_kind) :: vcamp=0. ! vorticity confinement amplitude
  logical :: old_monin = .false. ! flag for old Monin-Obhukov surface layer
  logical :: cnvgwd = .false. ! flag for convective gravity wave drag
  logical :: mom4ice = .false. ! flag for MOM4 sea-ice scheme
@@ -155,7 +158,7 @@ module params
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys
+ pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys,vcamp
 
  contains
 
