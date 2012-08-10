@@ -1,14 +1,9 @@
  &nam_mrf
- initfile="../heldsuarez_test/sanl.dat",
- fhmax=384,
+ initfile="sanl.dat",
+ fhmax=14400,
  fhout=24,
  deltim=1200,
- ndiss=8,
- efold=10800.,
- fshk=1.,
- taustratdamp=1.e30,
- explicit=.false.,
- jablowill=.true.,
- heldsuarez=.false.
+ jablowill=.false.,
+ heldsuarez=.true.
  /
  &END
