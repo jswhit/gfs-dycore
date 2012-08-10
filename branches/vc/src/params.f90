@@ -17,9 +17,7 @@ module params
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h, &
-! vorticity confinement parameters
- vcamp
+ pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h
 
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
@@ -38,7 +36,7 @@ module params
  integer    :: ntrunc ! spectral truncation
  integer    :: ndimspec ! spectral array dimension
  type(sigio_head),save  :: sighead ! header struct from initfile
- logical    :: dry = .false. ! no moisture
+ logical    :: dry = .false. ! no moisture, cloud condensate or ozone.
  logical    :: adiabatic = .false. ! don't call physics
  ! held-suarez forcing
  logical    :: heldsuarez = .false.
@@ -123,7 +121,6 @@ module params
  real(r_kind) :: evpco=2.e-5 ! Zhao scheme evap coefficient for lg-scale rain
  real(r_kind) :: wminco(2)=(/1.e-5,1.e-5/) !  water and ice minimum threshold for Zhao 
  real(r_kind) :: flgmin(2)=(/0.2,0.2/) ! (Ferrier only) range of minimum large ice fraction
- real(r_kind) :: vcamp=0. ! vorticity confinement amplitude
  logical :: old_monin = .false. ! flag for old Monin-Obhukov surface layer
  logical :: cnvgwd = .false. ! flag for convective gravity wave drag
  logical :: mom4ice = .false. ! flag for MOM4 sea-ice scheme
@@ -158,12 +155,13 @@ module params
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys,vcamp
+ pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys
 
  contains
 
  subroutine read_namelist()
    integer lu,iret,ntracin
+   logical idealized
    real(r_kind) tmax
    initfile=""
    sfcinitfile=""
@@ -232,26 +230,26 @@ module params
    ntout = fhout*timestepsperhr
    ntdfi = fhdfi*timestepsperhr
    print *,'output every ',ntout,' time steps'
+   if (ntdfi > 0) print *,'digital filter half-window length',fhdfi,' hrs'
+   idealized = jablowill .or. heldsuarez
    if (jablowill .and. heldsuarez) then
       print *,'conflicting namelist options'
       print *,'heldsuarez and jablowill both cannot be .true.'
       stop
    endif
-   if (ntdfi > 0) print *,'digital filter half-window length',fhdfi,' hrs'
-   if (mod(ntdfi,int(fhswr*timestepsperhr)) .ne. 0 .or. &
-       mod(ntdfi,int(fhlwr*timestepsperhr)) .ne. 0) then
+   if (.not. idealized .and. (mod(ntdfi,int(fhswr*timestepsperhr)) .ne. 0 .or. &
+       mod(ntdfi,int(fhlwr*timestepsperhr)) .ne. 0)) then
       print *,'middle of dfi window must be on a radiation time step'
       stop
    endif
    ! for these idealized tests, model is dry.
-   if (jablowill .or. heldsuarez) dry = .true.
    if (jablowill) adiabatic = .true.
    if (jablowill) print *,'running jablonowsky and williamson test..'
    if (heldsuarez) print *,'running held-suarez test..'
    call sigio_sclose(lu,iret)
    ndimspec = (ntrunc+1)*(ntrunc+2)/2
-   if (dry) ntrac=0
-   if (ntrac .ne. ntracin) then
+   if (idealized .or. dry) ntrac=0
+   if (.not. idealized .and. ntrac .ne. ntracin) then
      print *,ntracin,' tracers in input file, expecting',ntrac
      stop
    endif
