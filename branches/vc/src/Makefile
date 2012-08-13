@@ -43,6 +43,8 @@ OBJS=	 params.o \
          phy_init.o\
 	 phy_finalize.o\
 	 funcphys.o\
+	 patterngenerator.o\
+	 stoch_data.o\
 	 shtns.o
 
 
@@ -52,7 +54,7 @@ gfs: $(OBJS)
 	$(FC) $(LDFLAGS) -o $(EXEC) $(MAIN) $(OBJS) $(LIBS)
 
 gfs-test: $(OBJS) 
-	$(FC) $(LDFLAGS) -o $(EXEC_TEST) $(MAIN) $(OBJS) $(LIBS_TEST)
+	$(FC) $(LDFLAGS) -o $(EXEC_TEST) $(MAIN) $(OBJS) $(LIBS)
 
 all: $(gfs)
 
@@ -125,11 +127,15 @@ phy_init.o:     phy_init.f90 phy_data.o
 
 phy_finalize.o:     phy_finalize.f90 
 
-phy_run.o:      phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o
+phy_run.o:      phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o stoch_data.o
 		$(FC) $(FFLAGS) -Ilibgfs -c phy_run.f90
 	        
 dyn_finalize.o:  dyn_finalize.f90 shtns.o spectral_data.o pressure_data.o grid_data.o
 
-dyn_run.o:	dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o 
+dyn_run.o:	dyn_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o  stoch_data.o
 
-run.o:   	run.f90 dyn_run.o phy_run.o kinds.o params.o
+run.o:   	run.f90 dyn_run.o phy_run.o kinds.o params.o stoch_data.o patterngenerator.o
+
+pattergenerator.o:   	patterngenerator.f90 kinds.o shtns.o physcons.o
+
+stoch_data.o  : stoch_data.f90 kinds.o params.o patterngenerator.o

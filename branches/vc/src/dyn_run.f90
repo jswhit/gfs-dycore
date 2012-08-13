@@ -10,16 +10,18 @@
 ! getpresgrad: calculate pressure gradient terms in momentum eqns.
 ! getvadv: calculate vertical advection terms.
 
- use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac,vcamp
+ use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac,vcamp,&
+ svc,spdt
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad
+ use stoch_data, only:  grd_svc, grd_sppt, grd_spdt, vfact_svc, vfact_spdt
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
  tracerspec, topospec
  use grid_data, only: ug,vg,vrtg,virtempg,divg,tracerg,dlnpdtg,etadot,lnpsg,&
  phis,dphisdx,dphisdy,dlnpsdt
  use pressure_data, only:  ak, bk, ck, dbk, dpk, rlnp, pk, alfa, dpk, psg,&
- calc_pressdata
+ sl, calc_pressdata
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
                grav => con_g, fv => con_fvirt, kappa => con_rocp
@@ -194,6 +196,7 @@
       ! virtual temp tendency
       prsgx(:,:,k) = -ug(:,:,k)*dvirtempdx(:,:,k) - vg(:,:,k)*dvirtempdy(:,:,k) - &
                       vadvt(:,:,k) + vadvq(:,:,k)
+      if (spdt > 0.) prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
       call grdtospec(prsgx(:,:,k), dvirtempspecdt(:,k))
       ! flux terms for vort, div eqns
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
@@ -202,6 +205,10 @@
       if (vcamp > epstiny) then
          ! abs(grad(vrt)) - stored in vadvu
          vadvu(:,:,k) = sqrt(dvrtdx(:,:,k)**2 + dvrtdy(:,:,k)**2)
+         if (svc > 0.) then
+            dvrtdx(:,:,k) = vfact_svc(k)*grd_svc*dvrtdx(:,:,k)
+            dvrtdy(:,:,k) = vfact_svc(k)*grd_svc*dvrtdy(:,:,k)
+         endif
          where (vadvu(:,:,k) > epstiny) 
             ! grad(vrt)/abs(grad(vrt))
             ! unit normal vector pointing up vorticity gradient
@@ -216,11 +223,21 @@
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
       ! flip sign of vort tend.
       dvrtspecdt(:,k) = -dvrtspecdt(:,k) 
+      if (spdt > 0.) then
+         call spectogrd(dvrtspecdt(:,k),prsgx(:,:,k))
+         prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
+         call grdtospec(prsgx(:,:,k),dvrtspecdt(:,k))
+      endif
       ! add laplacian(KE) term to div tendency
       prsgx(:,:,k) = 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
       call grdtospec(prsgx(:,:,k),workspec(:,k))
       ddivspecdt(:,k) = ddivspecdt(:,k) - &
       (lap(:)/rerth**2)*workspec(:,k)
+      if (spdt > 0.) then
+         call spectogrd(ddivspecdt(:,k),prsgx(:,:,k))
+         prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
+         call grdtospec(prsgx(:,:,k),ddivspecdt(:,k))
+      endif
    enddo
 !$omp end parallel do 
    call system_clock(count, count_rate, count_max)
@@ -238,6 +255,7 @@
       ! specific humidity tendency
       prsgx(:,:,k) = &
       -ug(:,:,k)*dvirtempdx(:,:,k)-vg(:,:,k)*dvirtempdy(:,:,k)-vadvq(:,:,k)
+      if (spdt > 0.) prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
       call grdtospec(prsgx(:,:,k), dtracerspecdt(:,k,nt))
    enddo
 !$omp end parallel do 

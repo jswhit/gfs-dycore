@@ -9,11 +9,13 @@
  ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
- timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw
+ timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
+ svc,sppt,spdt
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, getvrtdivspec, lons, lats
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
- use pressure_data, only:  prs,psg,pk,ak,bk
+ use pressure_data, only:  prs,psg,pk,ak,bk,sl
+ use stoch_data, only:  grd_svc, grd_sppt, grd_spdt, vfact_sppt
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
     slmsk,sheleg,sncovr,snoalb,zorl,hprime,alvsf,ozjindx1,ozjindx2,ozddy,&
@@ -572,6 +574,14 @@
 ! compute physics tendencies in spectral space
 !$omp parallel do private(k,nt)
    do k=1,nlevs
+      if (sppt > 0.) then
+        dtdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dtdt(:,:,k)
+        dudt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dudt(:,:,k)
+        dvdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dvdt(:,:,k)
+        do nt=1,ntrac
+           dtracersdt(:,:,k,nt) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,nt)
+        enddo
+      endif
       call grdtospec(dtdt(:,:,k), dvirtempspecdt(:,k))
       call getvrtdivspec(dudt(:,:,k),dvdt(:,:,k),dvrtspecdt(:,k),ddivspecdt(:,k),rerth)
       do nt=1,ntrac

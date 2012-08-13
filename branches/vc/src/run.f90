@@ -6,8 +6,8 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  sfcinitfile, postphys, ntdfi
-use shtns, only: lats, gauwts
+  sfcinitfile, postphys, ntdfi, svc, sppt, spdt
+use shtns, only: lats, gauwts, spectogrd
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
@@ -170,6 +170,9 @@ subroutine advance(t)
 ! semi-implicit runge-kutta scheme described by
 ! Kar (2006, http://journals.ametsoc.org/doi/pdf/10.1175/MWR3214.1)
 ! instead of semi-lmplicit assellin-filtered leap-frog.
+  use patterngenerator, only: patterngenerator_advance
+  use stoch_data, only: rpattern_svc,rpattern_sppt,rpattern_spdt,&
+  spec_svc,spec_sppt,spec_spdt,grd_svc,grd_sppt,grd_spdt
   real(r_double), intent(in) :: t
   complex(r_kind),dimension(ndimspec,nlevs) :: &
   vrtspec_save,divspec_save,virtempspec_save
@@ -198,6 +201,20 @@ subroutine advance(t)
      ! dynamics tendencies.
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
+     if (k .eq. 0) then
+         if (svc > 0.) then
+            call patterngenerator_advance(spec_svc,rpattern_svc)
+            call spectogrd(spec_svc,grd_svc)
+         endif
+         if (sppt > 0.) then
+            call patterngenerator_advance(spec_sppt,rpattern_sppt)
+            call spectogrd(spec_sppt,grd_sppt)
+         endif
+         if (spdt > 0.) then
+            call patterngenerator_advance(spec_spdt,rpattern_spdt)
+            call spectogrd(spec_spdt,grd_spdt)
+         endif
+     endif
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
