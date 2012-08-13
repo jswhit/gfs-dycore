@@ -196,7 +196,7 @@
       ! virtual temp tendency
       prsgx(:,:,k) = -ug(:,:,k)*dvirtempdx(:,:,k) - vg(:,:,k)*dvirtempdy(:,:,k) - &
                       vadvt(:,:,k) + vadvq(:,:,k)
-      if (spdt > 0.) prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
+      if (spdt > epstiny) prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
       call grdtospec(prsgx(:,:,k), dvirtempspecdt(:,k))
       ! flux terms for vort, div eqns
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
@@ -205,7 +205,7 @@
       if (vcamp > epstiny) then
          ! abs(grad(vrt)) - stored in vadvu
          vadvu(:,:,k) = sqrt(dvrtdx(:,:,k)**2 + dvrtdy(:,:,k)**2)
-         if (svc > 0.) then
+         if (svc > epstiny) then
             dvrtdx(:,:,k) = vfact_svc(k)*grd_svc*dvrtdx(:,:,k)
             dvrtdy(:,:,k) = vfact_svc(k)*grd_svc*dvrtdy(:,:,k)
          endif
@@ -223,7 +223,7 @@
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
       ! flip sign of vort tend.
       dvrtspecdt(:,k) = -dvrtspecdt(:,k) 
-      if (spdt > 0.) then
+      if (spdt > epstiny) then
          call spectogrd(dvrtspecdt(:,k),prsgx(:,:,k))
          prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
          call grdtospec(prsgx(:,:,k),dvrtspecdt(:,k))
@@ -233,7 +233,7 @@
       call grdtospec(prsgx(:,:,k),workspec(:,k))
       ddivspecdt(:,k) = ddivspecdt(:,k) - &
       (lap(:)/rerth**2)*workspec(:,k)
-      if (spdt > 0.) then
+      if (spdt > epstiny) then
          call spectogrd(ddivspecdt(:,k),prsgx(:,:,k))
          prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
          call grdtospec(prsgx(:,:,k),ddivspecdt(:,k))
@@ -255,7 +255,7 @@
       ! specific humidity tendency
       prsgx(:,:,k) = &
       -ug(:,:,k)*dvirtempdx(:,:,k)-vg(:,:,k)*dvirtempdy(:,:,k)-vadvq(:,:,k)
-      if (spdt > 0.) prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
+      if (spdt > epstiny) prsgx(:,:,k) = (1.+vfact_spdt(k)*grd_spdt)*prsgx(:,:,k)
       call grdtospec(prsgx(:,:,k), dtracerspecdt(:,k,nt))
    enddo
 !$omp end parallel do 

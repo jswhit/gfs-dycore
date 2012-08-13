@@ -574,7 +574,7 @@
 ! compute physics tendencies in spectral space
 !$omp parallel do private(k,nt)
    do k=1,nlevs
-      if (sppt > 0.) then
+      if (sppt > tiny(sppt)) then
         dtdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dtdt(:,:,k)
         dudt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dudt(:,:,k)
         dvdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dvdt(:,:,k)

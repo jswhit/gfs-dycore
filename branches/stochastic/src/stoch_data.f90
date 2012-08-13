@@ -24,8 +24,8 @@ module stoch_data
  subroutine init_stochdata()
     real(r_kind) delt,sigtop,sigbot
     integer n,nspinup,k
-    dt = delt
-    if (svc > 0.) then
+    delt = dt
+    if (svc > tiny(svc)) then
        allocate(spec_svc(ndimspec))
        allocate(grd_svc(nlons,nlats))
        allocate(vfact_svc(nlevs))
@@ -46,7 +46,7 @@ module stoch_data
           endif
        enddo
     endif
-    if (sppt > 0.) then
+    if (sppt > tiny(sppt)) then
        allocate(spec_sppt(ndimspec))
        allocate(grd_sppt(nlons,nlats))
        allocate(vfact_sppt(nlevs))
@@ -67,7 +67,7 @@ module stoch_data
           endif
        enddo
     endif
-    if (spdt > 0.) then
+    if (spdt > tiny(spdt)) then
        allocate(spec_spdt(ndimspec))
        allocate(grd_spdt(nlons,nlats))
        allocate(vfact_spdt(nlevs))

@@ -202,17 +202,17 @@ subroutine advance(t)
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
      if (k .eq. 0) then
-         if (svc > 0.) then
+         if (svc > tiny(svc)) then
             call patterngenerator_advance(spec_svc,rpattern_svc)
             call spectogrd(spec_svc,grd_svc)
          endif
-         if (sppt > 0.) then
+         if (sppt > tiny(sppt)) then
             call patterngenerator_advance(spec_sppt,rpattern_sppt)
             call spectogrd(spec_sppt,grd_sppt)
             ! logit transform to bounded interval [-1,+1]
             if (sppt_logit) grd_sppt = (2./(1.+exp(grd_sppt)))-1.
          endif
-         if (spdt > 0.) then
+         if (spdt > tiny(spdt)) then
             call patterngenerator_advance(spec_spdt,rpattern_spdt)
             call spectogrd(spec_spdt,grd_spdt)
          endif
