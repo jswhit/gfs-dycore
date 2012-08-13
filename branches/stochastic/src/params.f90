@@ -21,7 +21,7 @@ module params
 ! vorticity confinement parameters
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,&
 ! stochastic parameters
- sppt,sppt_tau,sppt_lscale,iseed_sppt,spdt,spdt_tau,spdt_lscale,iseed_spdt
+ sppt,sppt_logit,sppt_tau,sppt_lscale,iseed_sppt,spdt,spdt_tau,spdt_lscale,iseed_spdt
 
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
@@ -129,15 +129,16 @@ module params
  real(r_kind) :: svc=0.   ! stochastic vorticity confinement amplitude
  real(r_kind) :: svc_tau=0.      ! stochastic vorticity confinement time scale
  real(r_kind) :: svc_lscale=0.   ! stochastic vorticity confinement length scale
- integer :: iseed_svc=0 ! random seed for stochastic vc
+ integer :: iseed_svc=0 ! random seed for stochastic vc (zero means use clock)
  real(r_kind) :: sppt=0.  ! stochastic physics tendency amplitude
  real(r_kind) :: sppt_tau=0.  ! stochastic physics tendency time scale
  real(r_kind) :: sppt_lscale=0.  ! stochastic dynamics tendency length scale
- integer :: iseed_sppt=0 ! random seed for sppt
+ logical :: sppt_logit=.false. ! logit transform for sppt to bounded interval [-1,+1]
+ integer :: iseed_sppt=0 ! random seed for sppt (0 means use system clock)
  real(r_kind) :: spdt=0.  ! stochastic dynamics tendency amplitude
  real(r_kind) :: spdt_tau=0.  ! stochastic dynamics tendency time scale
  real(r_kind) :: spdt_lscale=0.  ! stochastic physics tendency length scale
- integer :: iseed_spdt=0 ! random seed for spdt
+ integer :: iseed_spdt=0 ! random seed for spdt (0 means use system clock)
  logical :: old_monin = .false. ! flag for old Monin-Obhukov surface layer
  logical :: cnvgwd = .false. ! flag for convective gravity wave drag
  logical :: mom4ice = .false. ! flag for MOM4 sea-ice scheme
@@ -174,7 +175,7 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys,vcamp,&
  svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- spdt,spdt_tau,spdt_lscale,iseed_spdt
+ spdt,spdt_tau,spdt_lscale,iseed_spdt,sppt_logit
 
  contains
 

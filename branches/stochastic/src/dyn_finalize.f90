@@ -6,6 +6,7 @@ module dyn_finalize
  use pressure_data, only: destroy_pressdata
  use grid_data, only: destroy_griddata
  use semimp_data, only: destroy_semimpdata
+ use stoch_data, only: destroy_stochdata
  use params, only: explicit
 
  implicit none
@@ -19,6 +20,7 @@ module dyn_finalize
     call destroy_specdata()
     call destroy_griddata()
     call destroy_pressdata()
+    call destroy_stochdata()
     if (.not. explicit) call destroy_semimpdata()
     call shtns_destroy()
  end subroutine finalize_dyn

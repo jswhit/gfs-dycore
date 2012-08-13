@@ -6,7 +6,7 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  sfcinitfile, postphys, ntdfi, svc, sppt, spdt
+  sfcinitfile, postphys, ntdfi, svc, sppt, spdt, sppt_logit
 use shtns, only: lats, gauwts, spectogrd
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -209,6 +209,8 @@ subroutine advance(t)
          if (sppt > 0.) then
             call patterngenerator_advance(spec_sppt,rpattern_sppt)
             call spectogrd(spec_sppt,grd_sppt)
+            ! logit transform to bounded interval [-1,+1]
+            if (sppt_logit) grd_sppt = (2./(1.+exp(grd_sppt)))-1.
          endif
          if (spdt > 0.) then
             call patterngenerator_advance(spec_spdt,rpattern_spdt)

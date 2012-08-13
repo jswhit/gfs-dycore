@@ -247,6 +247,7 @@ module patterngenerator
  !  Send this random value back to the RANDOM_SEED routine, to be
  !  used as the seed of the random number generator.
  !
+   print *,'random seed = ',seed
    call random_seed ( put = seed(1:k) )
  
    deallocate ( seed )
