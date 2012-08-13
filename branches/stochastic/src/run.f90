@@ -39,8 +39,9 @@ subroutine run()
   character(len=500) filename,filename_save
 
   do i=1,nlons
-     areawts(i,:) = 0.5*gauwts(:)/nlons
+     areawts(i,:) = gauwts(:)
   enddo
+  areawts = areawts/sum(areawts)
 
 !$omp parallel
   my_id = omp_get_thread_num()
