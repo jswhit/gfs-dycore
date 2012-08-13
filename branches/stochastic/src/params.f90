@@ -21,7 +21,7 @@ module params
 ! vorticity confinement parameters
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,&
 ! stochastic parameters
- sppt,sppt_logit,sppt_tau,sppt_lscale,iseed_sppt,spdt,spdt_tau,spdt_lscale,iseed_spdt
+ sppt,sppt_logit,spdt_logit,sppt_tau,sppt_lscale,iseed_sppt,spdt,spdt_tau,spdt_lscale,iseed_spdt
 
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
@@ -134,6 +134,7 @@ module params
  real(r_kind) :: sppt_tau=0.  ! stochastic physics tendency time scale
  real(r_kind) :: sppt_lscale=0.  ! stochastic dynamics tendency length scale
  logical :: sppt_logit=.false. ! logit transform for sppt to bounded interval [-1,+1]
+ logical :: spdt_logit=.false. ! logit transform for spdt to bounded interval [-1,+1]
  integer :: iseed_sppt=0 ! random seed for sppt (0 means use system clock)
  real(r_kind) :: spdt=0.  ! stochastic dynamics tendency amplitude
  real(r_kind) :: spdt_tau=0.  ! stochastic dynamics tendency time scale
@@ -175,7 +176,7 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys,vcamp,&
  svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- spdt,spdt_tau,spdt_lscale,iseed_spdt,sppt_logit
+ spdt,spdt_tau,spdt_lscale,iseed_spdt,sppt_logit,spdt_logit
 
  contains
 
