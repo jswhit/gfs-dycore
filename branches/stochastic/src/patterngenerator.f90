@@ -52,7 +52,7 @@ module patterngenerator
  end subroutine patterngenerator_init
 
  subroutine patterngenerator_destroy(rpattern)
-   type(random_pattern), intent(in) :: rpattern
+   type(random_pattern), intent(inout) :: rpattern
    deallocate(rpattern%varspectrum,rpattern%varspectrum1d,rpattern%areawts)
  end subroutine patterngenerator_destroy
 
