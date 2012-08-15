@@ -10,12 +10,12 @@
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
- svc,sppt,spdt
+ svc,sppt,spdt,shum
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, getvrtdivspec, lons, lats
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use pressure_data, only:  prs,psg,pk,ak,bk,sl
- use stoch_data, only:  grd_svc, grd_sppt, grd_spdt, vfact_sppt
+ use stoch_data, only:  grd_sppt, vfact_sppt, grd_shum, spec_shum, vfact_shum
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
     slmsk,sheleg,sncovr,snoalb,zorl,hprime,alvsf,ozjindx1,ozjindx2,ozddy,&
@@ -63,7 +63,7 @@
     gzorl,     goro,          &
     bengsh
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
-               eps => con_eps, omega => con_omega, cvap => con_cvap, &
+               epsm1 => con_epsm1, eps => con_eps, omega => con_omega, cvap => con_cvap, &
                grav => con_g, pi => con_pi, fv => con_fvirt, rk => con_rocp
 
  implicit none
@@ -78,6 +78,7 @@
    use mersenne_twister, only : random_setseed, random_index, random_stat
    use module_radiation_astronomy, only: astronomy
    use module_radiation_driver, only: radinit, grrad
+   use funcphys, only: fpvsl
    ! compute physics tendencies for gfs physics
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt
@@ -90,7 +91,7 @@
    real(r_kind), parameter :: typical_pgr = 95000.0
    real(r_kind)  :: fscav(ntrac-ncld-1),&
    fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(1),&
-   gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
+   esw,qmax,gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
    f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
    prslk(nlevs),gq(nlevs,ntrac),prsik(nlevs+1),si_loc(nlevs+1),phii(nlevs+1),&
    phil(nlevs),rann(1),acv(1),acvb(1),acvt(1),adt(nlevs),adu(nlevs),adv(nlevs),&
@@ -504,6 +505,18 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
+     ! add a random humidity perturbation to updated specific humidity
+     ! grd_hum is fractional perturbation (0.1 means 10%)
+     if (shum > tiny(shum)) then
+        do k=1,nlevs
+           adq(k,1) = adq(k,1)*(1. + vfact_shum(k)*grd_shum(i,j))
+           esw = min(prsl(k), fpvsl(adt(k)))  ! Saturation vapor pressure w/r/t water
+           qmax = eps*esw/(prsl(k)+epsm1*esw) ! Saturation specific humidity  w/r/t water
+           ! bound by zero and qsat
+           if (adq(k,1) < qmin) adq(k,1) = qmin
+           if (adq(k,1) > qmax) adq(k,1) = qmax
+        enddo
+     endif
      ! convert sensible temp back to virt temp.
      ! (clip humidity in conversion)
      do k=1,nlevs

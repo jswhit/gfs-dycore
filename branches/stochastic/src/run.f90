@@ -6,7 +6,7 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  sfcinitfile, postphys, ntdfi, svc, sppt, spdt, sppt_logit, spdt_logit
+  sfcinitfile, postphys, ntdfi, shum, svc, sppt, spdt, sppt_logit, spdt_logit
 use shtns, only: lats, gauwts, spectogrd
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -173,7 +173,8 @@ subroutine advance(t)
 ! instead of semi-lmplicit assellin-filtered leap-frog.
   use patterngenerator, only: patterngenerator_advance
   use stoch_data, only: rpattern_svc,rpattern_sppt,rpattern_spdt,&
-  spec_svc,spec_sppt,spec_spdt,grd_svc,grd_sppt,grd_spdt
+  spec_svc,spec_sppt,spec_spdt,grd_svc,grd_sppt,grd_spdt,&
+  spec_shum,grd_shum,rpattern_shum
   real(r_double), intent(in) :: t
   complex(r_kind),dimension(ndimspec,nlevs) :: &
   vrtspec_save,divspec_save,virtempspec_save
@@ -218,6 +219,10 @@ subroutine advance(t)
             call spectogrd(spec_spdt,grd_spdt)
             ! logit transform to bounded interval [-1,+1]
             if (spdt_logit) grd_spdt = (2./(1.+exp(grd_spdt)))-1.
+         endif
+         if (shum > tiny(shum)) then
+            call patterngenerator_advance(spec_shum,rpattern_shum)
+            call spectogrd(spec_shum,grd_shum)
          endif
      endif
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
