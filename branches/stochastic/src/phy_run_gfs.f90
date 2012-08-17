@@ -10,9 +10,9 @@
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
- svc,sppt,spdt,shum
+ sppt,shum
  use kinds, only: r_kind,r_single,r_double
- use shtns, only: grdtospec, getvrtdivspec, lons, lats
+ use shtns, only: grdtospec, getvrtdivspec, lons, lats, gauwts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use pressure_data, only:  prs,psg,pk,ak,bk,sl
  use stoch_data, only:  grd_sppt, vfact_sppt, grd_shum, spec_shum, vfact_shum
@@ -374,7 +374,7 @@
 !$omp& adt,adu,adv,adq,slc_tmp,stc_tmp,smc_tmp,&
 !$omp& phy3d,phy2d,hlw_tmp,swh_tmp,hprime_tmp,&
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
-!$omp& acv,acvt,acvb,rqtk,&
+!$omp& acv,acvt,acvb,rqtk,esw,qmax,&
 !$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic)
    do n=1,nlons*nlats
       ! n=i+(j-1)*nlons
@@ -510,11 +510,11 @@
      if (shum > tiny(shum)) then
         do k=1,nlevs
            adq(k,1) = adq(k,1)*(1. + vfact_shum(k)*grd_shum(i,j))
-           esw = min(prsl(k), fpvsl(adt(k)))  ! Saturation vapor pressure w/r/t water
-           qmax = eps*esw/(prsl(k)+epsm1*esw) ! Saturation specific humidity  w/r/t water
-           ! bound by zero and qsat
-           if (adq(k,1) < qmin) adq(k,1) = qmin
-           if (adq(k,1) > qmax) adq(k,1) = qmax
+           !esw = min(prsl(k), fpvsl(adt(k)))  ! Saturation vapor pressure w/r/t water
+           !qmax = eps*esw/(prsl(k)+epsm1*esw) ! Saturation specific humidity  w/r/t water
+           !! bound by zero and qsat
+           !if (adq(k,1) < qmin) adq(k,1) = qmin
+           !if (adq(k,1) > qmax) adq(k,1) = qmax
         enddo
      endif
      ! convert sensible temp back to virt temp.
@@ -615,6 +615,13 @@
    dvrtspecdt = dvrtspecdt/dtx
    ddivspecdt = ddivspecdt/dtx
    dtracerspecdt = dtracerspecdt/dtx
+
+   do i=1,nlons
+     coszdg(i,:) = gauwts(:)
+   enddo
+   coszdg = coszdg/sum(coszdg)
+   print *,'global mean pwat = ',sum(coszdg*pwat)
+   print *,'global mean precip = ',sum(coszdg*tprcp)
 
    deallocate(ozplout)
    deallocate(coszdg)
