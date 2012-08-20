@@ -1,9 +1,9 @@
 module stoch_data
 
  use kinds, only: r_kind
- use params, only: dt,svc,sppt,spdt,ndimspec,nlons,nlats,nlevs,&
- svc_tau,svc_lscale,sppt_tau,sppt_lscale,spdt_tau,spdt_lscale,&
- iseed_svc,iseed_sppt,iseed_spdt,iseed_shum,shum,shum_tau,shum_lscale
+ use params, only: dt,svc,sppt,ndimspec,nlons,nlats,nlevs,&
+ svc_tau,svc_lscale,sppt_tau,sppt_lscale,&
+ iseed_svc,iseed_sppt,iseed_shum,shum,shum_tau,shum_lscale
  use patterngenerator, only: random_pattern, patterngenerator_init,&
  getnoise, patterngenerator_advance, patterngenerator_destroy
  use pressure_data, only: sl
@@ -11,14 +11,13 @@ module stoch_data
  private
  public :: init_stochdata,destroy_stochdata
  complex(r_kind), allocatable, public, dimension(:) :: &
- spec_svc,spec_sppt,spec_spdt,spec_shum
+ spec_svc,spec_sppt,spec_shum
  real(r_kind), allocatable, public, dimension(:,:) :: &
- grd_svc,grd_sppt,grd_spdt,grd_shum
+ grd_svc,grd_sppt,grd_shum
  real(r_kind), allocatable, public, dimension(:) :: &
- vfact_shum,vfact_svc,vfact_sppt,vfact_spdt
+ vfact_shum,vfact_svc,vfact_sppt
  type(random_pattern), public :: rpattern_svc
  type(random_pattern), public :: rpattern_sppt
- type(random_pattern), public :: rpattern_spdt
  type(random_pattern), public :: rpattern_shum
 
  contains
@@ -68,27 +67,6 @@ module stoch_data
           endif
        enddo
     endif
-    if (spdt > tiny(spdt)) then
-       allocate(spec_spdt(ndimspec))
-       allocate(grd_spdt(nlons,nlats))
-       allocate(vfact_spdt(nlevs))
-       call patterngenerator_init(spdt_lscale,delt,spdt_tau,spdt,iseed_spdt,rpattern_spdt)
-       nspinup = 10.*spdt_tau/delt
-       call getnoise(spec_spdt)
-       spec_spdt = spec_spdt*rpattern_spdt%varspectrum
-       do n=1,nspinup
-          call patterngenerator_advance(spec_spdt,rpattern_spdt)
-       enddo
-       sigbot = 0.05; sigtop = 0.01
-       do k=1,nlevs
-          vfact_spdt(k) = 1.0
-          if (sl(k) .lt. sigbot .and. sl(k) .gt. sigbot) then
-            vfact_spdt(k) = (sl(k)-sigtop)/(sigbot-sigtop)
-          else if (sl(k) .le. sigtop) then
-            vfact_spdt(k) = 0.
-          endif
-       enddo
-    endif
     if (shum > tiny(shum)) then
        allocate(spec_shum(ndimspec))
        allocate(grd_shum(nlons,nlats))
@@ -115,10 +93,6 @@ module stoch_data
     if (allocated(spec_sppt)) then
         deallocate(spec_sppt,vfact_sppt,grd_sppt)
         call patterngenerator_destroy(rpattern_sppt)
-    endif
-    if (allocated(spec_spdt)) then
-        deallocate(spec_spdt,vfact_spdt,grd_spdt)
-        call patterngenerator_destroy(rpattern_spdt)
     endif
     if (allocated(spec_shum)) then
         deallocate(spec_shum,vfact_shum,grd_shum)

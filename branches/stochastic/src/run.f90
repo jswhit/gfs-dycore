@@ -6,7 +6,7 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  sfcinitfile, postphys, ntdfi, shum, svc, sppt, spdt, sppt_logit, spdt_logit
+  sfcinitfile, postphys, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
 use shtns, only: lats, gauwts, spectogrd
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -172,8 +172,8 @@ subroutine advance(t)
 ! Kar (2006, http://journals.ametsoc.org/doi/pdf/10.1175/MWR3214.1)
 ! instead of semi-lmplicit assellin-filtered leap-frog.
   use patterngenerator, only: patterngenerator_advance
-  use stoch_data, only: rpattern_svc,rpattern_sppt,rpattern_spdt,&
-  spec_svc,spec_sppt,spec_spdt,grd_svc,grd_sppt,grd_spdt,&
+  use stoch_data, only: rpattern_svc,rpattern_sppt,&
+  spec_svc,spec_sppt,grd_svc,grd_sppt,&
   spec_shum,grd_shum,rpattern_shum
   real(r_double), intent(in) :: t
   complex(r_kind),dimension(ndimspec,nlevs) :: &
@@ -207,18 +207,14 @@ subroutine advance(t)
          if (svc > tiny(svc)) then
             call patterngenerator_advance(spec_svc,rpattern_svc)
             call spectogrd(spec_svc,grd_svc)
+            ! logit transform to bounded interval [-1,+1]
+            if (svc_logit) grd_svc = (2./(1.+exp(grd_svc)))-1.
          endif
          if (sppt > tiny(sppt)) then
             call patterngenerator_advance(spec_sppt,rpattern_sppt)
             call spectogrd(spec_sppt,grd_sppt)
             ! logit transform to bounded interval [-1,+1]
             if (sppt_logit) grd_sppt = (2./(1.+exp(grd_sppt)))-1.
-         endif
-         if (spdt > tiny(spdt)) then
-            call patterngenerator_advance(spec_spdt,rpattern_spdt)
-            call spectogrd(spec_spdt,grd_spdt)
-            ! logit transform to bounded interval [-1,+1]
-            if (spdt_logit) grd_spdt = (2./(1.+exp(grd_spdt)))-1.
          endif
          if (shum > tiny(shum)) then
             call patterngenerator_advance(spec_shum,rpattern_shum)

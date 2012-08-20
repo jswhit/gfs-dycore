@@ -19,11 +19,13 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h, &
 ! vorticity confinement parameters
- vcamp,svc,svc_tau,svc_lscale,iseed_svc,&
+ vcamp,svc,svc_tau,svc_lscale,iseed_svc,svc_logit,&
 ! stochastic parameters
- sppt,sppt_logit,spdt_logit,sppt_tau,sppt_lscale,iseed_sppt,spdt,spdt_tau,spdt_lscale,iseed_spdt, &
+ sppt,sppt_logit,sppt_tau,sppt_lscale,iseed_sppt, &
 ! additive stochastic humidity perturbuations
- shum,shum_tau,shum_lscale,iseed_shum
+ shum,shum_tau,shum_lscale,iseed_shum,&
+! gloopb_filter
+ gloopb_filter
 
 
  character(len=500) :: initfile ! init cond filename
@@ -137,16 +139,12 @@ module params
  real(r_kind) :: sppt_tau=0.  ! stochastic physics tendency time scale
  real(r_kind) :: sppt_lscale=0.  ! stochastic dynamics tendency length scale
  logical :: sppt_logit=.false. ! logit transform for sppt to bounded interval [-1,+1]
- logical :: spdt_logit=.false. ! logit transform for spdt to bounded interval [-1,+1]
+ logical :: svc_logit=.false.  ! logit transform for svc to bounded interval [-1,+1]
  integer :: iseed_sppt=0 ! random seed for sppt (0 means use system clock)
- real(r_kind) :: spdt=0.  ! stochastic dynamics tendency amplitude
- real(r_kind) :: spdt_tau=0.  ! stochastic dynamics tendency time scale
- real(r_kind) :: spdt_lscale=0.  ! stochastic dynamics tendency length scale
  integer :: iseed_shum=0 ! random seed for stochastic humid pert (0 means use system clock)
  real(r_kind) :: shum=0.  ! stochastic humidity pert amplitude
  real(r_kind) :: shum_tau=0.  ! stochastic humidity pert time scale
  real(r_kind) :: shum_lscale=0.  ! stochastic humidity pert length scale
- integer :: iseed_spdt=0 ! random seed for spdt (0 means use system clock)
  logical :: old_monin = .false. ! flag for old Monin-Obhukov surface layer
  logical :: cnvgwd = .false. ! flag for convective gravity wave drag
  logical :: mom4ice = .false. ! flag for MOM4 sea-ice scheme
@@ -168,6 +166,7 @@ module params
  ! time-split physics incurs the small extra cost of computing inverse transforms
  ! at the end of the dynamics time step.
  logical :: postphys = .true. 
+ logical :: gloopb_filter = .true. ! apply spectral filter to physics tendencies
  real(r_kind) :: bkgd_vdif_m = 3.0 ! background vertical diffusion for momentum
  real(r_kind) :: bkgd_vdif_h = 1.0 ! background vertical diffusion for heat, q
  real(r_kind) :: bkgd_vdif_s = 0.2 ! sigma threshold for background mom. diffusn 
@@ -183,8 +182,8 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys,vcamp,&
  svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- spdt,spdt_tau,spdt_lscale,iseed_spdt,sppt_logit,spdt_logit,&
- shum,shum_tau,shum_lscale,iseed_shum
+ svc_logit,sppt_logit,&
+ gloopb_filter,shum,shum_tau,shum_lscale,iseed_shum
 
  contains
 
