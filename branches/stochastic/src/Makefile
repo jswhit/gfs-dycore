@@ -121,7 +121,7 @@ grid_data.o:  	grid_data.f90 kinds.o params.o
 
 pressure_data.o:  	pressure_data.f90 kinds.o params.o physcons.o
 
-dyn_init.o:  	dyn_init.f90 params.o sigio_module.o shtns.o spectral_data.o pressure_data.o physcons.o grid_data.o semimp_data.o
+dyn_init.o:  	dyn_init.f90 params.o sigio_module.o shtns.o spectral_data.o pressure_data.o physcons.o grid_data.o semimp_data.o stoch_data.o
 
 phy_init.o:     phy_init.f90 phy_data.o
 
