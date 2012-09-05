@@ -6,7 +6,7 @@ module phy_data
 ! flx_init: initialize flx arrays.
  use kinds, only: r_kind, r_single, r_double
  use params, only: nlons,nlats,nlevs,ndimspec,sfcinitfile,nmtvr,ntoz,ntclw,num_p3d,num_p2d,&
-      ntrunc,sighead,fhswr,fhlwr,idate_start,fhzer,dt
+      ntrunc,sighead,fhswr,fhlwr,idate_start,fhzer,dt,gloopb_filter
  use sfcio_module, only: sfcio_srohdc, sfcio_head, sfcio_data, sfcio_axdata, &
       sfcio_alhead, sfcio_aldata, sfcio_swohdc
  use physcons, only : tgice => con_tice, con_pi
@@ -341,13 +341,16 @@ module phy_data
    ! spectral filter for physics tendencies ("gloopb filter")
    allocate(bfilt(ndimspec))
    bfilt=1 ! (no filtering)
-   nf0 = (ntrunc+1)*2/3  ! highest wavenumber gloopb filter keeps fully
-   nf1 = (ntrunc+1)      ! lowest wavenumber gloopb filter removes fully
-   fd2 = 1./(nf1-nf0)**2
-   do nc=1,ndimspec
-      n = degree(nc)
-      bfilt(nc) = max(1.-fd2*max(n-nf0,0)**2,0.)
-   enddo
+   if (gloopb_filter) then
+      nf0 = (ntrunc+1)*2/3  ! highest wavenumber gloopb filter keeps fully
+      !nf0 = (ntrunc+1)*9/10 ! used for semi-lagrangian
+      nf1 = (ntrunc+1)      ! lowest wavenumber gloopb filter removes fully
+      fd2 = 1./(nf1-nf0)**2
+      do nc=1,ndimspec
+         n = degree(nc)
+         bfilt(nc) = max(1.-fd2*max(n-nf0,0)**2,0.)
+      enddo
+   endif
 
    ! set land model parameters.
    call set_soilveg()
@@ -694,11 +697,17 @@ module phy_data
    	       0.0 , 0.0, 0.0, 0.0,  0.0,  0.0, &
    	       0.0 , 0.0, 0.0, 0.0,  0.0,  0.0, &
    	       0.0 , 0.0, 0.0, 0.0,  0.0,  0.0/)
-   RSMTBL =(/300.0, 175.0, 175.0, 300.0,  70.0, 70.0, &
-            20.0,  70.0,  70.0,  70.0,  70.0, 20.0, &
-            70.0,   0.0,   0.0,   0.0,   0.0,  0.0, &
-             0.0,   0.0,   0.0,   0.0,   0.0,  0.0, &
-             0.0,   0.0,   0.0,   0.0,   0.0,  0.0/)
+!  RSMTBL =(/300.0, 175.0, 175.0, 300.0,  70.0, 70.0, &
+!           20.0,  70.0,  70.0,  70.0,  70.0, 20.0, &
+!           70.0,   0.0,   0.0,   0.0,   0.0,  0.0, &
+!            0.0,   0.0,   0.0,   0.0,   0.0,  0.0, &
+!            0.0,   0.0,   0.0,   0.0,   0.0,  0.0/)
+! Sep 5 2012 bugfix (svn r 20728)
+   RSMTBL =(/300.0, 175.0, 175.0, 300.0, 300.0, 70.0, &
+             45.0, 225.0, 225.0, 225.0, 400.0, 45.0, &
+            150.0,   0.0,   0.0,   0.0,   0.0,  0.0, &
+              0.0,   0.0,   0.0,   0.0,   0.0,  0.0, &
+              0.0,   0.0,   0.0,   0.0,   0.0,  0.0/)
    RGLTBL =(/30.0,  30.0,  30.0,  30.0,  30.0,  65.0, &
     	  100.0, 100.0, 100.0, 100.0, 100.0, 100.0, &
     	  100.0,   0.0,   0.0,   0.0,	0.0,   0.0, &

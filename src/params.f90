@@ -17,7 +17,7 @@ module params
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h
+ pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h,gloopb_filter
 
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
@@ -142,6 +142,8 @@ module params
  ! time-split physics incurs the small extra cost of computing inverse transforms
  ! at the end of the dynamics time step.
  logical :: postphys = .true. 
+ logical :: gloopb_filter = .true. ! apply spectral filter to physics tendencies
+
  real(r_kind) :: bkgd_vdif_m = 3.0 ! background vertical diffusion for momentum
  real(r_kind) :: bkgd_vdif_h = 1.0 ! background vertical diffusion for heat, q
  real(r_kind) :: bkgd_vdif_s = 0.2 ! sigma threshold for background mom. diffusn 
@@ -155,7 +157,7 @@ module params
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys
+ pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys,gloopb_filter
 
  contains
 

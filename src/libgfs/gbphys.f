@@ -520,7 +520,7 @@
 !  ---  local:
       real(kind=kind_phys), dimension(im)          :: ccwfac, garea,    &
      &      dlength, xncw,   cumabs, qmax,   cice,    zice,   tice,     &
-     &      gflx,    rain,   rainc,  rainl,  rain1,   raincs, evapc,    &
+     &      gflx,    rain,   rainc,  rainl,  rain1,   raincs,           &
      &      snowmt,  cd,     cdq,    qss,    dusfcg,  dvsfcg, dusfc1,   &
      &      dvsfc1,  dtsfc1, dqsfc1, rb,     rhscnpy, drain,  cld1d,    &
      &      evap,    hflx,   stress, t850,   ep1d,    gamt,   gamq,     &
@@ -1231,17 +1231,17 @@
         enddo
       endif
 
-      do i = 1, im
+!     do i = 1, im
 
 !  --- ...  compute coefficient of evaporation in evapc
 !
-        if (evapc(i) > 1.0e0) evapc(i) = 1.0e0
+!       if (evapc(i) > 1.0e0) evapc(i) = 1.0e0
 
 !  --- ...  over snow cover or ice or sea, coef of evap =1.0e0
 
-        if (weasd(i) > 0.0 .or. slmsk(i) /= 1.0) evapc(i) = 1.0e0
+!       if (weasd(i) > 0.0 .or. slmsk(i) /= 1.0) evapc(i) = 1.0e0
 
-      enddo
+!     enddo
 
 !  --- ...  vertical diffusion
 
