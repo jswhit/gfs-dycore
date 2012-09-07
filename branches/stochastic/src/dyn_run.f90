@@ -54,15 +54,11 @@
    real(r_kind), dimension(:,:), allocatable :: dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy,dvrtdx,dvrtdy
-   integer k,nt,n0
+   integer k,nt
    logical :: profile = .false. ! print out timeing stats
-   real(r_kind) epstiny, filtwidth
+   real(r_kind) epstiny
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
-
-   ! filter parameters for for vorticity confinement
-   n0 = -1 ! wavenumbers < n0 filtered out (neg means no filtering)
-   filtwidth = 1. ! controls width of ramp function in specral space.
 
    epstiny = tiny(epstiny)
 
@@ -110,15 +106,7 @@
          call spectogrd(tracerspec(:,k,nt),tracerg(:,:,k,nt))
       enddo
       if (vcamp > epstiny .or. svc > epstiny) then
-         ! pre-filter vorticity used in vorticity confinement?
-         ! (filter out largest scales)
-         if (n0 > 0) then
-            workspec(:,k) =&
-            (1.-0.5*(1.-tanh(exp(-filtwidth)*(degree-n0))))*vrtspec(:,k)
-            call getgrad(workspec(:,k),dvrtdx(:,:,k),dvrtdy(:,:,k),rerth)
-         else
-            call getgrad(vrtspec(:,k),dvrtdx(:,:,k),dvrtdy(:,:,k),rerth)
-         endif
+         call getgrad(vrtspec(:,k),dvrtdx(:,:,k),dvrtdy(:,:,k),rerth)
       end if
    enddo
 !$omp end parallel do 
