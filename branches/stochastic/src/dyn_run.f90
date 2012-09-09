@@ -204,31 +204,19 @@
       if (vcamp > epstiny .or. svc > epstiny) then
          ! abs(grad(vrt)) - stored in vadvu
          vadvu(:,:,k) = sqrt(dvrtdx(:,:,k)**2 + dvrtdy(:,:,k)**2)
-         if (svc > epstiny) then
-         !dlnpsdy =  vcamp*(1.+vfact_svc(k)*grd_svc)
-         !print *,'min/max svc pattern',k,minval(dlnpsdy),maxval(dlnpsdy)
+         ! upgradient advection velocity is vcamp*grad(vrt)/abs(grad(vrt)) 
+         ! (unit normal vector pointing up vorticity gradient scaled by
+         ! vcamp, which has units of velocity)
+         ! vcamp stored in vadvv
+         vadvv(:,:,k) = vcamp
+         ! vcamp modulated by stochastic pattern.
+         if (svc > epstiny) vadvv(:,:,k) = (1.+vfact_svc(k)*grd_svc)*vadvv(:,:,k)
          where (vadvu(:,:,k) > epstiny) 
-            ! grad(vrt)/abs(grad(vrt))
-            ! unit normal vector pointing up vorticity gradient
             dvrtdx(:,:,k) = dvrtdx(:,:,k)/vadvu(:,:,k)
             dvrtdy(:,:,k) = dvrtdy(:,:,k)/vadvu(:,:,k)
-            ! upgradient advective velocity is abs(vrt)*grad(vrt)/abs(grad(vrt))
-            ! vcamp has units of velocity
-            prsgx(:,:,k) = prsgx(:,:,k) + vcamp*(1.+vfact_svc(k)*grd_svc)*dvrtdx(:,:,k)*abs(vrtg(:,:,k))
-            prsgy(:,:,k) = prsgy(:,:,k) + vcamp*(1.+vfact_svc(k)*grd_svc)*dvrtdy(:,:,k)*abs(vrtg(:,:,k))
+            prsgx(:,:,k) = prsgx(:,:,k) + vadvv(:,:,k)*dvrtdx(:,:,k)*abs(vrtg(:,:,k))
+            prsgy(:,:,k) = prsgy(:,:,k) + vadvv(:,:,k)*dvrtdy(:,:,k)*abs(vrtg(:,:,k))
          end where
-         else
-         where (vadvu(:,:,k) > epstiny) 
-            ! grad(vrt)/abs(grad(vrt))
-            ! unit normal vector pointing up vorticity gradient
-            dvrtdx(:,:,k) = dvrtdx(:,:,k)/vadvu(:,:,k)
-            dvrtdy(:,:,k) = dvrtdy(:,:,k)/vadvu(:,:,k)
-            ! upgradient advective velocity is abs(vrt)*grad(vrt)/abs(grad(vrt))
-            ! vcamp has units of velocity
-            prsgx(:,:,k) = prsgx(:,:,k) + vcamp*dvrtdx(:,:,k)*abs(vrtg(:,:,k))
-            prsgy(:,:,k) = prsgy(:,:,k) + vcamp*dvrtdy(:,:,k)*abs(vrtg(:,:,k))
-         end where
-         endif
       end if
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
       ! flip sign of vort tend.
