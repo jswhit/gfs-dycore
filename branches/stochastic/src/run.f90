@@ -200,9 +200,11 @@ subroutine advance(t)
   ! update dynamics using RK3.
   do k=0,2
      dtx = dt/float(3-k)
-     ! dynamics tendencies.
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
+     ! if stochastic parameterization turned on,
+     ! advance random patterns (random patterns held
+     ! constant within RK3 step).
      if (k .eq. 0) then
          if (svc > tiny(svc)) then
             call patterngenerator_advance(spec_svc,rpattern_svc)
@@ -221,6 +223,7 @@ subroutine advance(t)
             call spectogrd(spec_shum,grd_shum)
          endif
      endif
+     ! compute dynamics tendencies.
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
