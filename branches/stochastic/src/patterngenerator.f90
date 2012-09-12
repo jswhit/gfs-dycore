@@ -4,16 +4,18 @@ module patterngenerator
  ! in spherical harmonic space.
 
  use kinds, only: r_kind,r_double,r_single
- use shtns, only: degree,order,lons,lats,gauwts,&
- nlons => current_nlon,nlats => current_nlat,lap,invlap,grdtospec,spectogrd,&
- ndimspec => nlm,ntrunc => current_ntrunc
+ use shtns, only: degree,order,gauwts,lap,&
+ nlons => current_nlon,nlats => current_nlat,ndimspec => nlm,ntrunc => current_ntrunc
  use physcons, only:  pi => con_pi, rerth => con_rerth
- implicit none
  private
 
  public :: computevarspec, computevargrid, gaussian_spect, rnorm, set_random_seed, &
   patterngenerator_init, patterngenerator_destroy, getnoise, &
   patterngenerator_advance, getvarspectrum, random_pattern
+
+ ! spherical harmonic normalization fact (twopi for shtns lib, one for splib)
+ real(r_kind), private, parameter :: normfact = 2.*pi 
+ !real(r_kind), private, parameter :: normfact = 1.0
 
  type random_pattern
     real(r_kind), public :: lengthscale
@@ -69,7 +71,7 @@ module patterngenerator
            var = var + 0.5*dataspec(n)*conjg(dataspec(n))
        endif
     enddo
-    var = var/(2.*pi)
+    var = var/normfact
  end subroutine computevarspec
 
  subroutine computevargrid(datagrid,var,areawts)
@@ -93,7 +95,7 @@ module patterngenerator
           0.5*dataspec(n)*conjg(dataspec(n))
        endif
     enddo
-    varspect = varspect/(2.*pi)
+    varspect = varspect/normfact
  end subroutine getvarspectrum
 
  subroutine getnoise(noise)
@@ -109,7 +111,7 @@ module patterngenerator
    enddo
    noise(1) = 0 ! no global mean.
    ! normalize so global mean variance is 1.
-   noise = noise*sqrt(2.*pi/ntrunc)
+   noise = noise*sqrt(normfact/ntrunc)
  end subroutine getnoise
 
  subroutine patterngenerator_advance(dataspec,rpattern)
@@ -149,7 +151,7 @@ module patterngenerator
   enddo
   noise(1) = 0 ! no global mean.
   ! normalize so global mean variance is 1.
-  noise = noise*sqrt(2.*pi/ntrunc)
+  noise = noise*sqrt(normfact/ntrunc)
   noise = spect*noise
   call computevarspec(noise,var)
 
