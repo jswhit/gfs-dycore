@@ -960,9 +960,14 @@
           enddo
         enddo
 
-        where (clw < EPSQ)
-          clw = 0.0
-        endwhere
+        !where (clw < EPSQ)
+        !  clw = 0.0
+        !endwhere
+        do k = 1, LM
+          do i = 1, IM
+            if( clw(i,k) < EPSQ ) clw(i,k) = 0.0
+          enddo
+        enddo
 
         if (np3d == 4) then              ! zhao/moorthi's prognostic cloud scheme
 
