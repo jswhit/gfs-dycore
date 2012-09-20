@@ -806,7 +806,9 @@ module phy_data
    DEFINED_SLOPE=9
  
    FXEXP_DATA =2.0
-   NROOT_DATA =(/4,4,4,4,4,4,4,4,4,4,4,4,4,0,0, &
+   !NROOT_DATA =(/4,4,4,4,4,4,4,4,4,4,4,4,4,0,0, &
+   ! Sep 5 2012 bugfix (svn r 20728)
+   NROOT_DATA =(/4,4,4,4,4,4,3,3,3,2,3,3,2,0,0, &
    	        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0/)
    REFKDT_DATA =3.0
 ! ----------------------------------------------------------------------
@@ -1280,8 +1282,9 @@ module phy_data
    RTIMER(20)=RTIMLW       ! CSULF_TOA
    RTIMER(22)=RTIMLW       ! CSDLF_SFC
    RTIMER(25)=RTIMLW       ! CSULF_SFC
-   colat1 = con_pi-lats(1,1)
 
+   ! FIRST COLATITUDE OF GRID IF IDRT=4 (RADIANS)
+   colat1 = 0.5*con_pi-lats(1,1)
     
    do n=1,nlons*nlats
       j = 1+(n-1)/nlons
