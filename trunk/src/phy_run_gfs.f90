@@ -11,7 +11,7 @@
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw
  use kinds, only: r_kind,r_single,r_double
- use shtns, only: grdtospec, getvrtdivspec, lons, lats
+ use shtns, only: grdtospec, getvrtdivspec, lons, lats, gauwts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use pressure_data, only:  prs,psg,pk,ak,bk
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
@@ -592,6 +592,14 @@
    dvrtspecdt = dvrtspecdt/dtx
    ddivspecdt = ddivspecdt/dtx
    dtracerspecdt = dtracerspecdt/dtx
+
+   ! print out global mean precipitable water and precip.
+   do i=1,nlons
+     coszdg(i,:) = gauwts(:)
+   enddo
+   coszdg = coszdg/sum(coszdg)
+   print *,'global mean pwat = ',sum(coszdg*pwat)
+   print *,'global mean precip = ',sum(coszdg*tprcp)
 
    deallocate(ozplout)
    deallocate(coszdg)
