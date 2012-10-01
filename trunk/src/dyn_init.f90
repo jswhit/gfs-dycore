@@ -207,10 +207,8 @@ module dyn_init
    endif 
    zcoords = 0 ! p, not z, is specified.
    if (dry) then
-     massfix = .false.
      moist = 0
    else
-     if (testcase/10 .eq. 4) massfix=.false.
      moist = 1
    endif
    if (testcase/10 .eq. 4) psg = 1.e5
