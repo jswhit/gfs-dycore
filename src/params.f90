@@ -9,9 +9,9 @@ module params
  private
 
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
- tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
+ tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,dcmip,&
  ntout,fhdfi,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
- postphys,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,&
+ pdryini,massfix,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,&
 ! gfs phys parameters.
  nmtvr,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
@@ -28,6 +28,8 @@ module params
  integer            :: fhdfi=0
  real(r_double)     :: deltim=0    ! namelist input time step (secs)
  real(r_double)     :: dt    ! time step (secs) (=deltim or 3600/timestepsperhr)
+ real(r_kind) :: pdryini ! initial dry ps
+ logical    :: massfix=.true. ! apply dry mass 'fixer'
  integer    :: ntmax ! time steps to run
  integer    :: ntdfi ! number of time steps in dfi window is 2*ntdfi+1
  integer    :: nlons ! number of longitudes on grid
@@ -40,9 +42,8 @@ module params
  logical    :: adiabatic = .false. ! don't call physics
  ! held-suarez forcing
  logical    :: heldsuarez = .false.
- ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)
- ! idealized baroclinic instability test case.
- logical    :: jablowill = .false.
+ ! dcmip test cases
+ integer    :: dcmip = -1 ! 4x for baroclinic wave, 5x for tropical cyclone.
  ! use explicit time differencing
  ! if .true., explicit RK3 is used.
  ! if .false., semi-implicit RK3 (Kar, 2006, MWR p. 2916,
@@ -129,19 +130,6 @@ module params
  logical :: trans_trac = .true. ! convective transport of tracers? (RAS only)
  integer :: nst_fcst=0 ! 0 - AM only, 1 - uncoupled, 2 - coupled
  logical :: moist_adj = .false. 
- ! postphys=.false. means physics tendency computed at beginning of dynamics
- ! timestep, held constant in RK3 sub-steps.  If .true., tendency is applied
- ! after dynamics update as an adjustment (no physics tendencies in RK3
- ! sub-steps).
- ! postphys = .false. is similar to "process-split" physics, postphys=.true.
- ! is "time-split" physics (in the terminology of Williamson (2002): 
- ! http://journals.ametsoc.org/doi/abs/10.1175/1520-0493%282002%29130%3C2024%3ATSVPSC%3E2.0.CO%3B2).
- ! wrf uses postphys=.false. for everything except microphysics, which 
- ! is applied as an adjustment after the RK3 update (time-split).
- ! The operational GFS uses time split physics.
- ! time-split physics incurs the small extra cost of computing inverse transforms
- ! at the end of the dynamics time step.
- logical :: postphys = .true. 
  logical :: gloopb_filter = .true. ! apply spectral filter to physics tendencies
 
  real(r_kind) :: bkgd_vdif_m = 3.0 ! background vertical diffusion for momentum
@@ -151,13 +139,13 @@ module params
  real(r_double) :: timestepsperhr = -1
 
  namelist/nam_mrf/initfile,sfcinitfile,fhmax,&
- deltim,dry,efold,ndiss,jablowill,heldsuarez,explicit,fhdfi,&
+ massfix,deltim,dry,efold,ndiss,dcmip,heldsuarez,explicit,fhdfi,&
  fhout,fhzer,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,taustratdamp,&
  fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,polar_opt,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,postphys,gloopb_filter
+ pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter
 
  contains
 
@@ -200,11 +188,6 @@ module params
       print *,'1 hour must be an integer number of timesteps'
       stop
    endif
-   if (postphys) then
-      print *,'using time-split physics..'
-   else
-      print *,'using process-split physics..'
-   endif
    lu = 7
    call sigio_sropen(lu,trim(initfile),iret)
    if (iret .ne. 0) then
@@ -223,8 +206,11 @@ module params
       tstart = sighead%fhour*3600.
       ntracin = sighead%ntrac
       idate_start = sighead%idate
+      ! dry ps for mass fixer (if zero, compute in dyn_run)
+      pdryini = sighead%pdryini*10000. ! convert to Pa from cb
       print *,'nlons,nlats,nlevs,ntrunc=',nlons,nlats,nlevs,ntrunc
       print *,'tstart=',tstart,' secs'
+      print *,'pdryini=',pdryini
       print *,'idate_start=',idate_start
    endif 
    tmax = fhmax*3600. 
@@ -233,10 +219,10 @@ module params
    ntdfi = fhdfi*timestepsperhr
    print *,'output every ',ntout,' time steps'
    if (ntdfi > 0) print *,'digital filter half-window length',fhdfi,' hrs'
-   idealized = jablowill .or. heldsuarez
-   if (jablowill .and. heldsuarez) then
+   idealized = dcmip >= 0 .or. heldsuarez
+   if (dcmip >= 0 .and. heldsuarez) then
       print *,'conflicting namelist options'
-      print *,'heldsuarez and jablowill both cannot be .true.'
+      print *,'heldsuarez and dcmip both cannot be .true.'
       stop
    endif
    if (.not. idealized .and. (mod(ntdfi,int(fhswr*timestepsperhr)) .ne. 0 .or. &
@@ -244,13 +230,19 @@ module params
       print *,'middle of dfi window must be on a radiation time step'
       stop
    endif
-   ! for these idealized tests, model is dry.
-   if (jablowill) adiabatic = .true.
-   if (jablowill) print *,'running jablonowsky and williamson test..'
-   if (heldsuarez) print *,'running held-suarez test..'
+   if (dcmip >= 0) print *,'running dcmip test...'
+   if (heldsuarez) then
+     print *,'running held-suarez test..'
+     dry = .true.
+   endif
+   if (dcmip .eq. 41) dry = .true. ! dry baroclinic wave
+   if (dcmip .eq. 42) dry = .false. ! dry baroclinic wave
+   if (dcmip/10 .eq. 5) dry = .false. ! tropical cyclone
    call sigio_sclose(lu,iret)
    ndimspec = (ntrunc+1)*(ntrunc+2)/2
-   if (idealized .or. dry) ntrac=0
+   if (dry) ntrac=0
+   if (dcmip/10 .eq. 4) ntrac=3 ! passive tracers.
+   if (dcmip/10 .eq. 5) ntrac=1 ! no passive tracers.
    if (.not. idealized .and. ntrac .ne. ntracin) then
      print *,ntracin,' tracers in input file, expecting',ntrac
      stop

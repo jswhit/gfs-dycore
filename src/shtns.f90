@@ -57,7 +57,7 @@
       private 
       public :: shtns_init,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,shtns_destroy
       public :: gauwts, lats, lons, nlm, degree, order, lap, invlap,&
-                current_nlon, current_nlat, current_ntrunc
+                current_nlon, current_nlat, current_ntrunc, areawts
       INTEGER, PARAMETER :: SHT_NATIVE_LAYOUT=0
       INTEGER, PARAMETER :: SHT_THETA_CONTIGUOUS=256
       INTEGER, PARAMETER :: SHT_PHI_CONTIGUOUS=512
@@ -80,7 +80,7 @@
       INTEGER            :: nlm
 ! arrays allocated when nlon or nlat or ntrunc change.
       REAL(r_kind), DIMENSION(:), ALLOCATABLE :: lap, invlap, gauwts
-      REAL(r_kind), DIMENSION(:,:), ALLOCATABLE :: lats, lons
+      REAL(r_kind), DIMENSION(:,:), ALLOCATABLE :: lats, lons, areawts
       INTEGER, DIMENSION(:), ALLOCATABLE :: degree, order
       real(r_double) :: popt ! polar optimization thresh
       integer :: nth ! number of threads to use
@@ -132,6 +132,11 @@
          gauwts(j) = gauwts1(j)
          gauwts(nlat-j+1) = gauwts1(j)
       enddo
+      allocate(areawts(nlon,nlat))
+      do i=1,nlon
+         areawts(i,:) = gauwts(:)
+      enddo
+      areawts = areawts/sum(areawts)
       pi = 4.*atan(1.0)
       do j=1,nlat
       do i=1,nlon
@@ -155,6 +160,7 @@
       call shtns_reset()
       if (allocated(lats)) deallocate(lats)
       if (allocated(gauwts)) deallocate(gauwts)
+      if (allocated(areawts)) deallocate(areawts)
       if (allocated(lons)) deallocate(lons)
       if (allocated(degree)) deallocate(degree)
       if (allocated(order)) deallocate(order)

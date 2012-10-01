@@ -5,9 +5,9 @@ module run_mod
 ! data at specified intervals).
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  heldsuarez,jablowill,fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  sfcinitfile, postphys, ntdfi
-use shtns, only: lats, gauwts
+  fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
+  sfcinitfile, ntdfi
+use shtns, only: lats, areawts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
@@ -24,12 +24,12 @@ contains
 subroutine run()
   use omp_lib, only: omp_get_num_threads, omp_get_thread_num
   implicit none
-  integer i,nt,ntstart,my_id
+  integer nt,ntstart,my_id
   real(r_kind) fh,fha,pstendmean
   real(r_double) ta,t
   real(8) t1,t2
   real(r_kind), dimension(nlons,nlats,nlevs) :: spd
-  real(r_kind), dimension(nlons,nlats) :: pstend,areawts
+  real(r_kind), dimension(nlons,nlats) :: pstend
   complex(r_kind), dimension(:,:), allocatable :: &
   vrtspec_dfi,divspec_dfi,virtempspec_dfi
   complex(r_kind), dimension(:,:,:), allocatable :: tracerspec_dfi
@@ -37,11 +37,6 @@ subroutine run()
   real(r_kind), dimension(:), allocatable :: dfi_wts
   integer(8) count, count_rate, count_max
   character(len=500) filename,filename_save
-
-  do i=1,nlons
-     areawts(i,:) = gauwts(:)
-  enddo
-  areawts = areawts/sum(areawts)
 
 !$omp parallel
   my_id = omp_get_thread_num()
@@ -199,27 +194,10 @@ subroutine advance(t)
      ! dynamics tendencies.
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
-     call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt)
+     call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt,k)
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
      if (profile) print *,'time in getdyntend=',t2-t1
-     ! compute physics tendencies at beginning, hold constant within RK3 sub time steps.
-     ! (process-split approach)
-     if (.not. adiabatic .and. .not. postphys) then
-        if (k == 0) then
-           call system_clock(count, count_rate, count_max)
-           t1 = count*1.d0/count_rate
-           call getphytend(dvrtspecdt_phy,ddivspecdt_phy,dvirtempspecdt_phy,dtracerspecdt_phy,dlnpsspecdt_phy,t,dt)
-           call system_clock(count, count_rate, count_max)
-           t2 = count*1.d0/count_rate
-           if (profile) print *,'time in getphytend=',t2-t1
-        endif
-        dvrtspecdt = dvrtspecdt + dvrtspecdt_phy 
-        ddivspecdt = ddivspecdt + ddivspecdt_phy
-        dvirtempspecdt = dvirtempspecdt + dvirtempspecdt_phy
-        dtracerspecdt = dtracerspecdt + dtracerspecdt_phy
-        dlnpsspecdt = dlnpsspecdt + dlnpsspecdt_phy
-     endif 
      ! semi-implicit adjustment includes physics tendencies for process-split
      ! physics.
      if (.not. explicit) then
@@ -257,10 +235,10 @@ subroutine advance(t)
   enddo
   ! apply physics parameterizations as an adjustment to fields updated by dynamics.
   ! (time-split approach)
-  if (.not. adiabatic .and. postphys) then
+  if (.not. adiabatic) then
      ! update variables on grid.
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,&
-          dtracerspecdt,dlnpsspecdt_phy,.true.) ! <- .true. for spectogrd only
+          dtracerspecdt,dlnpsspecdt_phy,2,.true.) ! <- .true. for spectogrd only
      ! compute physics tendencies, apply as an adjustment to updated state
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
@@ -272,7 +250,7 @@ subroutine advance(t)
      divspec=divspec+dt*ddivspecdt_phy
      virtempspec=virtempspec+dt*dvirtempspecdt_phy
      if (ntrac > 0) tracerspec=tracerspec+dt*dtracerspecdt_phy
-     !lnpsspec=lnpsspec+dt*dlnpsspecdt_phy ! physics does not modify ps
+     lnpsspec=lnpsspec+dt*dlnpsspecdt_phy ! only needed for dry mass fixer.
   end if
 end subroutine advance
 
