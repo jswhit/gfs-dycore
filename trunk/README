@@ -22,7 +22,7 @@ for full gfs model, run
   make gfs (executable is bin/gfs)
 
 for Held-Suarez test, run
-  make clean-hs (clean and setup symlinks)
+  make clean-hstest (clean and setup symlinks)
   make w3lib (build ncep w3lib)
   make libgfs (build library containing gfs physics routines)
   make (executable is bin/gfs)
