@@ -1,9 +1,8 @@
  &nam_mrf
  initfile="sanl.dat",
- fhmax=14400,
+ fhmax=360,
  fhout=24,
  deltim=1200,
- jablowill=.false.,
- heldsuarez=.true.
+ dcmip=41,
  /
  &END
