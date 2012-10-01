@@ -5,11 +5,12 @@
 ! getphytend: compute newtonian damping of temperature, drag terms
 ! in vort and div eqns.
 
- use params, only: nlevs,nlons,nlats,ndimspec,ntrac
+ use params, only: nlevs,nlons,nlats,ndimspec,ntrac,massfix,pdryini
  use kinds, only: r_kind, r_double
- use shtns, only: grdtospec, lats
+ use shtns, only: grdtospec, lats, areawts
  use grid_data, only: vrtg,divg,virtempg
  use pressure_data, only:  prs,psg
+ use spectral_data, only: lnpsspec
 
  implicit none
  private
@@ -28,9 +29,11 @@
    real(r_double), intent(in) :: t,dt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind) p0,sigbot,tempstrat,delthz,deltmp,&
-                kdrag,krada,kradb
+                kdrag,krada,kradb,pdry,pcorr
    real(r_kind), dimension(:,:,:),allocatable :: blprof,radequiltemp,forcingg
    complex(r_kind), dimension(:,:),allocatable :: forcingspec
+   real(r_kind), allocatable, dimension(:,:) :: wrkg
+   complex(r_kind), allocatable, dimension(:) :: wrkspec
    integer k
 
    allocate(blprof(nlons,nlats,nlevs),radequiltemp(nlons,nlats,nlevs))
@@ -76,6 +79,23 @@
 
    deallocate(blprof,radequiltemp)
    deallocate(forcingg,forcingspec)
+
+! global mean dry mass 'fixer'
+   if (massfix) then
+! compute global mean dry ps.
+      pdry = sum(areawts*psg)
+      print *,'pdry after physics update',pdry
+! implied ps correction needed to return dry mass to initial value
+      pcorr = pdry - pdryini
+! add constant correction to every grid point
+      allocate(wrkg(nlons,nlats),wrkspec(ndimspec))
+      wrkg = psg - pcorr 
+! compute implied lnps tendency in spectral space.
+      wrkg = log(wrkg)
+      call grdtospec(wrkg,wrkspec)
+      dlnpsspecdt = (wrkspec - lnpsspec)/dt
+      deallocate(wrkg,wrkspec)
+   endif ! massfix
 
    return
  end subroutine getphytend
