@@ -29,18 +29,17 @@ class ncepsigma(object):
 m = Basemap(llcrnrlat=-90,urcrnrlat=90,llcrnrlon=0,urcrnrlon=360,resolution=None)
 fig = plt.figure(figsize=(15,10))
 npanel = 1
-#for fhour in [168,216,288,360]:
-for fhour in [96,144,192,240]:
+for fhour in [168,216,288,360]:
     filename = 'SIG.F%s' % fhour
 
     sigfile = ncepsigma(filename)
     vrtspec,divspec,tempspec,zspec,lnpsspec,qspec = sigfile.specdata()
-    
+
     lons,lats = np.meshgrid(sigfile.lons,sigfile.lats)
     psg = sigfile.spectogrd(lnpsspec)
     psg = 10.*np.exp(psg) # hPa
     print psg.min(), psg.max(), psg.shape
-    
+
     # add wraparound (cyclic) points.
     lons1 = lons[0,:]
     lats1 = lats[:,0]
