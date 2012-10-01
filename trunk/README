@@ -21,10 +21,17 @@ for full gfs model, run
   make libgfs (build library containing gfs physics routines)
   make gfs (executable is bin/gfs)
 
-for Held-Suarez and Jablonowsky-Williamson test, run
-  make clean-test (clean and setup symlinks)
+for Held-Suarez test, run
+  make clean-hs (clean and setup symlinks)
   make w3lib (build ncep w3lib)
-  make gfs-test (executable is bin/gfs_test)
+  make libgfs (build library containing gfs physics routines)
+  make (executable is bin/gfs)
+
+for DCMIP test cases 4 and 5 (http://earthsystemcog.org/projects/dcmip-2012/), run
+  make clean-dcmip (clean and setup symlinks)
+  make w3lib (build ncep w3lib)
+  make libgfs (build library containing gfs physics routines)
+  make (executable is bin/gfs)
 
 To test:
 
@@ -33,7 +40,7 @@ plot zonal mean zonal wind and temperature using python/plotzonalmean.py
 compare resulting plots to zonalmeanu.png and zonalmeant.png.
 
 to run jablonowski and williamson test case, cd to jablowill_test and run test_gfs.
-plot surface pressure using python/plotps.py and compare resulting plot with ps.png
-and figure 9 in paper (jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12).
+plot surface pressure using python/plotps.py and compare resulting plot with ps410.png
+and plots for other models on DCMIP page (http://earthsystemcog.org/projects/dcmip-2012).
 
 Contact:  Jeff Whitaker <jeffrey.s.whitaker@noaa.gov>
