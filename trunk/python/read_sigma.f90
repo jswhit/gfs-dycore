@@ -1,9 +1,9 @@
-! jet:
-! f2py -c read_sigma.f90 -m read_sigma --fcompiler=intelem ./shtns.o
-! ./sigio_module.o -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3 
-! mac:
-! f2py -c read_sigma.f90 -m read_sigma --fcompiler=gnu95 ./shtns.o
-! ./sigio_module.o -L/Users/jwhitaker/lib -lshtns -L/opt/local/lib -lgomp -lfftw3
+! zeus:
+! gfortran -O3 -fPIC -c ../src/shtns.f90
+! gfortran -O3 -fPIC -c ../src/kinds.f90
+! gfortran -O3 -fPIC -c ../src/sigio_module.f90
+! f2py -c read_sigma.f90 -m read_sigma --fcompiler=gnu95 shtns.o kinds.o
+! sigio_module.o -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns -lfftw3 
 subroutine read_header(filename, nlons, nlats, nlevs, ntrunc)
   use sigio_module, only: sigio_sclose,sigio_swohdc,sigio_head,sigio_srhead,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
@@ -33,8 +33,8 @@ end subroutine read_header
 subroutine read_specdata(filename, ntrunc, nlevs, vrtspec, divspec, virtempspec, topospec, lnpsspec, spfhumspec)
   use sigio_module, only: sigio_sclose,sigio_swohdc,sigio_head,sigio_srhead,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
+  use kinds, only: r_kind
   implicit none
-  integer, parameter  :: r_kind = selected_real_kind(15) ! double precision
   complex(r_kind), intent(out),dimension((ntrunc+1)*(ntrunc+2)/2,nlevs) :: &
   vrtspec, divspec, virtempspec, spfhumspec
   complex(r_kind), intent(out),dimension((ntrunc+1)*(ntrunc+2)/2) :: &
@@ -69,8 +69,8 @@ subroutine read_griddata(filename, nlons, nlats, nlevs, ug, vg, tempg, zsg, psg,
   use shtns, only: getuv, grdtospec, spectogrd, shtns_init, nlm
   use sigio_module, only: sigio_sclose,sigio_swohdc,sigio_head,sigio_srhead,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_sropen,sigio_srdata,sigio_axdata
+  use kinds, only: r_kind
   implicit none
-  integer, parameter  :: r_kind = selected_real_kind(15) ! double precision
   real(r_kind),parameter:: rerth  =6.3712e+6      ! radius of earth   (m)
   real(r_kind), intent(out),dimension(nlons,nlats,nlevs) :: &
   ug,vg,tempg,qg
@@ -127,19 +127,18 @@ subroutine read_griddata(filename, nlons, nlats, nlevs, ug, vg, tempg, zsg, psg,
   deallocate(vrtspec,divspec,virtempspec,spfhumspec)
 end subroutine read_griddata
 subroutine copyspecin(rspecdata,cspecdata,ndimspec,norm)
-   implicit none
-   integer, parameter  :: r_single = selected_real_kind(6)  ! single precision
-   integer, parameter  :: r_kind = selected_real_kind(15) ! double precision
-   real(r_kind), intent(in) :: norm
-   integer, intent(in) :: ndimspec
-   real(r_single), intent(in) :: rspecdata(2*ndimspec)
-   complex(r_kind), intent(out) :: cspecdata(ndimspec)
-   integer n,nn
-   nn = 1
-   ! factor of sqrt(2.*pi) accounts for difference in normalization
-   ! between ncep libs and shtns (which uses orthonormalized norm)
-   do n=1,ndimspec
-      cspecdata(n) = norm*cmplx(rspecdata(nn),rspecdata(nn+1))
-      nn = nn + 2
-   enddo
+  use kinds, only: r_kind, r_single
+  implicit none
+  real(r_kind), intent(in) :: norm
+  integer, intent(in) :: ndimspec
+  real(r_single), intent(in) :: rspecdata(2*ndimspec)
+  complex(r_kind), intent(out) :: cspecdata(ndimspec)
+  integer n,nn
+  nn = 1
+  ! factor of sqrt(2.*pi) accounts for difference in normalization
+  ! between ncep libs and shtns (which uses orthonormalized norm)
+  do n=1,ndimspec
+     cspecdata(n) = norm*cmplx(rspecdata(nn),rspecdata(nn+1))
+     nn = nn + 2
+  enddo
 end subroutine copyspecin
