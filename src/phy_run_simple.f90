@@ -8,9 +8,9 @@
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
- use pressure_data, only:  prs,psg,pk,ak,bk
+ use pressure_data, only:  prs,psg,pk,ak,bk,dpk
  use spectral_data, only: lnpsspec
- use phy_data, only: precip,apcp
+ use phy_data, only: precip,apcp,pwat
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
                grav => con_g, pi => con_pi, fv => con_fvirt, rk => con_rocp
@@ -104,6 +104,12 @@
       enddo
    enddo ! end loop over horiz grid points
 !$omp end parallel do 
+   pwat = 0.
+   do k=1,nlevs
+      pwat(:,:) = pwat(:,:) +&
+      sum(areawts*dpk(:,:,nlevs-k+1)*(dtracersdt(:,:,k,1)+tracerg(:,:,k,1)))
+   enddo
+   pwat = pwat/grav
    print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
    print *,'min/max dudt',minval(dudt),maxval(dudt)
    print *,'min/max dvdt',minval(dvdt),maxval(dvdt)
@@ -163,8 +169,10 @@
    deallocate(dtdt,dudt,dvdt)
    deallocate(dtracersdt)
    apcp = apcp + precip*dtx
+   pwatg = sum(areawts*pwat)
    print *,'min/max inst. precip rate (mm/sec) =',minval(precip),maxval(precip)
    print *,'min/max accum precip (mm) =',minval(apcp),maxval(apcp)
+   print *,'global mean pwat (mm) =',pwatg
 
    else
 
@@ -174,6 +182,10 @@
    ddivspecdt = 0.
    dtracerspecdt = 0.
    dlnpsspecdt = 0.
+   apcp = 0.
+   precip = 0.
+   pwat = 0.
+   pwatg = 0.
 
    endif
 
