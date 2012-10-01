@@ -10,10 +10,10 @@
 ! getpresgrad: calculate pressure gradient terms in momentum eqns.
 ! getvadv: calculate vertical advection terms.
 
- use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac
+ use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,dcmip,dry
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
- lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad
+ lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,areawts
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
  tracerspec, topospec
  use grid_data, only: ug,vg,vrtg,virtempg,divg,tracerg,dlnpdtg,etadot,lnpsg,&
@@ -33,7 +33,7 @@
  contains
 
  subroutine getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,&
-                       dtracerspecdt,dlnpsspecdt,just_do_inverse_transform)
+                       dtracerspecdt,dlnpsspecdt,kstep,just_do_inverse_transform)
    ! compute dynamics tendencies (notincluding hyper-diffusion.and linear drag,
    ! which are treated implicitly)
    ! based on hybrid sigma-pressure dynamical core described in
@@ -52,8 +52,10 @@
    real(r_kind), dimension(:,:), allocatable :: dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
-   integer k,nt
+   integer, intent(in) :: kstep ! runge-kutta step (0,1,2)
+   integer k,nt,ntrac_use
    logical :: profile = .false. ! print out timeing stats
+   real(r_kind) pmoist,pdry
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
 
@@ -105,15 +107,37 @@
    ! lnps on grid.
    call spectogrd(lnpsspec, lnpsg)
 
+   ! compute pressure on interfaces and model layers using lnpsg
+   ! i.e. calculate alpha,delp,rlnp,dpk,psg,pk from ak,bk,lnpsg
+   ! results stored in module pressure_data
+   call calc_pressdata(lnpsg) 
+
+! compute global mean dry ps (only first step in rk3).
+   if (kstep .eq. 0) then
+      pmoist = 0.
+      if (.not. dry) then
+         ntrac_use = ntrac
+         if (dcmip > 0) ntrac_use = 1
+         do k=1,nlevs
+            do nt=1,ntrac_use
+               pmoist = pmoist + sum(areawts*dpk(:,:,nlevs-k+1)*tracerg(:,:,k,nt))
+            enddo
+         enddo
+      endif
+      pdry = sum(areawts*psg) - pmoist
+      if (pdryini .eq. 0) then
+         pdryini = pdry
+         print *,'pdryini = ',pdryini
+      else
+         print *,'pdry = ',pdry
+      endif
+   endif
+
    ! gradient of surface pressure.
    ! gradient of surface geopotential precomputed in dyn_init,
    ! saved in module grid_data (dphisdx,dphisdy).
    call getgrad(lnpsspec, dlnpsdx, dlnpsdy, rerth)
 
-   ! compute pressure on interfaces and model layers using lnpsg
-   ! i.e. calculate alpha,delp,rlnp,dpk,psg,pk from ak,bk,lnpsg
-   ! results stored in module pressure_data
-   call calc_pressdata(lnpsg) 
    !print *,'min/max ps',minval(psg/100.),maxval(psg/100.)
 
    ! get pressure vertical velocity divided by pressure (dlnpdtg),
