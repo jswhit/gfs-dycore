@@ -13,16 +13,18 @@ module dyn_init
  use sigio_module, only: sigio_sclose,sigio_swohdc,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_head,sigio_sropen,sigio_srdata,sigio_axdata
  use params, only: &
- nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,jablowill,polar_opt,&
- heldsuarez,explicit,tstart,idate_start,hdif_fac,hdif_fac2,fshk,ntrac,taustratdamp
+ nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,dcmip,polar_opt,&
+ heldsuarez,explicit,tstart,idate_start,hdif_fac,hdif_fac2,fshk,ntrac,taustratdamp,&
+ massfix
  use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, lap, lats, lons
  use spectral_data, only: vrtspec,divspec,virtempspec,tracerspec,topospec,lnpsspec,&
                           disspec,diff_prof,dmp_prof,init_specdata
  use pressure_data, only: ak,bk,ck,dbk,bkl,sl,psg,prs,init_pressdata,calc_pressdata
  use grid_data, only: init_griddata, dphisdx, dphisdy, phis, ug, vg, virtempg, &
- lnpsg
+ tracerg,lnpsg
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
-                     omega => con_omega, grav => con_g, pi => con_pi
+                     omega => con_omega, grav => con_g, pi => con_pi, &
+                     fv => con_fvirt
  use semimp_data, only: init_semimpdata
 
  implicit none
@@ -60,11 +62,11 @@ module dyn_init
        print *,'unknown vertical coordinate type',sighead%idvc
        stop
     end if
-    ! jablonowoski and williamson test case or
+    ! dcmip test case or
     ! held-suarez test case
     ! (over-ride initial conditions read from file).
-    if (jablowill .and. tstart .le. tiny(tstart)) then
-       call jablowill_ics()
+    if (dcmip >= 0 .and. tstart .le. tiny(tstart)) then
+       call dcmip_ics(dcmip,dry)
     endif
     if (heldsuarez .and. tstart .le. tiny(tstart)) then
        call heldsuarez_ics()
@@ -181,63 +183,94 @@ module dyn_init
     call sigio_sclose(lu2,iret)
  end subroutine wrtout_sig
 
- subroutine jablowill_ics()
-   ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)
-   ! idealized baroclinic instability test case initial conditions.
-   integer k
-   real(r_kind) u0,etat,eta0,t0,gamma,deltat,lonc,latc,&
-        up,pertrad
-   real(r_kind), dimension(nlons,nlats) :: r,x,eta,etav,zs
-   print *,'replacing initial conds with jablonowsky and williamson test case..'
-   ! zonal jet.
-   psg = 1.e5
+ subroutine dcmip_ics(testcase,dry)
+   ! DCMIP 2012 test case initial conditions (test cases 4 and 5)
+   ! (idealized baroclinic instability or trop cyclone test case initial conditions)
+   use dcmip_initial_conditions_test_4, only: test4_baroclinic_wave 
+   use dcmip_initial_conditions_test_5, only: test5_tropical_cyclone 
+   integer, intent(in) :: testcase
+   logical, intent(in) :: dry
+   real(8) lon,lat,z,X,p,u,v,w,t,phi_s,ps,rho,q,q1,q2
+   integer moist,zcoords,i,j,k,nt
+
+   if (testcase/10 .eq. 5) then
+      if (dry) then
+         print *,'cannot run dcmip trop cyclone test case with dry=.true.'
+         stop
+      endif
+      print *,'replacing initial conds with dcmip tropical cyclone case..'
+   else if (testcase/10 .eq. 4) then
+      print *,'replacing initial conds with dcmip baroclinic wave test case..'
+   else
+      print *,'dcmip must be 40 something or 50 something'
+      stop
+   endif 
+   zcoords = 0 ! p, not z, is specified.
+   if (dry) then
+     massfix = .false.
+     moist = 0
+   else
+     if (testcase/10 .eq. 4) massfix=.false.
+     moist = 1
+   endif
+   if (testcase/10 .eq. 4) psg = 1.e5
+   if (testcase/10 .eq. 5) then
+      psg = 1.015e5
+      lnpsg = log(psg)
+      call grdtospec(lnpsg,lnpsspec)
+      call calc_pressdata(lnpsg)
+      ! run once, just to calculate ps
+      ! ps then used to compute pressure on model levels for subsequent call
+      do k=1,nlevs
+      do j=1,nlats
+      do i=1,nlons
+         lon = lons(i,j); lat = lats(i,j); p = prs(i,j,k)
+         call test5_tropical_cyclone (lon,lat,p,z,zcoords,u,v,w,t,phi_s,ps,rho,q)
+         psg(i,j) = ps
+      enddo
+      enddo
+      enddo
+   endif
+   ! calculate pressure on model levels given ps.
    lnpsg = log(psg)
    call grdtospec(lnpsg,lnpsspec)
    call calc_pressdata(lnpsg)
-   eta0 = 0.252
-   u0 = 35.
-   t0 = 288.
-   gamma = 0.005
-   deltat = 4.8e5
-   etat = 0.2
-   lonc = pi/9.
-   latc = 2.*pi/9.
-   pertrad = rerth/10.
+   ! calculate u,v,t,q,phis and other tracers.
    do k=1,nlevs
-      eta = prs(:,:,k)/psg
-      etav = 0.5*pi*(eta-eta0)
-      ug(:,:,k) = u0*cos(etav)**1.5*sin(2.*lats)**2 ! eqn 2
-      ! eqns 4 and 5
-      virtempg(:,:,k) = t0*eta**(rd*gamma/grav)
-      where (eta < etat) 
-         virtempg(:,:,k) = virtempg(:,:,k) +&
-         deltat*(etat-eta)**5
-      end where
-      ! eqn 6
-      virtempg(:,:,k) = virtempg(:,:,k) +&
-      0.75*(eta*pi*u0/rd)*sin(etav)*sqrt(cos(etav))*&
-      ((-2.*sin(lats)**6*(cos(lats)**2+(1./3.)) + (10./63))*2.*u0*cos(etav)**1.5+&
-      ((8./5.)*cos(lats)**3*(sin(lats)**2+(2./3.)) - 0.25*pi)*rerth*omega)
-      !print *,k,minval(ug(:,:,k)),maxval(ug(:,:,k)),minval(virtempg(:,:,k)),&
-      !maxval(virtempg(:,:,k))
+      do j=1,nlats
+      do i=1,nlons
+         lon = lons(i,j); lat = lats(i,j); p = prs(i,j,k)
+         if (testcase/10 .eq. 4) then
+            call test4_baroclinic_wave (moist,X,lon,lat,p,z,zcoords,u,v,w,t,phi_s,ps,rho,q,q1,q2)
+         else if (testcase/10 .eq. 5) then
+            call test5_tropical_cyclone (lon,lat,p,z,zcoords,u,v,w,t,phi_s,ps,rho,q)
+         endif 
+         ug(i,j,k) = u; vg(i,j,k) = v; phis(i,j) = phi_s
+         if (dry) then
+            virtempg(i,j,k) = t
+            tracerg(i,j,k,1) = 0.
+            tracerg(i,j,k,2) = q1
+            tracerg(i,j,k,3) = q2
+         else
+            virtempg(i,j,k) = t*(1. + fv*q)
+            tracerg(i,j,k,1) = q
+            if (testcase/10 .eq. 4) then 
+               tracerg(i,j,k,2) = q1
+               tracerg(i,j,k,3) = q2
+            endif
+         endif
+       enddo
+       enddo
+       call getvrtdivspec(ug(:,:,k),vg(:,:,k),vrtspec(:,k),divspec(:,k),rerth)
+       call grdtospec(virtempg(:,:,k),virtempspec(:,k))
+       do nt=1,ntrac
+          call grdtospec(tracerg(:,:,k,nt),tracerspec(:,k,nt))
+       enddo
    enddo
-   ! surface height (to balance wind field so surface pressure can be constant).
-   eta = 1; etav = 0.5*pi*(eta-eta0)
-   zs = u0*cos(etav)**1.5*((-2.*sin(lats)**6*(cos(lats)**2+(1./3.)) + (10./63))*u0*cos(etav)**1.5+&
-      ((8./5.)*cos(lats)**3*(sin(lats)**2+(2./3.)) - 0.25*pi)*rerth*omega)/grav
-   call grdtospec(zs, topospec) 
-   ! add perturbation
-   x = sin(latc)*sin(lats) + cos(latc)*cos(lats)*cos(lons-lonc)
-   r = rerth*acos(x)
-   up = 1.
-   do k=1,nlevs
-      ! add a zonal wind perturbation
-      ug(:,:,k) = ug(:,:,k) + up*exp(-(r/pertrad)**2)
-      vg(:,:,k) = 0.
-      call getvrtdivspec(ug(:,:,k),vg(:,:,k),vrtspec(:,k),divspec(:,k),rerth)
-      call grdtospec(virtempg(:,:,k),virtempspec(:,k))
-   enddo
- end subroutine jablowill_ics
+   call grdtospec(phis/grav, topospec) 
+
+ end subroutine dcmip_ics
+
 
  subroutine heldsuarez_ics()
    ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)

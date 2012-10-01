@@ -5,14 +5,15 @@
 ! getphytend: compute tendencies in spectral space.
 
  use params, only: nlevs,nlons,nlats,ntrunc,ndimspec,ntrac,nmtvr,idate_start,dt,&
- postphys,fhzer,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
+ pdryini,fhzer,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
- old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
+ massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw
  use kinds, only: r_kind,r_single,r_double
- use shtns, only: grdtospec, getvrtdivspec, lons, lats, gauwts
+ use shtns, only: grdtospec, spectogrd, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
+ use spectral_data, only:  lnpsspec
  use pressure_data, only:  prs,psg,pk,ak,bk
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
@@ -96,9 +97,10 @@
    adq(nlevs,ntrac),dt3dt(nlevs,6),du3dt(nlevs,4),dv3dt(nlevs,4),dq3dt(nlevs,5+pl_coeff),&
    phy3d(nlevs,num_p3d),phy2d(num_p2d),hlw_tmp(nlevs),swh_tmp(nlevs),fluxr_tmp(nfxr),&
    cldcov_tmp(nlevs),hprime_tmp(nmtvr),slc_tmp(lsoil),smc_tmp(lsoil),stc_tmp(lsoil),&
-   gu(nlevs),gv(nlevs)
+   pwatg,pdry,pcorr,gu(nlevs),gv(nlevs)
    integer :: icsdsw(1),icsdlw(1),ilons(1), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
+   complex(r_kind), allocatable, dimension(:) :: workspec
    real(r_kind), allocatable, dimension(:,:,:) :: ozplout,dtdt,dudt,dvdt
    real(4), allocatable, dimension(:,:,:) :: work4
    real(r_kind), allocatable, dimension(:,:,:,:) :: dtracersdt
@@ -132,6 +134,7 @@
    allocate(dtdt(nlons,nlats,nlevs),dudt(nlons,nlats,nlevs),dvdt(nlons,nlats,nlevs))
    allocate(dtracersdt(nlons,nlats,nlevs,ntrac))
    allocate(dpsdt(nlons,nlats))
+   allocate(workspec(ndimspec))
 
 ! is it a radiation time step (long or short wave)?
    fhour = t/3600.
@@ -351,7 +354,7 @@
 ! hour of day at beginning of time step
    solhr = mod(fhour + idate_start(1), 24.0) 
 ! for time-split physics, solhr is end of time step
-   if (postphys) solhr = solhr + dt/3600.
+   solhr = solhr + dt/3600.
 ! interpolate oz forcing to model latitudes, day of year.
    ozplout = 0.
    if (ntoz .gt. 0) then
@@ -586,7 +589,6 @@
       enddo
    enddo
 !$omp end parallel do 
-   !call grdtospec(dpsdt, dlnpsspecdt)
    dlnpsspecdt=0 ! physics does not change surface pressure
    dvirtempspecdt = dvirtempspecdt/dtx
    dvrtspecdt = dvrtspecdt/dtx
@@ -594,13 +596,26 @@
    dtracerspecdt = dtracerspecdt/dtx
 
    ! print out global mean precipitable water and precip.
-   do i=1,nlons
-     coszdg(i,:) = gauwts(:)
-   enddo
-   coszdg = coszdg/sum(coszdg)
-   print *,'global mean pwat = ',sum(coszdg*pwat)
-   print *,'global mean precip = ',sum(coszdg*tprcp)
+   pwatg = sum(areawts*pwat)
+   print *,'global mean pwat = ',pwatg
+   print *,'global mean precip = ',sum(areawts*tprcp)
 
+! global mean dry mass 'fixer'
+   if (massfix) then
+! compute global mean dry ps.
+      pdry = sum(areawts*psg) - grav*pwatg
+      print *,'pdry after physics update',pdry
+! implied ps correction needed to return dry mass to initial value
+      pcorr = pdry - pdryini
+! add constant correction to every grid point
+      dpsdt = psg - pcorr 
+! compute implied lnps tendency in spectral space.
+      dpsdt = log(dpsdt)
+      call grdtospec(dpsdt,workspec)
+      dlnpsspecdt = (workspec - lnpsspec)/dtx
+   endif ! massfix
+
+   deallocate(workspec)
    deallocate(ozplout)
    deallocate(coszdg)
    deallocate(dtdt,dudt,dvdt)
