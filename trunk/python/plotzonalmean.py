@@ -3,13 +3,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ncount = 0
-hrs = range(2400,9997,12); nhrs = len(hrs)
+hrs = range(2400,9600,24); nhrs = len(hrs)
 sigfile = None
 for hr in hrs:
-    if hr < 1000:
-        filename = 'sig.f%03i' % hr
-    else:
-        filename = 'sig.f%s' % hr
+    filename = 'SIG.F%03i' % hr
     print filename
     if sigfile is None:
         sigfile = ncepsigma(filename)
