@@ -1,6 +1,6 @@
  &nam_mrf
  initfile="sanl.dat",
- fhmax=14400,
+ fhmax=9600,
  fhout=24,
  deltim=1200,
  jablowill=.false.,
