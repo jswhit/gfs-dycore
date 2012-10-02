@@ -10,7 +10,8 @@
 ! getpresgrad: calculate pressure gradient terms in momentum eqns.
 ! getvadv: calculate vertical advection terms.
 
- use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,dcmip,dry
+ use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,&
+   dcmip,dry,vcamp,svc
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,areawts
@@ -20,6 +21,7 @@
  phis,dphisdx,dphisdy,dlnpsdt
  use pressure_data, only:  ak, bk, ck, dbk, dpk, rlnp, pk, alfa, dpk, psg,&
  calc_pressdata
+ use stoch_data, only:  grd_svc, vfact_svc
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
                grav => con_g, fv => con_fvirt, kappa => con_rocp
@@ -51,13 +53,15 @@
    complex(r_kind), dimension(:,:),allocatable :: workspec
    real(r_kind), dimension(:,:), allocatable :: dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
-   prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
+   prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy,dvrtdx,dvrtdy
    integer, intent(in) :: kstep ! runge-kutta step (0,1,2)
    integer k,nt,ntrac_use
    logical :: profile = .false. ! print out timeing stats
-   real(r_kind) pmoist,pdry
+   real(r_kind) pmoist,pdry,epstiny
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
+
+   epstiny = tiny(epstiny)
 
    ! should tendencies be computed, or just spectral -> grid?
    if (present(just_do_inverse_transform)) then
@@ -79,6 +83,10 @@
    allocate(dvirtempdx(nlons,nlats,nlevs))
    allocate(dvirtempdy(nlons,nlats,nlevs))
    allocate(workspec(ndimspec,nlevs))  
+   if (vcamp > epstiny .or. svc > epstiny) then
+      allocate(dvrtdx(nlons,nlats,nlevs))
+      allocate(dvrtdy(nlons,nlats,nlevs))
+   endif
 
    ! compute u,v,virt temp, vorticity, divergence, ln(ps)
    ! and specific humidity on grid from spectral coefficients.
@@ -98,6 +106,10 @@
       do nt=1,ntrac
          call spectogrd(tracerspec(:,k,nt),tracerg(:,:,k,nt))
       enddo
+      ! vorticity gradient only needed for vorticity confinement.
+      if (vcamp > epstiny .or. svc > epstiny) then
+         call getgrad(vrtspec(:,k),dvrtdx(:,:,k),dvrtdy(:,:,k),rerth)
+      end if
    enddo
 !$omp end parallel do 
    call system_clock(count, count_rate, count_max)
@@ -210,6 +222,24 @@
       ! flux terms for vort, div eqns
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
       prsgy(:,:,k) = vg(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) - vadvu(:,:,k)
+      ! add vorticity confinement term.
+      if (vcamp > epstiny .or. svc > epstiny) then
+         ! abs(grad(vrt)) - stored in vadvu
+         vadvu(:,:,k) = sqrt(dvrtdx(:,:,k)**2 + dvrtdy(:,:,k)**2)
+         ! upgradient advection velocity is vcamp*grad(vrt)/abs(grad(vrt)) 
+         ! (unit normal vector pointing up vorticity gradient scaled by
+         ! vcamp, which has units of velocity)
+         ! vcamp stored in vadvv
+         vadvv(:,:,k) = vcamp
+         ! vcamp modulated by stochastic pattern.
+         if (svc > epstiny) vadvv(:,:,k) = (1.+vfact_svc(k)*grd_svc)*vadvv(:,:,k)
+         where (vadvu(:,:,k) > epstiny) 
+            dvrtdx(:,:,k) = dvrtdx(:,:,k)/vadvu(:,:,k)
+            dvrtdy(:,:,k) = dvrtdy(:,:,k)/vadvu(:,:,k)
+            prsgx(:,:,k) = prsgx(:,:,k) + vadvv(:,:,k)*dvrtdx(:,:,k)*abs(vrtg(:,:,k))
+            prsgy(:,:,k) = prsgy(:,:,k) + vadvv(:,:,k)*dvrtdy(:,:,k)*abs(vrtg(:,:,k))
+         end where
+      end if
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
       ! flip sign of vort tend.
       dvrtspecdt(:,k) = -dvrtspecdt(:,k) 

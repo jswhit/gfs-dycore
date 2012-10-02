@@ -9,11 +9,13 @@
  ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
- timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw
+ timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
+ sppt,shum
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, spectogrd, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use spectral_data, only:  lnpsspec
+ use stoch_data, only:  grd_sppt, vfact_sppt, grd_shum, spec_shum, vfact_shum
  use pressure_data, only:  prs,psg,pk,ak,bk
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
@@ -62,7 +64,7 @@
     gzorl,     goro,          &
     bengsh
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
-               eps => con_eps, omega => con_omega, cvap => con_cvap, &
+               epsm1 => con_epsm1, eps => con_eps, omega => con_omega, cvap => con_cvap, &
                grav => con_g, pi => con_pi, fv => con_fvirt, rk => con_rocp
 
  implicit none
@@ -90,7 +92,7 @@
    real(r_kind)  :: fscav(ntrac-ncld-1),&
    fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(1),&
    gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
-   f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
+   q,st,f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
    prslk(nlevs),gq(nlevs,ntrac),prsik(nlevs+1),si_loc(nlevs+1),phii(nlevs+1),&
    phil(nlevs),rann(1),acv(1),acvb(1),acvt(1),adt(nlevs),adu(nlevs),adv(nlevs),&
    dum1(1),rqtk(1),upd_mf(nlevs),dwn_mf(nlevs),det_mf(nlevs),dkh(nlevs),rnp(nlevs),&
@@ -505,6 +507,14 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
+     ! add a random humidity perturbation to updated specific humidity
+     ! grd_hum is fractional perturbation (0.1 means 10%)
+     if (shum > tiny(shum)) then
+        do k=1,nlevs
+           adq(k,1) = adq(k,1)*(1. + vfact_shum(k)*grd_shum(i,j))
+           call clipq(adt(k),adq(k,1),prsl(k),qmin)
+        enddo
+     endif
      ! convert sensible temp back to virt temp.
      ! (clip humidity in conversion)
      do k=1,nlevs
@@ -575,6 +585,27 @@
 ! compute physics tendencies in spectral space
 !$omp parallel do private(k,nt)
    do k=1,nlevs
+      if (sppt > tiny(sppt)) then
+        dtdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dtdt(:,:,k)
+        dudt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dudt(:,:,k)
+        dvdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dvdt(:,:,k)
+        ! specific humidity
+        dtracersdt(:,:,k,1) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,1)
+        ! make sure tendency will not produce supersaturation/neg humidity
+        do j=1,nlats
+        do i=1,nlons
+           q = tracerg(i,j,k,1) + dtracersdt(i,j,k,1)
+           st = (virtempg(i,j,k) + dtdt(i,j,k))/(1.+fv*q)
+           call clipq(st,q,prs(i,j,k),qmin)
+           dtracersdt(i,j,k,1) = q - tracerg(i,j,k,1)
+           dtdt(i,j,k) = st*(1.+fv*q) - virtempg(i,j,k)
+        enddo
+        enddo
+        ! perturb other tracers?
+        !do nt=2,ntrac
+        !   dtracersdt(:,:,k,nt) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,nt)
+        !enddo
+      endif
       call grdtospec(dtdt(:,:,k), dvirtempspecdt(:,k))
       call getvrtdivspec(dudt(:,:,k),dvdt(:,:,k),dvrtspecdt(:,k),ddivspecdt(:,k),rerth)
       do nt=1,ntrac
@@ -624,6 +655,21 @@
 
    return
  end subroutine getphytend
+
+ subroutine clipq(t,q,p,qmin)
+  ! clip specific humidity q to (qmin,qmax), 
+  ! where qmin is a specified min value and qmax is saturation
+  ! specific humidity for temperature t and pressure p.
+  use funcphys, only: fpvs
+  real(r_kind), intent(in) :: t,p,qmin
+  real(r_kind), intent(inout) :: q
+  real(r_kind) es,qmax
+  es = min(p,fpvs(t))  ! Saturation vapor pressure
+  qmax = eps*es/(p+epsm1*es)  ! Sat specific humidity
+  ! bound by qmin and qmax
+  if (q < qmin) q = qmin
+  if (q > qmax) q = qmax
+ end subroutine clipq
 
  subroutine getvaliddate(fhour,idate_start,id,jd)
     ! Compute valid time from initial date and forecast hour

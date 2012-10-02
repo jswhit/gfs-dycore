@@ -1,1 +1,1 @@
-phy_run_hs.f90
+phy_run_simple.f90

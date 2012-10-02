@@ -22,6 +22,7 @@ module dyn_init
  use pressure_data, only: ak,bk,ck,dbk,bkl,sl,psg,prs,init_pressdata,calc_pressdata
  use grid_data, only: init_griddata, dphisdx, dphisdy, phis, ug, vg, virtempg, &
  tracerg,lnpsg
+ use stoch_data, only: init_stochdata
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                      omega => con_omega, grav => con_g, pi => con_pi, &
                      fv => con_fvirt
@@ -85,6 +86,8 @@ module dyn_init
     call setdampspec(ndiss,efold,hdif_fac,hdif_fac2,fshk,disspec,diff_prof,dmp_prof)
     ! initialize arrays for semi-implicit adjustments.
     if (.not. explicit) call init_semimpdata()
+    ! initialize stochastic data.
+    call init_stochdata()
  end subroutine init_dyn
 
  subroutine copyspecin(rspecdata,cspecdata)
