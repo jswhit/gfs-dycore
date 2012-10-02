@@ -70,7 +70,7 @@ MODULE dcmip_initial_conditions_test_5
                             qtrop      = 1.d-11,     & ! Tropopause specific humidity
                             rfpi       = 1000000.d0, & ! Radius within which to use fixed-point iter.
                             constTv    = 0.608d0,    & ! Constant for Virtual Temp Conversion
-                            deltaz     = 2.d-13,     & ! Small number to ensure convergence in FPI
+                            deltaz     = 1.d-11,     & ! Small number to ensure convergence in FPI
                             epsilon    = 1.d-25,     & ! Small number to aviod dividing by zero in wind calc
                             exponent = Rd*gamma/g,   & ! exponent
                             T0    = Ts0*(1.d0+constTv*q0),             & ! Surface temp
@@ -161,7 +161,8 @@ IMPLICIT NONE
           n = n+1
           zn = zhere - fpiF(p,gr,zhere)/fpidFdz(gr,zhere)
           if (n.gt.20) then
-              PRINT *,'FPI did not converge after 20 interations in q & T!!!'
+              PRINT *,'FPI did not converge after 20 interations in q T!!!',&
+              abs(zn-zhere)/abs(zn),deltaz
           else if ( abs(zn-zhere)/abs(zn) > deltaz) then
               zhere = zn
               goto 20
