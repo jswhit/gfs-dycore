@@ -11,7 +11,7 @@ module params
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,jablowill,&
  ntout,fhdfi,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
- postphys,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,&
+ pdryini,massfix,postphys,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,&
 ! gfs phys parameters.
  nmtvr,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
@@ -37,6 +37,7 @@ module params
  integer            :: fhdfi=0
  real(r_double)     :: deltim=0    ! namelist input time step (secs)
  real(r_double)     :: dt    ! time step (secs) (=deltim or 3600/timestepsperhr)
+ real(r_kind) :: pdryini ! initial dry ps
  integer    :: ntmax ! time steps to run
  integer    :: ntdfi ! number of time steps in dfi window is 2*ntdfi+1
  integer    :: nlons ! number of longitudes on grid
@@ -47,6 +48,7 @@ module params
  type(sigio_head),save  :: sighead ! header struct from initfile
  logical    :: dry = .false. ! no moisture
  logical    :: adiabatic = .false. ! don't call physics
+ logical    :: massfix=.true. ! apply dry mass 'fixer'
  ! held-suarez forcing
  logical    :: heldsuarez = .false.
  ! jablonowski and williamson (2006, QJR, p. 2943, doi: 10.1256/qj.06.12)
@@ -248,10 +250,12 @@ module params
       ntrunc = sighead%jcap
       tstart = sighead%fhour*3600.
       ntracin = sighead%ntrac
+      pdryini = sighead%pdryini*10000. ! convert to Pa from cb
       idate_start = sighead%idate
       print *,'nlons,nlats,nlevs,ntrunc=',nlons,nlats,nlevs,ntrunc
       print *,'tstart=',tstart,' secs'
       print *,'idate_start=',idate_start
+      print *,'pdryini=',pdryini
    endif 
    tmax = fhmax*3600. 
    ntmax = nint((tmax-tstart)/dt)
