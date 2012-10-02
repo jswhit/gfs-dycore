@@ -69,13 +69,13 @@ clean-dcmip:
 	ln -fs phy_run_simple.f90 phy_run.f90
 
 .f90.o:
-	$(FC) $(FFLAGS) $(OMPFLAG) -c $< 
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(OMPFLAG) -c $< 
 
 .F90.o:
-	$(FC) $(FFLAGS) $(OMPFLAG) -c $< 
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(OMPFLAG) -c $< 
 
 .f.o:
-	$(FC) $(FFLAGS) $(OMPFLAG) -free -c $< 
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(OMPFLAG) -free -c $< 
 
 %.o : %.mod
 
