@@ -1,8 +1,0 @@
- &nam_mrf
- initfile="sanl.dat",
- fhmax=360,
- fhout=24,
- deltim=1200,
- dcmip=41,
- /
- &END
