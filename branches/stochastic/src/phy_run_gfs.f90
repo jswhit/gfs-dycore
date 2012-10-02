@@ -6,15 +6,16 @@
 
  use params, only: nlevs,nlons,nlats,ntrunc,ndimspec,ntrac,nmtvr,idate_start,dt,&
  postphys,fhzer,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
- ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
+ massfix,ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
- old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
+ pdryini,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
  sppt,shum
  use kinds, only: r_kind,r_single,r_double
- use shtns, only: grdtospec, getvrtdivspec, lons, lats, gauwts
+ use shtns, only: spectogrd, grdtospec, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use pressure_data, only:  prs,psg,pk,ak,bk,sl
+ use spectral_data, only:  lnpsspec
  use stoch_data, only:  grd_sppt, vfact_sppt, grd_shum, spec_shum, vfact_shum
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
@@ -64,7 +65,7 @@
     bengsh
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                epsm1 => con_epsm1, eps => con_eps, omega => con_omega, cvap => con_cvap, &
-               grav => con_g, pi => con_pi, fv => con_fvirt, rk => con_rocp
+               t0c => con_t0c, grav => con_g, pi => con_pi, fv => con_fvirt, rk => con_rocp
 
  implicit none
  private
@@ -78,7 +79,6 @@
    use mersenne_twister, only : random_setseed, random_index, random_stat
    use module_radiation_astronomy, only: astronomy
    use module_radiation_driver, only: radinit, grrad
-   use funcphys, only: fpvsl
    ! compute physics tendencies for gfs physics
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt
@@ -91,8 +91,8 @@
    real(r_kind), parameter :: typical_pgr = 95000.0
    real(r_kind)  :: fscav(ntrac-ncld-1),&
    fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(1),&
-   esw,qmax,gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
-   f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
+   pcorr,pdry,pwatg,gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
+   q,st,f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
    prslk(nlevs),gq(nlevs,ntrac),prsik(nlevs+1),si_loc(nlevs+1),phii(nlevs+1),&
    phil(nlevs),rann(1),acv(1),acvb(1),acvt(1),adt(nlevs),adu(nlevs),adv(nlevs),&
    dum1(1),rqtk(1),upd_mf(nlevs),dwn_mf(nlevs),det_mf(nlevs),dkh(nlevs),rnp(nlevs),&
@@ -103,6 +103,7 @@
    integer :: icsdsw(1),icsdlw(1),ilons(1), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
    real(r_kind), allocatable, dimension(:,:,:) :: ozplout,dtdt,dudt,dvdt
+   complex(r_kind), allocatable, dimension(:) :: workspec 
    real(4), allocatable, dimension(:,:,:) :: work4
    real(r_kind), allocatable, dimension(:,:,:,:) :: dtracersdt
    logical :: sas_shal ! sas shallow convection.
@@ -130,6 +131,7 @@
 
    dtp = dtx
 
+   allocate(workspec(ndimspec))
    allocate(ozplout(levozp,pl_coeff,nlats))
    allocate(coszdg(nlons,nlats))
    allocate(dtdt(nlons,nlats,nlevs),dudt(nlons,nlats,nlevs),dvdt(nlons,nlats,nlevs))
@@ -374,7 +376,7 @@
 !$omp& adt,adu,adv,adq,slc_tmp,stc_tmp,smc_tmp,&
 !$omp& phy3d,phy2d,hlw_tmp,swh_tmp,hprime_tmp,&
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
-!$omp& acv,acvt,acvb,rqtk,esw,qmax,&
+!$omp& acv,acvt,acvb,rqtk,&
 !$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic)
    do n=1,nlons*nlats
       ! n=i+(j-1)*nlons
@@ -510,11 +512,7 @@
      if (shum > tiny(shum)) then
         do k=1,nlevs
            adq(k,1) = adq(k,1)*(1. + vfact_shum(k)*grd_shum(i,j))
-           !esw = min(prsl(k), fpvsl(adt(k)))  ! Saturation vapor pressure w/r/t water
-           !qmax = eps*esw/(prsl(k)+epsm1*esw) ! Saturation specific humidity  w/r/t water
-           !! bound by zero and qsat
-           !if (adq(k,1) < qmin) adq(k,1) = qmin
-           !if (adq(k,1) > qmax) adq(k,1) = qmax
+           call clipq(adt(k),adq(k,1),prsl(k),qmin)
         enddo
      endif
      ! convert sensible temp back to virt temp.
@@ -585,15 +583,28 @@
    endif
 
 ! compute physics tendencies in spectral space
-!$omp parallel do private(k,nt)
+!$omp parallel do private(i,j,k,nt,q,st)
    do k=1,nlevs
       if (sppt > tiny(sppt)) then
         dtdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dtdt(:,:,k)
         dudt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dudt(:,:,k)
         dvdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dvdt(:,:,k)
-        do nt=1,ntrac
-           dtracersdt(:,:,k,nt) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,nt)
+        ! specific humidity
+        dtracersdt(:,:,k,1) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,1)
+        ! make sure tendency will not produce supersaturation/neg humidity
+        do j=1,nlats
+        do i=1,nlons
+           q = tracerg(i,j,k,1) + dtracersdt(i,j,k,1)
+           st = (virtempg(i,j,k) + dtdt(i,j,k))/(1.+fv*q)
+           call clipq(st,q,prs(i,j,k),qmin)
+           dtracersdt(i,j,k,1) = q - tracerg(i,j,k,1)
+           dtdt(i,j,k) = st*(1.+fv*q) - virtempg(i,j,k)
         enddo
+        enddo
+        ! perturb other tracers?
+        !do nt=2,ntrac
+        !   dtracersdt(:,:,k,nt) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,nt)
+        !enddo
       endif
       call grdtospec(dtdt(:,:,k), dvirtempspecdt(:,k))
       call getvrtdivspec(dudt(:,:,k),dvdt(:,:,k),dvrtspecdt(:,k),ddivspecdt(:,k),rerth)
@@ -616,13 +627,30 @@
    ddivspecdt = ddivspecdt/dtx
    dtracerspecdt = dtracerspecdt/dtx
 
-   do i=1,nlons
-     coszdg(i,:) = gauwts(:)
-   enddo
-   coszdg = coszdg/sum(coszdg)
-   print *,'global mean pwat = ',sum(coszdg*pwat)
-   print *,'global mean precip = ',sum(coszdg*tprcp)
+   pwatg = sum(areawts*pwat)
+   print *,'global mean pwat = ',pwatg
+   print *,'global mean precip = ',sum(areawts*tprcp)
 
+! global mean dry mass 'fixer'
+   if (massfix) then
+! compute global mean dry ps.
+      pdry = sum(areawts*psg) - grav*pwatg
+      print *,'pdry after physics update',pdry
+! implied ps correction needed to return dry mass to initial value
+      pcorr = pdry - pdryini
+! add constant correction to every grid point
+      dpsdt = psg - pcorr 
+! compute implied lnps tendency in spectral space.
+      dpsdt = log(dpsdt)
+      call grdtospec(dpsdt,workspec)
+      dlnpsspecdt = (workspec - lnpsspec)/dtx
+      !workspec=lnpsspec+dtx*dlnpsspecdt
+      !call spectogrd(workspec, dpsdt)
+      !dpsdt = exp(dpsdt)
+      !pdry = sum(areawts*dpsdt) - grav*pwatg
+   endif ! massfix
+
+   deallocate(workspec)
    deallocate(ozplout)
    deallocate(coszdg)
    deallocate(dtdt,dudt,dvdt)
@@ -631,6 +659,21 @@
 
    return
  end subroutine getphytend
+
+ subroutine clipq(t,q,p,qmin)
+  ! clip specific humidity q to (qmin,qmax), 
+  ! where qmin is a specified min value and qmax is saturation
+  ! specific humidity for temperature t and pressure p.
+  use funcphys, only: fpvs
+  real(r_kind), intent(in) :: t,p,qmin
+  real(r_kind), intent(inout) :: q
+  real(r_kind) es,qmax
+  es = min(p,fpvs(t))  ! Saturation vapor pressure
+  qmax = eps*es/(p+epsm1*es)  ! Sat specific humidity
+  ! bound by qmin and qmax
+  if (q < qmin) q = qmin
+  if (q > qmax) q = qmax
+ end subroutine clipq
 
  subroutine getvaliddate(fhour,idate_start,id,jd)
     ! Compute valid time from initial date and forecast hour

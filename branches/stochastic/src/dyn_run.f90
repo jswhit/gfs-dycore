@@ -11,9 +11,9 @@
 ! getvadv: calculate vertical advection terms.
 
  use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dry,dt,ntrac,vcamp,&
- svc
+ svc,pdryini
  use kinds, only: r_kind,r_double
- use shtns, only: degree,order,&
+ use shtns, only: degree,order,areawts,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad
  use stoch_data, only:  grd_svc, grd_sppt, vfact_svc
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
@@ -35,13 +35,14 @@
  contains
 
  subroutine getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,&
-                       dtracerspecdt,dlnpsspecdt,just_do_inverse_transform)
+                       dtracerspecdt,dlnpsspecdt,kstep,just_do_inverse_transform)
    ! compute dynamics tendencies (notincluding hyper-diffusion.and linear drag,
    ! which are treated implicitly)
    ! based on hybrid sigma-pressure dynamical core described in
    ! http://www.emc.ncep.noaa.gov/officenotes/newernotes/on462.pdf
    ! The only difference is that here we use a forward in time
    ! runge-kutta scheme instead of assellin-filtered leap-frog.
+   integer, intent(in) :: kstep ! runge-kutta step (0,1,2)
    logical, optional, intent(in) :: just_do_inverse_transform
    logical :: early_return = .false. ! if true. spectral-> grid only
    complex(r_kind), intent(out), dimension(ndimspec,nlevs) :: &
@@ -56,7 +57,7 @@
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy,dvrtdx,dvrtdy
    integer k,nt
    logical :: profile = .false. ! print out timeing stats
-   real(r_kind) epstiny
+   real(r_kind) epstiny,pdry,pmoist
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
 
@@ -127,6 +128,23 @@
    ! results stored in module pressure_data
    call calc_pressdata(lnpsg) 
    !print *,'min/max ps',minval(psg/100.),maxval(psg/100.)
+
+! compute global mean dry ps (only first step in rk3).
+   if (kstep .eq. 0) then
+      pmoist = 0.
+      do k=1,nlevs
+         do nt=1,ntrac
+            pmoist = pmoist + sum(areawts*dpk(:,:,nlevs-k+1)*tracerg(:,:,k,nt))
+         enddo
+      enddo
+      pdry = sum(areawts*psg) - pmoist
+      if (pdryini .eq. 0) then
+         pdryini = pdry
+         print *,'pdryini = ',pdryini
+      else
+         print *,'pdry = ',pdry
+      endif
+   endif
 
    ! get pressure vertical velocity divided by pressure (dlnpdtg),
    ! tendency of lnps, etadot.

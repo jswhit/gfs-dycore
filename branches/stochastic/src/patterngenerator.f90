@@ -4,18 +4,13 @@ module patterngenerator
  ! in spherical harmonic space.
 
  use kinds, only: r_kind,r_double,r_single
- use shtns, only: degree,order,gauwts,lap,&
- nlons => current_nlon,nlats => current_nlat,ndimspec => nlm,ntrunc => current_ntrunc
  use physcons, only:  pi => con_pi, rerth => con_rerth
+ implicit none
  private
 
  public :: computevarspec, computevargrid, gaussian_spect, rnorm, set_random_seed, &
   patterngenerator_init, patterngenerator_destroy, getnoise, &
   patterngenerator_advance, getvarspectrum, random_pattern
-
- ! spherical harmonic normalization fact (twopi for shtns lib, one for splib)
- real(r_kind), private, parameter :: normfact = 2.*pi 
- !real(r_kind), private, parameter :: normfact = 1.0
 
  type random_pattern
     real(r_kind), public :: lengthscale
@@ -23,49 +18,55 @@ module patterngenerator
     real(r_kind), public :: dt
     real(r_kind), public :: phi
     real(r_kind), public :: stdev
-    real(r_kind), allocatable, dimension(:), public :: varspectrum, varspectrum1d
-    real(r_kind), allocatable, dimension(:,:), public :: areawts
+    real(r_kind), allocatable, dimension(:), public :: varspectrum, varspectrum1d, lap
+    integer, allocatable, dimension(:), public :: degree,order
     integer, public :: seed
  end type random_pattern
+
+ real(r_kind) :: normfact
+ integer :: nlons,nlats,ntrunc,ndimspec
   
  contains
 
- subroutine patterngenerator_init(lscale, delt, tscale, stdev, iseed, rpattern)
-   real(r_kind), intent(in) :: lscale,delt,tscale,stdev
+ subroutine patterngenerator_init(lscale, delt, tscale, stdev, iseed, rpattern,&
+                                  nlon, nlat, jcap, normalization)
+   real(r_kind), intent(in) :: lscale,delt,tscale,stdev,normalization
+   integer, intent(in) :: nlon,nlat,jcap
    type(random_pattern), intent(out) :: rpattern
    integer, intent(in) :: iseed
-   real(r_kind) var
-   integer i
+   integer m,n
+   nlons = nlon; nlats = nlat; ntrunc = jcap
+   ndimspec = (ntrunc+1)*(ntrunc+2)/2   
+   normfact = normalization
+   allocate(rpattern%degree(ndimspec),rpattern%order(ndimspec),rpattern%lap(ndimspec))
+   rpattern%degree = (/((n,n=m,ntrunc),m=0,ntrunc)/)
+   rpattern%order = (/((m,n=m,ntrunc),m=0,ntrunc)/)
+   rpattern%lap = -rpattern%degree*(rpattern%degree+1.0)
    rpattern%tau = tscale; rpattern%lengthscale = lscale
    rpattern%dt = delt; rpattern%phi = exp(-delt/tscale)
    rpattern%tau = tscale; rpattern%seed = iseed
    rpattern%stdev = stdev
    allocate(rpattern%varspectrum(ndimspec))
    allocate(rpattern%varspectrum1d(0:ntrunc))
-   allocate(rpattern%areawts(nlons,nlats))
    call set_random_seed(rpattern%seed)
-   call gaussian_spect(rpattern%lengthscale, rpattern%varspectrum, &
-                       rpattern%varspectrum1d)
-   do i=1,nlons
-      rpattern%areawts(i,:) = gauwts(:)
-   enddo
-   var = sum(rpattern%areawts)
-   rpattern%areawts = rpattern%areawts/var
+   call gaussian_spect(rpattern)
  end subroutine patterngenerator_init
 
  subroutine patterngenerator_destroy(rpattern)
    type(random_pattern), intent(inout) :: rpattern
-   deallocate(rpattern%varspectrum,rpattern%varspectrum1d,rpattern%areawts)
+   deallocate(rpattern%varspectrum,rpattern%varspectrum1d)
+   deallocate(rpattern%degree,rpattern%order,rpattern%lap)
  end subroutine patterngenerator_destroy
 
- subroutine computevarspec(dataspec,var)
+ subroutine computevarspec(rpattern,dataspec,var)
     ! compute globally integrated variance from spectral coefficients
     complex(r_kind), intent(in) :: dataspec(ndimspec)
     real(r_kind), intent(out) ::  var
+    type(random_pattern), intent(in) :: rpattern
     integer n
     var = 0.
     do n=1,ndimspec
-       if (order(n) .ne. 0) then
+       if (rpattern%order(n) .ne. 0) then
            var = var + dataspec(n)*conjg(dataspec(n))
        else
            var = var + 0.5*dataspec(n)*conjg(dataspec(n))
@@ -81,32 +82,34 @@ module patterngenerator
     var = sum(areawts*datagrid**2)
  end subroutine computevargrid
 
- subroutine getvarspectrum(dataspec,varspect)
+ subroutine getvarspectrum(rpattern,dataspec,varspect)
+    type(random_pattern), intent(in) :: rpattern
     complex(r_kind), intent(in) :: dataspec(ndimspec)
     real(r_kind), intent(out) :: varspect(0:ntrunc)
     integer n
     varspect = 0.
     do n=1,ndimspec
-       if (order(n) .ne. 0) then
-          varspect(degree(n)) = varspect(degree(n)) + &
+       if (rpattern%order(n) .ne. 0) then
+          varspect(rpattern%degree(n)) = varspect(rpattern%degree(n)) + &
           dataspec(n)*conjg(dataspec(n))
        else
-          varspect(degree(n)) = varspect(degree(n)) + &
+          varspect(rpattern%degree(n)) = varspect(rpattern%degree(n)) + &
           0.5*dataspec(n)*conjg(dataspec(n))
        endif
     enddo
     varspect = varspect/normfact
  end subroutine getvarspectrum
 
- subroutine getnoise(noise)
+ subroutine getnoise(rpattern,noise)
    ! generate white noise with unit variance in spectral space
+   type(random_pattern), intent(in) :: rpattern
    complex(r_kind), intent(inout) :: noise(ndimspec)
    integer n
    do n=1,ndimspec
-      if (order(n) .ne. 0.) then
-        noise(n) = cmplx(rnorm(), rnorm())/sqrt(2.*degree(n)+1)
+      if (rpattern%order(n) .ne. 0.) then
+        noise(n) = cmplx(rnorm(), rnorm())/sqrt(2.*rpattern%degree(n)+1)
       else
-        noise(n) = sqrt(2.)*rnorm()/sqrt(2.*degree(n)+1.)
+        noise(n) = sqrt(2.)*rnorm()/sqrt(2.*rpattern%degree(n)+1.)
       endif
    enddo
    noise(1) = 0 ! no global mean.
@@ -120,44 +123,42 @@ module patterngenerator
     complex(r_kind), intent(inout) :: dataspec(ndimspec)
     complex(r_kind) :: noise(ndimspec)
     type(random_pattern), intent(in) :: rpattern
-    call getnoise(noise)
+    call getnoise(rpattern,noise)
     dataspec =  rpattern%phi*dataspec + &
     rpattern%stdev*sqrt(1.-rpattern%phi**2)*rpattern%varspectrum*noise
  end subroutine patterngenerator_advance
 
- subroutine gaussian_spect(lengthscale, spect, spect1)
+ subroutine gaussian_spect(rpattern)
  ! define variance spectrum (isotropic gaussian covariance)
  ! normalized to unit global variance
-  real(r_kind), intent(in) :: lengthscale
-  real(r_kind), intent(out) :: spect(ndimspec)
-  real(r_kind), intent(out) :: spect1(0:ntrunc)
+  type(random_pattern), intent(inout) :: rpattern
   complex(r_kind) noise(ndimspec)
   real(r_kind) var
   integer n
 
   ! 1d variance spectrum (as a function of total wavenumber)
   do n=0,ntrunc
-     spect1(n) = exp(-lengthscale**2*(float(n)*(float(n)+1.))/(4.*rerth**2))
+     rpattern%varspectrum1d(n) = exp(-rpattern%lengthscale**2*(float(n)*(float(n)+1.))/(4.*rerth**2))
   enddo
   ! scaling factors for spectral coeffs of white noise pattern with unit variance
-  spect = sqrt(ntrunc*exp(lengthscale**2*lap/(4.*rerth**2)))
+  rpattern%varspectrum = sqrt(ntrunc*exp(rpattern%lengthscale**2*rpattern%lap/(4.*rerth**2)))
   noise = 0.
   do n=1,ndimspec
-     if (order(n) .ne. 0.) then
-       noise(n) = cmplx(1.,1.)/sqrt(2.*degree(n)+1)
+     if (rpattern%order(n) .ne. 0.) then
+       noise(n) = cmplx(1.,1.)/sqrt(2.*rpattern%degree(n)+1)
      else
-       noise(n) = sqrt(2.)/sqrt(2.*degree(n)+1.)
+       noise(n) = sqrt(2.)/sqrt(2.*rpattern%degree(n)+1.)
      endif
   enddo
   noise(1) = 0 ! no global mean.
   ! normalize so global mean variance is 1.
   noise = noise*sqrt(normfact/ntrunc)
-  noise = spect*noise
-  call computevarspec(noise,var)
+  noise = rpattern%varspectrum*noise
+  call computevarspec(rpattern,noise,var)
 
   ! normalize so patterns will have unit variance
-  spect = spect/sqrt(var)
-  spect1 = spect1/var
+  rpattern%varspectrum = rpattern%varspectrum/sqrt(var)
+  rpattern%varspectrum1d = rpattern%varspectrum1d/var
 
  end subroutine gaussian_spect
 

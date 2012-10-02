@@ -1570,7 +1570,7 @@ module phy_data
 
    call twodtooned(u10m,wrkga)
    call gribit(wrkga,LBM,4,nlons,nlats,16,colat1,ILPDS,2,ICEN,IGEN,&
-              0,IZNLW,IELEV,0,10,IYR,IMO,IDA,IHR,&
+               0,IZNLW,IELEV,0,10,IYR,IMO,IDA,IHR,&
                IFHOUR,ITHR,0,INST,0,0,ICEN2,IDS(IZNLW),IENS,&
                0.,0.,0.,0.,0.,0.,G,LG,IERR)
    if(ierr.ne.0)print*,'wrtsfc gribit ierr=',ierr,'  ',&

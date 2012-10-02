@@ -1,11 +1,12 @@
 module stoch_data
 
  use kinds, only: r_kind
- use params, only: dt,svc,sppt,ndimspec,nlons,nlats,nlevs,&
+ use params, only: dt,svc,sppt,ndimspec,nlons,nlats,ntrunc,nlevs,&
  svc_tau,svc_lscale,sppt_tau,sppt_lscale,&
  iseed_svc,iseed_sppt,iseed_shum,shum,shum_tau,shum_lscale
  use patterngenerator, only: random_pattern, patterngenerator_init,&
  getnoise, patterngenerator_advance, patterngenerator_destroy
+ use physcons, only: pi => con_pi
  use pressure_data, only: sl
  implicit none
  private
@@ -29,9 +30,10 @@ module stoch_data
        allocate(spec_svc(ndimspec))
        allocate(grd_svc(nlons,nlats))
        allocate(vfact_svc(nlevs))
-       call patterngenerator_init(svc_lscale,delt,svc_tau,svc,iseed_svc,rpattern_svc)
+       call patterngenerator_init(svc_lscale,delt,svc_tau,svc,iseed_svc,rpattern_svc,&
+                                  nlons,nlats,ntrunc,2.*pi)
        nspinup = 10.*svc_tau/delt
-       call getnoise(spec_svc)
+       call getnoise(rpattern_svc,spec_svc)
        spec_svc = spec_svc*rpattern_svc%varspectrum
        do n=1,nspinup
           call patterngenerator_advance(spec_svc,rpattern_svc)
@@ -50,9 +52,10 @@ module stoch_data
        allocate(spec_sppt(ndimspec))
        allocate(grd_sppt(nlons,nlats))
        allocate(vfact_sppt(nlevs))
-       call patterngenerator_init(sppt_lscale,delt,sppt_tau,sppt,iseed_sppt,rpattern_sppt)
+       call patterngenerator_init(sppt_lscale,delt,sppt_tau,sppt,iseed_sppt,rpattern_sppt,&
+                                  nlons,nlats,ntrunc,2.*pi)
        nspinup = 10.*sppt_tau/delt
-       call getnoise(spec_sppt)
+       call getnoise(rpattern_sppt,spec_sppt)
        spec_sppt = spec_sppt*rpattern_sppt%varspectrum
        do n=1,nspinup
           call patterngenerator_advance(spec_sppt,rpattern_sppt)
@@ -71,9 +74,10 @@ module stoch_data
        allocate(spec_shum(ndimspec))
        allocate(grd_shum(nlons,nlats))
        allocate(vfact_shum(nlevs))
-       call patterngenerator_init(shum_lscale,delt,shum_tau,shum,iseed_shum,rpattern_shum)
+       call patterngenerator_init(shum_lscale,delt,shum_tau,shum,iseed_shum,rpattern_shum,&
+                                  nlons,nlats,ntrunc,2.*pi)
        nspinup = 10.*shum_tau/delt
-       call getnoise(spec_shum)
+       call getnoise(rpattern_shum,spec_shum)
        spec_shum = spec_shum*rpattern_shum%varspectrum
        sigbot = 0.2
        ! humidity pert decays exponentially away from sfc

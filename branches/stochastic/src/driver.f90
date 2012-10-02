@@ -1,6 +1,6 @@
 program driver
 
-  ! driver for gfs dynamical core
+  ! driver for gfs spectral dynamical core
 
   use init_mod, only: init
   use run_mod, only: run
