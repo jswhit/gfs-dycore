@@ -1,36 +1,20 @@
-from read_sigma import read_header, read_specdata
-import spharm
+from pyspharm import Spharmt, ncepsigma
 import numpy as np
 import matplotlib.pyplot as plt
 
-class ncepsigma(object):
-    def __init__(self,filename):
-        nlons,nlats,nlevs,ntrunc = read_header(filename)
-        self.nlons = nlons; self.nlats = nlats
-        self.ntrunc = ntrunc; self.nlevs = nlevs
-        self.filename = filename
-        self.sp = spharm.Spharmt(nlons,nlats,6.3712e6,gridtype='gaussian')
-        lats,wts = spharm.gaussian_lats_wts(nlats)
-        self.lats = lats
-        self.lons = (360./nlons)*np.arange(nlons)
-    def spectogrd(self,specdata):
-        return self.sp.spectogrd(specdata)
-    def getuv(self,vrtdata,divdata):
-        return self.sp.getuv(vrtdata,divdata)
-    def specdata(self):
-        vrtspec, divspec,tempspec,zspec,lnpsspec,qspec =\
-        read_specdata(self.filename,self.ntrunc,self.nlevs)
-        return vrtspec.T,divspec.T,tempspec.T,zspec,lnpsspec,qspec.T
-
 ncount = 0
 hrs = range(2400,9997,12); nhrs = len(hrs)
+sigfile = None
 for hr in hrs:
     if hr < 1000:
         filename = 'sig.f%03i' % hr
     else:
         filename = 'sig.f%s' % hr
     print filename
-    sigfile = ncepsigma(filename)
+    if sigfile is None:
+        sigfile = ncepsigma(filename)
+    else:
+        sigfile.filename = filename
     vrtspec,divspec,tempspec,zspec,lnpsspec,qspec = sigfile.specdata()
     if not ncount:
         vrtspectm = vrtspec/nhrs
