@@ -1,55 +1,6 @@
+include ../Makefile.conf
+
 LIB	= libw3.a
-
-# Make sure one of the following options appears in your CFLAGS 
-# variable to indicate which system you are on.
-# -DLINUX, -DSGI, -DHP, -DCRAY90, -DIBM4, -DIBM8, -DLINUXF90 
-
-# OPTIONS FOR IBM-SP 
-#F77	= xlf
-#FFLAGS	= -O3 -qnosave -qarch=auto
-#CFLAGS	= -DIBM4 -q64
-#ARFLAGS	= -X64
-#CC	= cc
-
-# OPTIONS FOR LINUX LAHEY
-#F77	= lf95
-#FFLAGS	= -X9 -Ad -Am -fw
-#CFLAGS	= -O -DLINUX
-#CC	= cc
-
-# OPTIONS FOR LINUX F90
-# F77     = f90
-# FFLAGS  = -g -O
-# CFLAGS  = -O -DLINUXF90
-# CC      = gcc
-# ARFLAGS =
-
-# OPTIONS FOR LINUX F90
-F77     = ifort
-FFLAGS  = -O3 -xHOST 
-CFLAGS  = -O2 -DLINUX
-CC      = gcc
-ARFLAGS =
-
-# OPTIONS FOR GFORTRAN
-#F77     = gfortran
-#FFLAGS  = -O3 -march=native 
-#CFLAGS  = -O2 -DLINUX
-#CC      = gcc
-#ARFLAGS = 
-
-# OPTIONS FOR LINUX G95
-#F77     = g95
-#FFLAGS  = -g -O
-#CFLAGS  = -O -DLINUX
-#CC      = cc
-#ARFLAGS =
-
-# OPTIONS FOR VPP5000
-#F77     = frt
-#FFLAGS  = -X9 -Ad -Sw -Am -Of -Wv,-Of
-#CFLAGS  = -O -K4 -DVPP5000
-#CC      = vcc
 
 .SUFFIXES: .o .f .F .c
 #
@@ -84,14 +35,14 @@ SRC	= $(OBJ_MOD:.o=.f) $(OBJS:.o=.f) $(OBJS_CC:.o=.c)
 #
 
 $(LIB): $(OBJ_MOD) $(OBJS) $(OBJS_CC) 
-	ar $(ARFLAGS) -ruv $(LIB) $(OBJ_MOD) $(OBJS) $(OBJS_CC)
+	ar -ruv $(LIB) $(OBJ_MOD) $(OBJS) $(OBJS_CC)
 
 clean:
 	rm -f $(OBJ_MOD) $(OBJS) $(OBJS_CC) *.mod *.a
 
 .F.o:
-	$(F77) $(FFLAGS) -c -d $< 
+	$(FC) $(FFLAGS) -c -d $< 
 .f.o:
-	$(F77) $(FFLAGS) -c $< 
+	$(FC) $(FFLAGS) -c $< 
 .c.o:
 	$(CC) $(CFLAGS) $(DEFS) -c $< 

@@ -1,25 +1,4 @@
-#intel fortran 
-FC            = ifort
-OMPFLAG       =  -openmp
-FFLAGS        = -O3 -xHOST -assume byterecl -warn all -implicitnone -traceback  -convert big_endian $(OMPFLAG)
-EXEC          = ../bin/gfs
-EXEC_TEST     = ../bin/gfs_test
-LDFLAGS       = $(OMPFLAG) -mkl=sequential 
-# jet
-#LIBS          = -L/lfs1/projects/fim/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a w3lib/libw3.a
-# zeus
-LIBS          = -L/scratch1/portfolios/BMC/fim/whitaker/lib -lshtns-icc -L/scratch1/portfolios/BMC/fim/whitaker/intel/lib -lfftw3 libgfs/libgfs.a w3lib/libw3.a
-
-
-#gnu fortran 
-#FC = gfortran
-#OMPFLAG = -fopenmp
-###FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
-#FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace $(OMPFLAG) 
-#EXEC          = ../bin/gfs
-#EXEC_TEST     = ../bin/gfs_test
-#LDFLAGS       = $(OMPFLAG)  
-#LIBS          = -L/Users/jwhitaker/lib -lshtns -lfftw3 -llapack libgfs/libgfs.a w3lib/libw3.a 
+include Makefile.conf
 
 .SUFFIXES: .o .f90 .F90
 
@@ -89,13 +68,13 @@ clean-dcmip:
 	ln -fs phy_run_simple.f90 phy_run.f90
 
 .f90.o:
-	$(FC) $(FFLAGS) -c $< 
+	$(FC) $(FFLAGS) $(OMPFLAG) -c $< 
 
 .F90.o:
-	$(FC) $(FFLAGS) -c $< 
+	$(FC) $(FFLAGS) $(OMPFLAG) -c $< 
 
 .f.o:
-	$(FC) $(FFLAGS) -free -c $< 
+	$(FC) $(FFLAGS) $(OMPFLAG) -free -c $< 
 
 %.o : %.mod
 
@@ -134,7 +113,7 @@ phy_init.o:     phy_init.f90 phy_data.o
 phy_finalize.o:     phy_finalize.f90 
 
 phy_run.o:      phy_run.f90 pressure_data.o shtns.o spectral_data.o physcons.o kinds.o params.o grid_data.o simple_physics_v5_1.o
-		$(FC) $(FFLAGS) -Ilibgfs -c phy_run.f90
+		$(FC) $(FFLAGS) $(OMPFLAG) -Ilibgfs -c phy_run.f90
 	        
 dyn_finalize.o:  dyn_finalize.f90 shtns.o spectral_data.o pressure_data.o grid_data.o
 
