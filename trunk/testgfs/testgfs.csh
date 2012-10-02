@@ -53,7 +53,6 @@ cat  > gfs_namelist <<EOF
  fhswr=1,
  timestepsperhr=6,
  explicit=.false.,
- postphys=.true.,
  ntrac=3,
  flgmin=0.220,
  ccnorm=.false.,
