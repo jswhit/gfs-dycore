@@ -44,6 +44,7 @@ w3lib : force_look
 force_look :
 	true
 
+# full GFS physics.
 clean:
 	rm -f $(OBJS) *.mod *genmod* $(EXEC)
 	ln -fs phy_init_gfs.f90 phy_init.f90
@@ -51,7 +52,7 @@ clean:
 	ln -fs phy_finalize_gfs.f90 phy_finalize.f90
 	ln -fs phy_run_gfs.f90 phy_run.f90
 
-# Held-Suarez test
+# Held-Suarez test (held-suarez simple dry physics)
 clean-hstest:
 	rm -f $(OBJS) *.mod *genmod* $(EXEC_TEST)
 	ln -fs phy_init_stub.f90 phy_init.f90
@@ -59,7 +60,7 @@ clean-hstest:
 	ln -fs phy_finalize_stub.f90 phy_finalize.f90
 	ln -fs phy_run_hs.f90 phy_run.f90
 
-# DCMIP tests.
+# DCMIP tests (simplified moist physics from DCMIP 2012 test suite).
 clean-dcmip:
 	rm -f $(OBJS) *.mod *genmod* $(EXEC_TEST)
 	ln -fs phy_init_stub.f90 phy_init.f90
