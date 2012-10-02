@@ -264,7 +264,7 @@ module params
    ndimspec = (ntrunc+1)*(ntrunc+2)/2
    if (dry) ntrac=0
    if (dcmip/10 .eq. 4) ntrac=3 ! passive tracers.
-   if (dcmip/10 .eq. 5) ntrac=1 ! no passive tracers.
+   if (dcmip    .eq. 51) ntrac=1 ! no passive tracers.
    if (.not. idealized .and. ntrac .ne. ntracin) then
      print *,ntracin,' tracers in input file, expecting',ntrac
      stop
