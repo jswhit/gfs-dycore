@@ -258,6 +258,8 @@ module dyn_init
             if (testcase/10 .eq. 4) then 
                tracerg(i,j,k,2) = q1
                tracerg(i,j,k,3) = q2
+            else if (testcase .eq. 52) then
+               tracerg(i,j,k,2:ntrac) = 0.
             endif
          endif
        enddo
