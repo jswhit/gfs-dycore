@@ -13,7 +13,12 @@ fftw3 FFT library (fftw.org)
 
 To build:
 
-cd src; edit Makefile for your system.
+cd src
+ln -fs Makefile.conf.gfortran Makfile.conf  # if you're using gfortran
+ln -fs Makfile.conf.ifort Makefile.conf # if you're using ifort
+
+you may need to edit Makefile.conf to adjust compiler options and/or
+library paths.
 
 for full gfs model, run
   make clean (clean and setup symlinks)
