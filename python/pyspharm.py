@@ -72,6 +72,7 @@ class Spharmt(object):
         return u/rsphere,v/rsphere
 
 class ncepsigma(object):
+    # read ncep 'sigma' file (spectral binary data)
     def __init__(self,filename):
         from read_sigma import read_specdata, read_header
         nlons,nlats,nlevs,ntrunc = read_header(filename)
@@ -98,6 +99,8 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from mpl_toolkits.basemap import Basemap, addcyclic
     import time
+
+    # shtns test
 
     # non-linear barotropically unstable shallow water test case
     # of Galewsky et al (2004, Tellus, 56A, 429-440).
