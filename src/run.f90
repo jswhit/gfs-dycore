@@ -6,7 +6,7 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  gfsio_out, sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
+  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
 use shtns, only: spectogrd, lats, areawts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -90,9 +90,11 @@ subroutine run()
            call wrtout_flx(fh,ta,filename)
         ! write first time step output
         else if (nt .eq. 1) then
-           write(filename,8999) nint(fh)
-           print *,'writing to ',trim(filename),' fh=',fh
-           call wrtout_sig(fh,filename)
+           if (sigio_out) then
+              write(filename,8999) nint(fh)
+              print *,'writing to ',trim(filename),' fh=',fh
+              call wrtout_sig(fh,filename)
+           endif
            write(filename,9000) nint(fh)
            print *,'writing to ',trim(filename),' fh=',fh
            call wrtout_sfc(fh,filename)
@@ -118,9 +120,11 @@ subroutine run()
      t = tstart + ntdfi*dt; ntstart = ntdfi+1
      ! write out spectral data after dfi.
      fh = t/3600.
-     write(filename,8999) nint(fh)
-     print *,'writing to ',trim(filename),' fh=',fh
-     call wrtout_sig(fh,filename)
+     if (sigio_out) then
+        write(filename,8999) nint(fh)
+        print *,'writing to ',trim(filename),' fh=',fh
+        call wrtout_sig(fh,filename)
+     endif
      ! write out gaussian grid data after DFI
      if (gfsio_out) then
         write(filename,9002) nint(fh)
@@ -149,10 +153,12 @@ subroutine run()
      ! write out data at specified intervals.
      ! data always written at first time step.
      if (nt .eq. 1 .or. (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0)) then
-        write(filename,8999) nint(fh)
-8999    format('SIG.F',i0.2) ! at least three digits used
-        print *,'writing to ',trim(filename),' fh=',fh
-        call wrtout_sig(fh,filename)
+        if (sigio_out) then
+           write(filename,8999) nint(fh)
+8999       format('SIG.F',i0.2) ! at least three digits used
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_sig(fh,filename)
+        endif    
         ! write out boundary and flux files if using gfs physics.
         write(filename,9000) nint(fh)
 9000    format('SFC.F',i0.2) ! at least three digits used
