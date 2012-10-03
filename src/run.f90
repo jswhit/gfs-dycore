@@ -11,7 +11,7 @@ use shtns, only: spectogrd, lats, areawts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
-use dyn_init, only: wrtout_sig
+use dyn_init, only: wrtout_sig, wrtout_gfsgrb
 use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
                           tracerspec, disspec, dmp_prof, diff_prof
 ! these arrays used to print diagnostics after each time step.
@@ -133,8 +133,8 @@ subroutine run()
      spd = sqrt(ug**2+vg**2) ! max wind speed
      pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
      pstendmean = sqrt(sum(pstend*areawts))
-     write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
-9002 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', pstend = ',f0.3,', cpu time = ',f0.3)
+     write(6,8998) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+8998 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', pstend = ',f0.3,', cpu time = ',f0.3)
      ! write out data at specified intervals.
      ! data always written at first time step.
      if (nt .eq. 1 .or. (ntout .ne. 0 .and. mod(nt,ntout) .eq. 0)) then
@@ -151,6 +151,10 @@ subroutine run()
 9001    format('FLX.F',i0.2) ! at least three digits used
         print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_flx(fh,ta,filename)
+        write(filename,9002) nint(fh)
+9002    format('GFS.F',i0.2) ! at least three digits used
+        print *,'writing to ',trim(filename),' fh=',fh
+        call wrtout_gfsgrb(fh,filename)
      end if
      if (abs(fha-fhzer) .lt. 1.e-5) ta=0. ! reset accum time.
   enddo

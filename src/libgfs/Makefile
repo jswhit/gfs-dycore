@@ -106,6 +106,7 @@ OBJS_PHY= \
 	mstcnv.o            \
 	get_prs.o           \
         gribit.o	\
+	gfsio_module.o \
 	gsmddrive.o         
 
 SRC	= $(OBJ_MOD:.o=.f) $(OBJS_RAD:.o=.f) $(OBJS_PHY:.o=.f)
@@ -329,3 +330,6 @@ module_nst_model.o:		module_nst_model.f
 
 gribit.o:	gribit.f
 		$(FC) $(FFLAGIO) -c gribit.f
+
+gfsio_module.o:	gfsio_module.f
+		$(FC) $(FFLAG90) -c gfsio_module.f

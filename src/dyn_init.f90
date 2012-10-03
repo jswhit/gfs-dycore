@@ -15,13 +15,13 @@ module dyn_init
  use params, only: &
  nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,dcmip,polar_opt,&
  heldsuarez,explicit,tstart,idate_start,hdif_fac,hdif_fac2,fshk,ntrac,taustratdamp,&
- massfix
+ ntoz,ntclw,pdryini,massfix
  use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, lap, lats, lons
  use spectral_data, only: vrtspec,divspec,virtempspec,tracerspec,topospec,lnpsspec,&
                           disspec,diff_prof,dmp_prof,init_specdata
- use pressure_data, only: ak,bk,ck,dbk,bkl,sl,psg,prs,init_pressdata,calc_pressdata
+ use pressure_data, only: ak,bk,ck,dbk,bkl,sl,psg,prs,pk,dpk,init_pressdata,calc_pressdata
  use grid_data, only: init_griddata, dphisdx, dphisdy, phis, ug, vg, virtempg, &
- tracerg,lnpsg
+ tracerg,lnpsg,dlnpdtg
  use stoch_data, only: init_stochdata
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                      omega => con_omega, grav => con_g, pi => con_pi, &
@@ -30,7 +30,7 @@ module dyn_init
 
  implicit none
  private
- public :: init_dyn, wrtout_sig, readin_sig
+ public :: init_dyn, wrtout_sig, readin_sig, wrtout_gfsgrb, twodtooned
 
  contains
 
@@ -166,6 +166,7 @@ module dyn_init
       stop
     endif
     sighead%fhour = fh
+    sighead%pdryini = pdryini
     call copyspecout(lnpsspec_tmp, sigdata%ps)
     call copyspecout(topospec, sigdata%hs)
     do k=1,nlevs
@@ -185,6 +186,142 @@ module dyn_init
     call sigio_sclose(lu,iret)
     call sigio_sclose(lu2,iret)
  end subroutine wrtout_sig
+
+ subroutine wrtout_gfsgrb(fh,filename)
+    use gfsio_module, only: gfsio_gfile, gfsio_open, gfsio_writerecvw34, &
+                            gfsio_init, gfsio_close
+    ! write out gfsio grib data
+    ! (this probably belongs in a separate module)
+    type(gfsio_gfile)    :: gfile
+    real(r_kind), intent(in) :: fh
+    character(len=500), intent(in) :: filename
+    integer k,iret,nt,reclev(2+nlevs*8)
+    character(len=8) recname(2+nlevs*8), reclevtyp(2+nlevs*8)
+    real(4) pdryini4,fhour4,tmpg(nlons,nlats)
+
+    pdryini4 = pdryini
+    fhour4    = fh
+    recname(1)   = 'hgt'
+    reclevtyp(2) = 'sfc'
+    reclev(1)    = 1
+    recname(2)   = 'pres'
+    reclevtyp(2) = 'sfc'
+    reclev(2)    = 1
+    do k=1,nlevs
+      recname(k+2)            = 'pres'
+      reclevtyp(k+2)          = 'layer'
+      reclev(k+2)             = k
+      recname(k+2+nlevs)      = 'dpres'
+      reclevtyp(k+2+nlevs)    = 'layer'
+      reclev(k+2+nlevs)       = k
+      recname(k+2+nlevs*2)    = 'tmp'
+      reclevtyp(k+2+nlevs*2)  = 'layer'
+      reclev(k+2+nlevs*2)     = k
+      recname(k+2+nlevs*3)    = 'ugrd'
+      reclevtyp(k+2+nlevs*3)  = 'layer'
+      reclev(k+2+nlevs*3)     = k
+      recname(k+2+nlevs*4)    = 'vgrd'
+      reclevtyp(k+2+nlevs*4)  = 'layer'
+      reclev(k+2+nlevs*4)     = k
+      recname(k+2+nlevs*5)    = 'spfh'
+      reclevtyp(k+2+nlevs*5)  = 'layer'
+      reclev(k+2+nlevs*5)     = k
+      recname(k+2+nlevs*6)    = 'o3mr'
+      reclevtyp(k+2+nlevs*6)  = 'layer'
+      reclev(k+2+nlevs*6)     = k
+      recname(k+2+nlevs*7)    = 'clwmr'
+      reclevtyp(k+2+nlevs*7)  = 'layer'
+      reclev(k+2+nlevs*7)     = k
+      recname(k+2+nlevs*7)    = 'vvel'
+      reclevtyp(k+2+nlevs*8)  = 'layer'
+      reclev(k+2+nlevs*8)     = k
+    enddo
+
+    !print *,' calling gfsio_open idate=',idate_start,' fhour=',fhour4
+ 
+    call gfsio_init(iret)
+    call gfsio_open(gfile,trim(filename),'write',iret,&
+         version=sighead%ivs,fhour=fhour4,idate=idate_start,nrec=2+nlevs*8,&
+         latb=nlats,lonb=nlons,levs=nlevs,jcap=ntrunc,itrun=sighead%itrun,&
+         iorder=sighead%iorder,irealf=sighead%irealf,igen=sighead%igen,latf=nlats,lonf=nlons,&
+         latr=nlats,lonr=nlons,ntrac=ntrac,icen2=sighead%icen2,iens=sighead%iens,&
+         idpp=sighead%idpp,idsl=sighead%idsl,idvc=sighead%idvc,idvm=sighead%idvm,&
+         idvt=sighead%idvt,idrun=sighead%idrun,&
+         idusr=sighead%idusr,pdryini=pdryini4,ncldt=sighead%ncldt,nvcoord=sighead%nvcoord,&
+         vcoord=sighead%vcoord,recname=recname,reclevtyp=reclevtyp,&
+         reclev=reclev,Cpi=sighead%cpi,Ri=sighead%ri)
+
+    call twodtooned(phis/grav,tmpg)
+    call gfsio_writerecvw34(gfile,'hgt','sfc',1,tmpg,iret)
+    call twodtooned(psg,tmpg)
+    call gfsio_writerecvw34(gfile,'pres','sfc',1,tmpg,iret)
+    do k=1,nlevs
+       call twodtooned(prs(:,:,k),tmpg)
+       call gfsio_writerecvw34(gfile,'pres','layer',k,&
+                               tmpg, iret)
+    enddo
+    do k=1,nlevs
+       call twodtooned(dpk(:,:,nlevs-k+1),tmpg)
+       call gfsio_writerecvw34(gfile,'dpres','layer',k, &
+                               tmpg, iret)
+    enddo
+    do k=1,nlevs
+       call twodtooned(virtempg(:,:,k),tmpg)
+       tmpg = tmpg/(1.+fv*tracerg(:,:,k,1))
+       call gfsio_writerecvw34(gfile,'tmp','layer',k,&
+                               tmpg, iret)
+    enddo
+    do k=1,nlevs
+       call twodtooned(ug(:,:,k),tmpg)
+       call gfsio_writerecvw34(gfile,'ugrd','layer',k, &
+                               tmpg, iret)
+    enddo
+    do k=1,nlevs
+       call twodtooned(vg(:,:,k),tmpg)
+       call gfsio_writerecvw34(gfile,'vgrd','layer',k,&
+                               tmpg, iret)
+    enddo
+    do k=1,nlevs
+       call twodtooned(tracerg(:,:,k,1),tmpg)
+       call gfsio_writerecvw34(gfile,'spfh','layer',k,&
+                               tmpg, iret)
+    enddo
+    if (ntoz .gt. 0) then
+       do k=1,nlevs
+          call twodtooned(tracerg(:,:,k,ntoz),tmpg)
+          call gfsio_writerecvw34(gfile,'o3mr','layer',k,&
+                               tmpg, iret)
+       enddo
+    endif
+    if (ntclw .gt. 0) then
+       do k=1,nlevs
+          call twodtooned(tracerg(:,:,k,ntclw),tmpg)
+          call gfsio_writerecvw34(gfile,'clwmr','layer',k,&
+                                  tmpg, iret)
+       enddo
+    endif
+    do k=1,nlevs
+       call twodtooned(dlnpdtg(:,:,k),tmpg)
+       !tmpg = tmpg*prs(:,:,k)
+       tmpg = tmpg*0.5*(pk(:,:,nlevs-k+2)+pk(:,:,nlevs-k+1))
+       call gfsio_writerecvw34(gfile,'vvel','layer',k,&
+                               tmpg, iret, precision=6)
+    enddo
+
+    call gfsio_close(gfile,iret)
+
+ end subroutine wrtout_gfsgrb
+
+ subroutine twodtooned(data2,data1)
+   real(r_kind), intent(in) :: data2(nlons,nlats)
+   real(4), intent(out) :: data1(nlons*nlats)
+   integer i,j,n
+   do n=1,nlons*nlats
+      j = 1+(n-1)/nlons
+      i = n-(j-1)*nlons
+      data1(n) = data2(i,j)
+   enddo
+ end subroutine twodtooned
 
  subroutine dcmip_ics(testcase,dry)
    ! DCMIP 2012 test case initial conditions (test cases 4 and 5)

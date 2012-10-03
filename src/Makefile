@@ -101,7 +101,7 @@ finalize.o:  	finalize.f90 params.o dyn_finalize.o phy_finalize.o
 
 spectral_data.o:  	spectral_data.f90 kinds.o
 
-phy_data.o:  	phy_data.f90 kinds.o params.o sfcio_module.o physcons.o funcphys.o
+phy_data.o:  	phy_data.f90 kinds.o params.o sfcio_module.o physcons.o funcphys.o dyn_init.o
 
 semimp_data.o: semimp_data.f90 kinds.o shtns.o pressure_data.o physcons.o
 
@@ -110,6 +110,7 @@ grid_data.o:  	grid_data.f90 kinds.o params.o
 pressure_data.o:  	pressure_data.f90 kinds.o params.o physcons.o
 
 dyn_init.o:  	dyn_init.f90 params.o sigio_module.o shtns.o spectral_data.o pressure_data.o physcons.o grid_data.o semimp_data.o dcmip_initial_conditions_test_4_v3.o dcmip_initial_conditions_test_5_v1.o stoch_data.o
+		$(FC) $(FFLAGS) $(OMPFLAG) -Ilibgfs -c dyn_init.f90
 
 phy_init.o:     phy_init.f90 phy_data.o
 
