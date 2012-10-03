@@ -6,7 +6,7 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
-  sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
+  gfsio_out, sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
 use shtns, only: spectogrd, lats, areawts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -99,6 +99,11 @@ subroutine run()
            write(filename,9001) nint(fh)
            print *,'writing to ',trim(filename),' fh=',fh
            call wrtout_flx(fh,ta,filename)
+           if (gfsio_out) then
+              write(filename,9002) nint(fh)
+              print *,'writing to ',trim(filename),' fh=',fh
+              call wrtout_gfsgrb(fh,filename)
+           endif
         end if
      enddo
      print *,'done with dfi loop, resetting fields and restarting...'
@@ -116,6 +121,12 @@ subroutine run()
      write(filename,8999) nint(fh)
      print *,'writing to ',trim(filename),' fh=',fh
      call wrtout_sig(fh,filename)
+     ! write out gaussian grid data after DFI
+     if (gfsio_out) then
+        write(filename,9002) nint(fh)
+        print *,'writing to ',trim(filename),' fh=',fh
+        call wrtout_gfsgrb(fh,filename)
+     endif
   endif
 
   ! main time step loop
@@ -151,10 +162,12 @@ subroutine run()
 9001    format('FLX.F',i0.2) ! at least three digits used
         print *,'writing to ',trim(filename),' fh=',fh
         call wrtout_flx(fh,ta,filename)
-        write(filename,9002) nint(fh)
-9002    format('GFS.F',i0.2) ! at least three digits used
-        print *,'writing to ',trim(filename),' fh=',fh
-        call wrtout_gfsgrb(fh,filename)
+        if (gfsio_out) then
+           write(filename,9002) nint(fh)
+9002       format('GFS.F',i0.2) ! at least three digits used
+           print *,'writing to ',trim(filename),' fh=',fh
+           call wrtout_gfsgrb(fh,filename)
+        endif
      end if
      if (abs(fha-fhzer) .lt. 1.e-5) ta=0. ! reset accum time.
   enddo
