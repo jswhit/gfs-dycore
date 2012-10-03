@@ -11,7 +11,7 @@ module params
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,dcmip,&
  ntout,fhdfi,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
- pdryini,massfix,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,&
+ pdryini,massfix,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,gfsio_out,&
 ! gfs phys parameters.
  nmtvr,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
@@ -35,6 +35,7 @@ module params
  real(r_double)     :: dt    ! time step (secs) (=deltim or 3600/timestepsperhr)
  real(r_kind) :: pdryini ! initial dry ps
  logical    :: massfix=.true. ! apply dry mass 'fixer'
+ logical    :: gfsio_out=.false. ! write out 'gfsio' grib 1 files.
  integer    :: ntmax ! time steps to run
  integer    :: ntdfi ! number of time steps in dfi window is 2*ntdfi+1
  integer    :: nlons ! number of longitudes on grid
@@ -167,7 +168,7 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum
+ svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum,gfsio_out
 
  contains
 
