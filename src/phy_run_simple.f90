@@ -102,19 +102,19 @@
          dudt(i,j,k) = gu(nlevs-k+1)-ug(i,j,k)
          dvdt(i,j,k) = gv(nlevs-k+1)-vg(i,j,k)
       enddo
+      do k=1,nlevs
+         gt(k) = dpk(i,j,nlevs-k+1)
+      enddo 
+      pwat(i,j) = sum(gt*(dtracersdt(i,j,:,1)+tracerg(i,j,:,1)))
    enddo ! end loop over horiz grid points
 !$omp end parallel do 
-   pwat = 0.
-   do k=1,nlevs
-      pwat(:,:) = pwat(:,:) +&
-      sum(areawts*dpk(:,:,nlevs-k+1)*(dtracersdt(:,:,k,1)+tracerg(:,:,k,1)))
-   enddo
    pwat = pwat/grav
    print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
    print *,'min/max dudt',minval(dudt),maxval(dudt)
    print *,'min/max dvdt',minval(dvdt),maxval(dvdt)
    print *,'min/max dtracer1dt',minval(dtracersdt(:,:,:,1)),maxval(dtracersdt(:,:,:,1))
    print *,'min/max tracer1',minval(tracerg(:,:,:,1)),maxval(tracerg(:,:,:,1))
+   print *,'min/max pwat',minval(pwat),maxval(pwat)
    call system_clock(count, count_rate, count_max)
    tend = count*1.d0/count_rate
    print *,'time in simple physics = ',tend-tstart
