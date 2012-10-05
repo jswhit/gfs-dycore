@@ -1,5 +1,8 @@
  module phy_run
-! compute physics tendencies for gfs physics
+! compute physics tendencies for simplified DCMIP physics
+! Reference: Reed, K. A. and C. Jablonowski (2012), Idealized tropical cyclone 
+!            simulations of intermediate complexity: A test case for AGCMs, 
+!            J. Adv. Model. Earth Syst., Vol. 4, M04001, doi:10.1029/2011MS000099
 ! getphytend: compute total physics tendencies.
 ! Public subroutines:
 ! getphytend: compute tendencies in spectral space.
@@ -24,7 +27,7 @@
 
  subroutine getphytend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt,t,dtx)
    use omp_lib, only: omp_get_num_threads, omp_get_thread_num
-   ! compute physics tendencies for gfs physics
+   ! compute physics tendencies for simplified DCMIP physics
    integer, parameter :: r8 = selected_real_kind(12)
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt
