@@ -23,7 +23,7 @@ module params
 ! stochastic physics tendency parameters
  sppt,sppt_logit,sppt_tau,sppt_lscale,iseed_sppt, &
 ! additive stochastic humidity perturbations
- shum,shum_tau,shum_lscale,iseed_shum
+ shum,shum_tau,shum_lscale,iseed_shum,clipsupersat
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
  integer            :: fhmax ! hours to run
@@ -153,6 +153,8 @@ module params
  integer :: nst_fcst=0 ! 0 - AM only, 1 - uncoupled, 2 - coupled
  logical :: moist_adj = .false. 
  logical :: gloopb_filter = .true. ! apply spectral filter to physics tendencies
+ ! make sure stochastic perts don't create neg or supersat humidities.
+ logical :: clipsupersat=.false. 
 
  real(r_kind) :: bkgd_vdif_m = 3.0 ! background vertical diffusion for momentum
  real(r_kind) :: bkgd_vdif_h = 1.0 ! background vertical diffusion for heat, q
@@ -169,7 +171,7 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum,gfsio_out,sigio_out
+ clipsupersat,svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum,gfsio_out,sigio_out
 
  contains
 

@@ -10,7 +10,7 @@
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
- sppt,shum
+ sppt,shum,clipsupersat
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, spectogrd, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
@@ -513,7 +513,7 @@
      if (shum > tiny(shum)) then
         do k=1,nlevs
            adq(k,1) = adq(k,1)*(1. + vfact_shum(k)*grd_shum(i,j))
-           !call clipq(adt(k),adq(k,1),prsl(k),qmin)
+           if (clipsupersat) call clipq(adt(k),adq(k,1),prsl(k),qmin)
         enddo
      endif
      ! convert sensible temp back to virt temp.
@@ -592,16 +592,18 @@
         dtdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dtdt(:,:,k)
         ! specific humidity
         dtracersdt(:,:,k,1) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,1)
+        if (clipsupersat) then
         ! make sure tendency will not produce supersaturation/neg humidity
-        !do j=1,nlats
-        !do i=1,nlons
-        !   q = tracerg(i,j,k,1) + dtracersdt(i,j,k,1)
-        !   st = (virtempg(i,j,k) + dtdt(i,j,k))/(1.+fv*q)
-        !   call clipq(st,q,prs(i,j,k),qmin)
-        !   dtracersdt(i,j,k,1) = q - tracerg(i,j,k,1)
-        !   dtdt(i,j,k) = st*(1.+fv*q) - virtempg(i,j,k)
-        !enddo
-        !enddo
+           do j=1,nlats
+           do i=1,nlons
+              q = tracerg(i,j,k,1) + dtracersdt(i,j,k,1)
+              st = (virtempg(i,j,k) + dtdt(i,j,k))/(1.+fv*q)
+              call clipq(st,q,prs(i,j,k),qmin)
+              dtracersdt(i,j,k,1) = q - tracerg(i,j,k,1)
+              dtdt(i,j,k) = st*(1.+fv*q) - virtempg(i,j,k)
+           enddo
+           enddo
+        endif
         ! perturb other tracer tendencies (ozone, cloud condensate).
         do nt=2,ntrac
            dtracersdt(:,:,k,nt) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,nt)
