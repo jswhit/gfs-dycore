@@ -584,7 +584,7 @@
    endif
 
 ! compute physics tendencies in spectral space
-!$omp parallel do private(k,nt)
+!$omp parallel do private(i,j,k,nt,q,st)
    do k=1,nlevs
       if (sppt > tiny(sppt)) then
         dudt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dudt(:,:,k)
