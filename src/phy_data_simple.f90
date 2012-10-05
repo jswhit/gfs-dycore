@@ -6,7 +6,6 @@ module phy_data
  use params, only: nlons,nlats,nlevs,ndimspec,sfcinitfile,nmtvr,ntoz,ntclw,num_p3d,num_p2d,&
       ntrunc,sighead,fhswr,fhlwr,idate_start,fhzer,dt,gloopb_filter
  use shtns, only: lats
- use dyn_init, only : twodtooned
  use physcons, only : tgice => con_tice, con_pi
  implicit none
  private
@@ -210,5 +209,16 @@ module phy_data
    print *,' iostat after baclose of flxf file ',ierr
 
  end subroutine wrtout_flx
+
+ subroutine twodtooned(data2,data1)
+   real(r_kind), intent(in) :: data2(nlons,nlats)
+   real(4), intent(out) :: data1(nlons*nlats)
+   integer i,j,n
+   do n=1,nlons*nlats
+      j = 1+(n-1)/nlons
+      i = n-(j-1)*nlons
+      data1(n) = data2(i,j)
+   enddo
+ end subroutine twodtooned
 
 end module phy_data

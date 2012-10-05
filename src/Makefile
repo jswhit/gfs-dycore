@@ -101,7 +101,7 @@ finalize.o:  	finalize.f90 params.o dyn_finalize.o phy_finalize.o
 
 spectral_data.o:  	spectral_data.f90 kinds.o
 
-phy_data.o:  	phy_data.f90 kinds.o params.o sfcio_module.o physcons.o funcphys.o dyn_init.o
+phy_data.o:  	phy_data.f90 kinds.o params.o sfcio_module.o physcons.o funcphys.o 
 
 semimp_data.o: semimp_data.f90 kinds.o shtns.o pressure_data.o physcons.o
 
