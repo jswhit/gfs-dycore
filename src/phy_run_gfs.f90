@@ -436,6 +436,7 @@
             wminco,                                                     &
             flipv,old_monin,cnvgwd,shal_cnv,sashal,newsas,cal_pre,      &
             mom4ice,mstrat,trans_trac,nst_fcst,moist_adj,fscav,         &
+! virt temp and lnps variables, sigma-pressure hybrid vert coordinate.
 !           thermodyn_id, sfcpress_id, gen_coord_hybrid,                &
             0,  0, .false.,                                             &
 !  ---  input/outputs:
@@ -512,7 +513,7 @@
      if (shum > tiny(shum)) then
         do k=1,nlevs
            adq(k,1) = adq(k,1)*(1. + vfact_shum(k)*grd_shum(i,j))
-           call clipq(adt(k),adq(k,1),prsl(k),qmin)
+           !call clipq(adt(k),adq(k,1),prsl(k),qmin)
         enddo
      endif
      ! convert sensible temp back to virt temp.
@@ -586,25 +587,25 @@
 !$omp parallel do private(k,nt)
    do k=1,nlevs
       if (sppt > tiny(sppt)) then
-        dtdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dtdt(:,:,k)
         dudt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dudt(:,:,k)
         dvdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dvdt(:,:,k)
+        dtdt(:,:,k) = (1. + vfact_sppt(k)*grd_sppt)*dtdt(:,:,k)
         ! specific humidity
         dtracersdt(:,:,k,1) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,1)
         ! make sure tendency will not produce supersaturation/neg humidity
-        do j=1,nlats
-        do i=1,nlons
-           q = tracerg(i,j,k,1) + dtracersdt(i,j,k,1)
-           st = (virtempg(i,j,k) + dtdt(i,j,k))/(1.+fv*q)
-           call clipq(st,q,prs(i,j,k),qmin)
-           dtracersdt(i,j,k,1) = q - tracerg(i,j,k,1)
-           dtdt(i,j,k) = st*(1.+fv*q) - virtempg(i,j,k)
-        enddo
-        enddo
-        ! perturb other tracers?
-        !do nt=2,ntrac
-        !   dtracersdt(:,:,k,nt) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,nt)
+        !do j=1,nlats
+        !do i=1,nlons
+        !   q = tracerg(i,j,k,1) + dtracersdt(i,j,k,1)
+        !   st = (virtempg(i,j,k) + dtdt(i,j,k))/(1.+fv*q)
+        !   call clipq(st,q,prs(i,j,k),qmin)
+        !   dtracersdt(i,j,k,1) = q - tracerg(i,j,k,1)
+        !   dtdt(i,j,k) = st*(1.+fv*q) - virtempg(i,j,k)
         !enddo
+        !enddo
+        ! perturb other tracer tendencies (ozone, cloud condensate).
+        do nt=2,ntrac
+           dtracersdt(:,:,k,nt) = (1. + vfact_sppt(k)*grd_sppt)*dtracersdt(:,:,k,nt)
+        enddo
       endif
       call grdtospec(dtdt(:,:,k), dvirtempspecdt(:,k))
       call getvrtdivspec(dudt(:,:,k),dvdt(:,:,k),dvrtspecdt(:,k),ddivspecdt(:,k),rerth)
