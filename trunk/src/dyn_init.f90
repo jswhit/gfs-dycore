@@ -30,7 +30,7 @@ module dyn_init
 
  implicit none
  private
- public :: init_dyn, wrtout_sig, readin_sig, wrtout_gfsgrb, twodtooned
+ public :: init_dyn, wrtout_sig, readin_sig, wrtout_gfsgrb
 
  contains
 

@@ -11,7 +11,6 @@ module phy_data
       sfcio_alhead, sfcio_aldata, sfcio_swohdc
  use physcons, only : tgice => con_tice, con_pi
  use shtns, only : lats,degree
- use dyn_init, only: twodtooned
  implicit none
  private
  public :: init_phydata, destroy_phydata, flx_init, wrtout_sfc, wrtout_flx
@@ -2273,5 +2272,16 @@ module phy_data
    print *,' iostat after baclose of flxf file ',ierr
 
  end subroutine wrtout_flx
+
+ subroutine twodtooned(data2,data1)
+   real(r_kind), intent(in) :: data2(nlons,nlats)
+   real(4), intent(out) :: data1(nlons*nlats)
+   integer i,j,n
+   do n=1,nlons*nlats
+      j = 1+(n-1)/nlons
+      i = n-(j-1)*nlons
+      data1(n) = data2(i,j)
+   enddo
+ end subroutine twodtooned
 
 end module phy_data
