@@ -93,7 +93,7 @@
    call system_clock(count, count_rate, count_max)
    t1 = count*1.d0/count_rate
    t0 = t1
-!$omp parallel do private(k) schedule(dynamic)
+!$omp parallel do private(k,nt) schedule(dynamic)
    do k=1,nlevs
       call getuv(vrtspec(:,k),divspec(:,k),ug(:,:,k),vg(:,:,k),rerth)
       call spectogrd(vrtspec(:,k),vrtg(:,:,k))
@@ -101,7 +101,6 @@
       call spectogrd(virtempspec(:,k),virtempg(:,:,k))
       ! gradient of virtual temperature on grid.
       call getgrad(virtempspec(:,k),dvirtempdx(:,:,k),dvirtempdy(:,:,k),rerth)
-      !print *,k,maxval(abs(ug(:,:,k))),maxval(abs(virtempg(:,:,k))),maxval(abs(dvirtempdx(:,:,k)))
       ! specific humidity, other tracers on grid.
       do nt=1,ntrac
          call spectogrd(tracerspec(:,k,nt),tracerg(:,:,k,nt))
