@@ -68,6 +68,7 @@ subroutine run()
         call advance(t)
         t = t + dt ! absolute forecast time.
         ta = ta + dt ! absolute forecast time.
+        fh = t/3600.
         vrtspec_dfi = vrtspec_dfi + dfi_wts(nt)*vrtspec
         divspec_dfi = divspec_dfi + dfi_wts(nt)*divspec
         virtempspec_dfi = virtempspec_dfi + dfi_wts(nt)*virtempspec
@@ -78,10 +79,9 @@ subroutine run()
         spd = sqrt(ug**2+vg**2) ! max wind speed
         pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
         pstendmean = sqrt(sum(pstend*areawts))
-        write(6,8998) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+        write(6,8998) fh,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
         ! write out surface and flux data in middle of dfi window.
         if (nt .eq. ntdfi) then
-           fh = t/3600.
            write(filename_save,9000) nint(fh)
            print *,'writing to ',trim(filename_save),' fh=',fh
            call wrtout_sfc(fh,filename_save)
@@ -148,7 +148,7 @@ subroutine run()
      spd = sqrt(ug**2+vg**2) ! max wind speed
      pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
      pstendmean = sqrt(sum(pstend*areawts))
-     write(6,8998) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+     write(6,8998) fh,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
 8998 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', pstend = ',f0.3,', cpu time = ',f0.3)
      ! write out data at specified intervals.
      ! data always written at first time step.
