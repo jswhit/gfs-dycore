@@ -78,7 +78,7 @@ subroutine run()
         spd = sqrt(ug**2+vg**2) ! max wind speed
         pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
         pstendmean = sqrt(sum(pstend*areawts))
-        write(6,9002) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+        write(6,8998) t/3600.,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
         ! write out surface and flux data in middle of dfi window.
         if (nt .eq. ntdfi) then
            fh = t/3600.
