@@ -210,6 +210,7 @@ module params
       dt=deltim
       timestepsperhr = nint(3600./dt)
    endif
+   print *,'time step = ',dt,' seconds'
    if (abs(3600.-dt*timestepsperhr) > 1.e-10) then
       print *,'1 hour must be an integer number of timesteps'
       stop
@@ -233,7 +234,12 @@ module params
       ntracin = sighead%ntrac
       idate_start = sighead%idate
       ! dry ps for mass fixer (if zero, compute in dyn_run)
-      pdryini = sighead%pdryini*10000. ! convert to Pa from cb
+      pdryini = sighead%pdryini*1000. ! convert to Pa from cb
+      ! if pdryini is unrealistic, don't use it.
+      if (pdryini .gt. 1.e5) then
+          print *,'unrealistic pdryini in file ',pdryini,' resetting..'
+          pdryini = 0.
+       end if
       print *,'nlons,nlats,nlevs,ntrunc=',nlons,nlats,nlevs,ntrunc
       print *,'tstart=',tstart,' secs'
       print *,'pdryini=',pdryini
