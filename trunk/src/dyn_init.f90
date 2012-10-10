@@ -166,7 +166,7 @@ module dyn_init
       stop
     endif
     sighead%fhour = fh
-    sighead%pdryini = pdryini
+    sighead%pdryini = pdryini/1000. ! convert to cb from Pa.
     call copyspecout(lnpsspec_tmp, sigdata%ps)
     call copyspecout(topospec, sigdata%hs)
     do k=1,nlevs
