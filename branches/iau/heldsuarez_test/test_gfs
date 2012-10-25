@@ -1,0 +1,10 @@
+#!/bin/csh
+#PBS -l nodes=1:ppn=12
+#PBS -l walltime=8:00:00
+#PBS -A gsienkf
+#PBS -N testgfs
+#PBS -S /bin/tcsh
+
+cd /scratch1/portfolios/BMC/gsienkf/whitaker/stochphy/gfs-dycore/heldsuarez_test
+setenv OMP_NUM_THREADS 24
+../bin/gfs4_hs

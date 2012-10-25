@@ -1,0 +1,51 @@
+Directory structure:
+
+fortran mode source code and Makefile in src directory.
+python interface to spectral data files and sample plotting scripts in python directory.
+model executable (gfs) put in bin directory by Makefile.
+heldsuarez_test holds test data and scripts for Held-Suarez dycore test.
+
+Prerequistes:  
+
+a fortran compiler (tested with intel fortran and gnu fortran)
+fftw3 FFT library (fftw.org)
+*blazingly fast* shtns spherical harmonic lib (https://bitbucket.org/nschaeff/shtns/wiki/Home)
+
+To build:
+
+cd src
+ln -fs Makefile.conf.gfortran Makfile.conf  # if you're using gfortran
+ln -fs Makfile.conf.ifort Makefile.conf # if you're using ifort
+
+you may need to edit Makefile.conf to adjust compiler options and/or
+library paths.
+
+for full gfs model, run
+  make clean (clean and setup symlinks)
+  make w3lib (build ncep w3lib)
+  make libgfs (build library containing gfs physics routines)
+  make gfs (executable is bin/gfs)
+
+for Held-Suarez test, run
+  make clean-hstest (clean and setup symlinks)
+  make w3lib (build ncep w3lib)
+  make libgfs (build library containing gfs physics routines)
+  make (executable is bin/gfs)
+
+for DCMIP test cases 4 and 5 (http://earthsystemcog.org/projects/dcmip-2012/), run
+  make clean-dcmip (clean and setup symlinks)
+  make w3lib (build ncep w3lib)
+  make libgfs (build library containing gfs physics routines)
+  make (executable is bin/gfs)
+
+To test:
+
+to run held-suarez test case, cd to heldsuarez_test directory and run test_gfs.
+plot zonal mean zonal wind and temperature using python/plotzonalmean.py
+compare resulting plots to zonalmeanu.png and zonalmeant.png.
+
+to run a DCMIP test case, cd to dcmip_test and run test_gfs.
+plot surface pressure using python/plot_test4.py and compare resulting plot with ps410.png
+and plots for other models on DCMIP page (http://earthsystemcog.org/projects/dcmip-2012).
+
+Contact:  Jeff Whitaker <jeffrey.s.whitaker@noaa.gov>
