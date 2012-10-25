@@ -9,13 +9,13 @@ module dyn_init
 !  for semi-implicit time stepping.
 ! wrtout_sig: write out spectral data.
 ! readin_sig: read in spectral data.
- use kinds, only: r_kind, r_single
+ use kinds, only: r_kind, r_single, r_double
  use sigio_module, only: sigio_sclose,sigio_swohdc,&
   sigio_srohdc,sigio_aldata,sigio_data,sigio_head,sigio_sropen,sigio_srdata,sigio_axdata
  use params, only: &
  nlons,nlats,nlevs,ndimspec,ntrunc,initfile,sighead,dry,ndiss,efold,dcmip,polar_opt,&
  heldsuarez,explicit,tstart,idate_start,hdif_fac,hdif_fac2,fshk,ntrac,taustratdamp,&
- ntoz,ntclw,pdryini,massfix
+ ntoz,ntclw,pdryini,massfix,iau
  use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, lap, lats, lons
  use spectral_data, only: vrtspec,divspec,virtempspec,tracerspec,topospec,lnpsspec,&
                           disspec,diff_prof,dmp_prof,init_specdata
@@ -42,7 +42,7 @@ module dyn_init
     ! initialize spherical harmonic lib
     call shtns_init(nlons,nlats,ntrunc,nthreads=1,polar_opt=polar_opt)
     ! read spectral initial conditions
-    call readin_sig(initfile)
+    call readin_sig(initfile,vrtspec,divspec,virtempspec,tracerspec,lnpsspec,topospec,sighead)
     ! initialize pressure arrays.
     call init_pressdata()
     ! convert to ln(ps) in Pa.
@@ -117,28 +117,31 @@ module dyn_init
     enddo
  end subroutine copyspecout
  
- subroutine readin_sig(filename)
+ subroutine readin_sig(filename,vrtspecin,divspecin,virtempspecin,tracerspecin,lnpsspecin,topospecin,sigheadin)
+    complex(r_kind), intent(out), dimension(ndimspec,nlevs) :: vrtspecin,divspecin,virtempspecin
+    complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: tracerspecin
+    complex(r_kind), intent(out), dimension(ndimspec) :: lnpsspecin,topospecin
+    type(sigio_head), intent(out) :: sigheadin
     type(sigio_data) sigdata
-    type(sigio_head) sighead
     character(*), intent(in) :: filename
     integer lu,iret,k,nt
     ! read initial conditions
     lu = 7
-    call sigio_srohdc(lu,trim(filename),sighead,sigdata,iret)
+    call sigio_srohdc(lu,trim(filename),sigheadin,sigdata,iret)
     if (iret .ne. 0) then
       print *,'error reading ',trim(filename),iret
       stop
     endif
     ! convert spectral arrays to double precision complex,
     ! re-normalize coefficients.
-    call copyspecin(sigdata%ps, lnpsspec)
-    call copyspecin(sigdata%hs, topospec)
+    call copyspecin(sigdata%ps, lnpsspecin)
+    call copyspecin(sigdata%hs, topospecin)
     do k=1,nlevs
-       call copyspecin(sigdata%z(:,k),vrtspec(:,k))
-       call copyspecin(sigdata%d(:,k),divspec(:,k))
-       call copyspecin(sigdata%t(:,k),virtempspec(:,k))
+       call copyspecin(sigdata%z(:,k),vrtspecin(:,k))
+       call copyspecin(sigdata%d(:,k),divspecin(:,k))
+       call copyspecin(sigdata%t(:,k),virtempspecin(:,k))
        do nt=1,ntrac
-          call copyspecin(sigdata%q(:,k,nt),tracerspec(:,k,nt))
+          call copyspecin(sigdata%q(:,k,nt),tracerspecin(:,k,nt))
        enddo
     enddo
     call sigio_axdata(sigdata,iret)
