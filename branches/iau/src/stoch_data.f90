@@ -3,6 +3,7 @@ module stoch_data
  use kinds, only: r_kind
  use params, only: dt,svc,sppt,ndimspec,nlons,nlats,ntrunc,nlevs,&
  svc_tau,svc_lscale,sppt_tau,sppt_lscale,&
+ sdrag,sdrag_tau,sdrag_lscale,iseed_sdrag,&
  iseed_svc,iseed_sppt,iseed_shum,shum,shum_tau,shum_lscale
  use patterngenerator, only: random_pattern, patterngenerator_init,&
  getnoise, patterngenerator_advance, patterngenerator_destroy
@@ -12,14 +13,15 @@ module stoch_data
  private
  public :: init_stochdata,destroy_stochdata
  complex(r_kind), allocatable, public, dimension(:) :: &
- spec_svc,spec_sppt,spec_shum
+ spec_sdrag,spec_svc,spec_sppt,spec_shum
  real(r_kind), allocatable, public, dimension(:,:) :: &
- grd_svc,grd_sppt,grd_shum
+ grd_sdrag,grd_svc,grd_sppt,grd_shum
  real(r_kind), allocatable, public, dimension(:) :: &
  vfact_shum,vfact_svc,vfact_sppt
  type(random_pattern), public :: rpattern_svc
  type(random_pattern), public :: rpattern_sppt
  type(random_pattern), public :: rpattern_shum
+ type(random_pattern), public :: rpattern_sdrag
 
  contains
  subroutine init_stochdata()
@@ -88,6 +90,18 @@ module stoch_data
           call patterngenerator_advance(spec_shum,rpattern_shum)
        enddo
     endif
+    if (sdrag > tiny(sdrag)) then
+       allocate(spec_sdrag(ndimspec))
+       allocate(grd_sdrag(nlons,nlats))
+       call patterngenerator_init(sdrag_lscale,delt,sdrag_tau,sdrag,iseed_sdrag,rpattern_sdrag,&
+                                  nlons,nlats,ntrunc,2.*pi)
+       nspinup = 10.*sdrag_tau/delt
+       call getnoise(rpattern_sdrag,spec_sdrag)
+       spec_sdrag = spec_sdrag*rpattern_sdrag%varspectrum
+       do n=1,nspinup
+          call patterngenerator_advance(spec_sdrag,rpattern_sdrag)
+       enddo
+    endif
  end subroutine init_stochdata
  subroutine destroy_stochdata()
     if (allocated(spec_svc)) then
@@ -101,6 +115,10 @@ module stoch_data
     if (allocated(spec_shum)) then
         deallocate(spec_shum,vfact_shum,grd_shum)
         call patterngenerator_destroy(rpattern_shum)
+    endif
+    if (allocated(spec_sdrag)) then
+        deallocate(spec_sdrag,grd_sdrag)
+        call patterngenerator_destroy(rpattern_sdrag)
     endif
  end subroutine destroy_stochdata
 

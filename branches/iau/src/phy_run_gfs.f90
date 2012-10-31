@@ -10,16 +10,17 @@
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
- sppt,shum,clipsupersat
+ sdrag,sppt,shum,clipsupersat
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, spectogrd, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
  use spectral_data, only:  lnpsspec
- use stoch_data, only:  grd_sppt, vfact_sppt, grd_shum, spec_shum, vfact_shum
+ use stoch_data, only:  grd_sppt, vfact_sppt, grd_shum, spec_shum, vfact_shum,&
+                        grd_sdrag
  use pressure_data, only:  prs,psg,pk,ak,bk
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
-    slmsk,sheleg,sncovr,snoalb,zorl,hprime,alvsf,ozjindx1,ozjindx2,ozddy,&
+    slmsk,sheleg,sncovr,snoalb,hprime,alvsf,ozjindx1,ozjindx2,ozddy,&
     alnsf,alvwf,alnwf,facsf,facwf,fice,tisfc,coszen,cv,cvt,cvb,sfcemis,&
     sfcnsw,sfcdsw,sfalb,sfcdlw,tsflw,slc,smc,stc,slope,shdmin,shdmax, &
     vfrac,tg3,stype,vtype,oro,oro_uf,uustar,phy_f3d,phy_f2d,&
@@ -99,7 +100,7 @@
    adq(nlevs,ntrac),dt3dt(nlevs,6),du3dt(nlevs,4),dv3dt(nlevs,4),dq3dt(nlevs,5+pl_coeff),&
    phy3d(nlevs,num_p3d),phy2d(num_p2d),hlw_tmp(nlevs),swh_tmp(nlevs),fluxr_tmp(nfxr),&
    cldcov_tmp(nlevs),hprime_tmp(nmtvr),slc_tmp(lsoil),smc_tmp(lsoil),stc_tmp(lsoil),&
-   pwatg,pdry,pcorr,gu(nlevs),gv(nlevs)
+   pwatg,pdry,pcorr,gu(nlevs),gv(nlevs),zorlsave
    integer :: icsdsw(1),icsdlw(1),ilons(1), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
    complex(r_kind), allocatable, dimension(:) :: workspec
@@ -376,7 +377,7 @@
 !$omp& adt,adu,adv,adq,slc_tmp,stc_tmp,smc_tmp,&
 !$omp& phy3d,phy2d,hlw_tmp,swh_tmp,hprime_tmp,&
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
-!$omp& acv,acvt,acvb,rqtk,&
+!$omp& acv,acvt,acvb,rqtk,zorlsave,&
 !$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic)
    do n=1,nlons*nlats
       ! n=i+(j-1)*nlons
@@ -409,6 +410,19 @@
       hprime_tmp(:) = hprime(i,j,:)
       swh_tmp(:) = swh(i,j,:); hlw_tmp(:) = hlw(i,j,:)
       slc_tmp(:) = slc(i,j,:); smc_tmp(:) = smc(i,j,:); stc_tmp(:) = stc(i,j,:)
+      ! perturb roughness length (zorl, in cm).
+      if (sdrag > tiny(sdrag)) then
+        ! save roughness length, so value over land can be
+        ! set to unperturbed value after call to gbphys.
+        zorlsave = zorl(i,j) 
+        ! perturb log of roughness length (which is proportional 
+        ! to drag coefficient).
+        ! grd_sdrag is fractional perturbationn (0.1 means 10%)
+        zorl(i,j) = 100.*exp((1.+grd_sdrag(i,j))*log(0.01*zorl(i,j)))
+        ! clip perturbed roughness length.
+        if (zorl(i,j) < 1.e-6) zorl(i,j) = 1.e-6
+        if (zorl(i,j) > 1000.) zorl(i,j) = 1000.
+      endif
 ! call GFS physics driver
       call gbphys                                                       &
 !  ---  inputs:
@@ -446,7 +460,7 @@
             cvb   (i,j),    cvt   (i,j),                                &
             srflag(i,j),    snwdph(i,j),                                &
             sheleg(i,j),    sncovr(i,j),                                &
-            zorl  (i,j),    canopy(i,j),                                &
+            zorl (i,j),     canopy(i,j),                                &
             ffmm  (i,j),    ffhh  (i,j),                                &
             f10m  (i,j),    srunoff(i,j),                               &
             evbsa (i,j),    evcwa (i,j),                                &
@@ -508,6 +522,8 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
+     ! reset roughness length over over land to unperturbed value.
+     if (sdrag > tiny(sdrag) .and. slmsk(i,j) .ne. 0) zorl(i,j) = zorlsave
      ! add a random humidity perturbation to updated specific humidity
      ! grd_hum is fractional perturbation (0.1 means 10%)
      if (shum > tiny(shum)) then
@@ -537,6 +553,7 @@
      stc(i,j,:) = stc_tmp(:)
    enddo ! end loop over horiz grid points
 !$omp end parallel do 
+   if (sdrag > tiny(sdrag)) print *,'min/max zorl',minval(zorl),maxval(zorl)
    print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
    print *,'min/max dudt',minval(dudt),maxval(dudt)
    print *,'min/max dvdt',minval(dvdt),maxval(dvdt)

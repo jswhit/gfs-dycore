@@ -6,7 +6,8 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
-  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
+  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit,&
+  sdrag
 use shtns, only: spectogrd, lats, areawts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -193,7 +194,8 @@ subroutine advance(t)
   use patterngenerator, only: patterngenerator_advance
   use stoch_data, only: rpattern_svc,rpattern_sppt,&
      spec_svc,spec_sppt,grd_svc,grd_sppt,&
-     spec_shum,grd_shum,rpattern_shum
+     spec_shum,grd_shum,rpattern_shum,&
+     spec_sdrag,rpattern_sdrag,grd_sdrag
   real(r_double), intent(in) :: t
   complex(r_kind),dimension(ndimspec,nlevs) :: &
   vrtspec_save,divspec_save,virtempspec_save
@@ -251,6 +253,10 @@ subroutine advance(t)
          if (shum > tiny(shum)) then
             call patterngenerator_advance(spec_shum,rpattern_shum)
             call spectogrd(spec_shum,grd_shum)
+         endif
+         if (sdrag > tiny(sdrag)) then
+            call patterngenerator_advance(spec_sdrag,rpattern_sdrag)
+            call spectogrd(spec_sdrag,grd_sdrag)
          endif
      endif
      call getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,dtracerspecdt,dlnpsspecdt,k)

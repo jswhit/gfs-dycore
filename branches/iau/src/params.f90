@@ -24,6 +24,8 @@ module params
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,svc_logit,&
 ! stochastic physics tendency parameters
  sppt,sppt_logit,sppt_tau,sppt_lscale,iseed_sppt, &
+! stochastic roughness length parameters
+ sdrag,sdrag_tau,sdrag_lscale,iseed_sdrag, &
 ! additive stochastic humidity perturbations
  shum,shum_tau,shum_lscale,iseed_shum,clipsupersat
  character(len=500) :: initfile ! init cond filename
@@ -140,16 +142,20 @@ module params
  real(r_kind) :: svc_tau=0.      ! stochastic vorticity confinement time scale
  real(r_kind) :: svc_lscale=0.   ! stochastic vorticity confinement length scale
  integer :: iseed_svc=0 ! random seed for stochastic vc (zero means use clock)
+ logical :: svc_logit=.false.  ! logit transform for svc to bounded interval [-1,+1]
  real(r_kind) :: sppt=0.  ! stochastic physics tendency amplitude
  real(r_kind) :: sppt_tau=0.  ! stochastic physics tendency time scale
  real(r_kind) :: sppt_lscale=0.  ! stochastic dynamics tendency length scale
  logical :: sppt_logit=.false. ! logit transform for sppt to bounded interval [-1,+1]
- logical :: svc_logit=.false.  ! logit transform for svc to bounded interval [-1,+1]
  integer :: iseed_sppt=0 ! random seed for sppt (0 means use system clock)
- integer :: iseed_shum=0 ! random seed for stochastic humid pert (0 means use system clock)
  real(r_kind) :: shum=0.  ! stochastic humidity pert amplitude
  real(r_kind) :: shum_tau=0.  ! stochastic humidity pert time scale
  real(r_kind) :: shum_lscale=0.  ! stochastic humidity pert length scale
+ integer :: iseed_shum=0 ! random seed for stochastic humid pert (0 means use system clock)
+ real(r_kind) :: sdrag=0.  ! stochastic roughness length amplitude (ln(z))
+ real(r_kind) :: sdrag_tau=0.  ! stochastic roughness length  time scale
+ real(r_kind) :: sdrag_lscale=0.  ! stochastic roughness length scale
+ integer :: iseed_sdrag=0 ! random seed for stochastic roughness length (0 means use system clock)
  logical :: old_monin = .false. ! flag for old Monin-Obhukov surface layer
  logical :: cnvgwd = .false. ! flag for convective gravity wave drag
  logical :: mom4ice = .false. ! flag for MOM4 sea-ice scheme
@@ -178,7 +184,8 @@ module params
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
  clipsupersat,svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum,&
- gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
+ gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs,&
+ sdrag_tau,sdrag_lscale,iseed_sdrag,sdrag
 
  contains
 
