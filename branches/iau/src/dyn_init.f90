@@ -199,13 +199,14 @@ module dyn_init
     real(r_kind), intent(in) :: fh
     character(len=500), intent(in) :: filename
     integer k,iret,nt,reclev(2+nlevs*8)
-    character(len=8) recname(2+nlevs*8), reclevtyp(2+nlevs*8)
+    character(len=8) recname(2+nlevs*8)
+    character(len=16) reclevtyp(2+nlevs*9)
     real(4) pdryini4,fhour4,tmpg(nlons,nlats)
 
     pdryini4 = pdryini
     fhour4    = fh
     recname(1)   = 'hgt'
-    reclevtyp(2) = 'sfc'
+    reclevtyp(1) = 'sfc'
     reclev(1)    = 1
     recname(2)   = 'pres'
     reclevtyp(2) = 'sfc'
@@ -235,7 +236,7 @@ module dyn_init
       recname(k+2+nlevs*7)    = 'clwmr'
       reclevtyp(k+2+nlevs*7)  = 'layer'
       reclev(k+2+nlevs*7)     = k
-      recname(k+2+nlevs*7)    = 'vvel'
+      recname(k+2+nlevs*8)    = 'vvel'
       reclevtyp(k+2+nlevs*8)  = 'layer'
       reclev(k+2+nlevs*8)     = k
     enddo
@@ -244,7 +245,7 @@ module dyn_init
  
     call gfsio_init(iret)
     call gfsio_open(gfile,trim(filename),'write',iret,&
-         version=sighead%ivs,fhour=fhour4,idate=idate_start,nrec=2+nlevs*8,&
+         version=sighead%ivs,fhour=fhour4,idate=idate_start,nrec=2+nlevs*9,&
          latb=nlats,lonb=nlons,levs=nlevs,jcap=ntrunc,itrun=sighead%itrun,&
          iorder=sighead%iorder,irealf=sighead%irealf,igen=sighead%igen,latf=nlats,lonf=nlons,&
          latr=nlats,lonr=nlons,ntrac=ntrac,icen2=sighead%icen2,iens=sighead%iens,&
