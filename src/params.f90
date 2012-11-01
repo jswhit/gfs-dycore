@@ -18,6 +18,8 @@ module params
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h,gloopb_filter,&
+! iau parameters
+ iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs,&
 ! vorticity confinement parameters
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,svc_logit,&
 ! stochastic physics tendency parameters
@@ -47,6 +49,10 @@ module params
  type(sigio_head),save  :: sighead ! header struct from initfile
  logical    :: dry = .false. ! no moisture, cloud condensate or ozone.
  logical    :: adiabatic = .false. ! don't call physics
+ logical    :: iau = .false. ! iau forcing included
+ integer    :: iau_delthrs = 6 ! iau time interval (to scale increments)
+ character(len=120), dimension(7) ::  iaufiles_fg,iaufiles_anl
+ real(r_kind), dimension(7) :: iaufhrs
  ! held-suarez forcing
  logical    :: heldsuarez = .false.
  ! dcmip test cases
@@ -134,16 +140,16 @@ module params
  real(r_kind) :: svc_tau=0.      ! stochastic vorticity confinement time scale
  real(r_kind) :: svc_lscale=0.   ! stochastic vorticity confinement length scale
  integer :: iseed_svc=0 ! random seed for stochastic vc (zero means use clock)
+ logical :: svc_logit=.false.  ! logit transform for svc to bounded interval [-1,+1]
  real(r_kind) :: sppt=0.  ! stochastic physics tendency amplitude
  real(r_kind) :: sppt_tau=0.  ! stochastic physics tendency time scale
  real(r_kind) :: sppt_lscale=0.  ! stochastic dynamics tendency length scale
  logical :: sppt_logit=.false. ! logit transform for sppt to bounded interval [-1,+1]
- logical :: svc_logit=.false.  ! logit transform for svc to bounded interval [-1,+1]
  integer :: iseed_sppt=0 ! random seed for sppt (0 means use system clock)
- integer :: iseed_shum=0 ! random seed for stochastic humid pert (0 means use system clock)
  real(r_kind) :: shum=0.  ! stochastic humidity pert amplitude
  real(r_kind) :: shum_tau=0.  ! stochastic humidity pert time scale
  real(r_kind) :: shum_lscale=0.  ! stochastic humidity pert length scale
+ integer :: iseed_shum=0 ! random seed for stochastic humid pert (0 means use system clock)
  logical :: old_monin = .false. ! flag for old Monin-Obhukov surface layer
  logical :: cnvgwd = .false. ! flag for convective gravity wave drag
  logical :: mom4ice = .false. ! flag for MOM4 sea-ice scheme
@@ -171,7 +177,8 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- clipsupersat,svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum,gfsio_out,sigio_out
+ clipsupersat,svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum,&
+ gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
 
  contains
 
@@ -184,6 +191,9 @@ module params
    fhmax = 0
    fhout = 0
    fhzer = 0
+   iaufhrs = -1
+   iaufiles_fg = ''
+   iaufiles_anl = ''
    open(912,file='gfs_namelist',form='formatted')
    read(912,nam_mrf)
    close(912)
@@ -278,6 +288,9 @@ module params
    if (.not. idealized .and. ntrac .ne. ntracin) then
      print *,ntracin,' tracers in input file, expecting',ntrac
      stop
+   endif
+   if (iau) then
+     print *,'IAU forcing on'
    endif
    print *,'namelist nam_mrf:'
    write(6, nam_mrf)

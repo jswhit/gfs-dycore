@@ -5,7 +5,7 @@ module run_mod
 ! data at specified intervals).
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac,&
+  fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
   gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
 use shtns, only: spectogrd, lats, areawts
 use dyn_run, only: getdyntend, semimpadj
@@ -14,6 +14,7 @@ use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
 use dyn_init, only: wrtout_sig, wrtout_gfsgrb
 use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
                           tracerspec, disspec, dmp_prof, diff_prof
+use iau_module, only: getiauforcing, init_iau, init_iauialized
 ! these arrays used to print diagnostics after each time step.
 use pressure_data, only: psg
 use grid_data, only: ug,vg,dlnpsdt
@@ -204,11 +205,24 @@ subroutine advance(t)
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
   dtracerspecdt,dtracerspecdt_phy
   complex(r_kind), dimension(ndimspec) :: dlnpsspecdt,dlnpsspecdt_phy
+  complex(r_kind), allocatable, dimension(:,:) :: dvrtspecdt_iau,ddivspecdt_iau,dvirtempspecdt_iau
+  complex(r_kind), allocatable, dimension(:,:,:) :: dtracerspecdt_iau
+  complex(r_kind), allocatable, dimension(:)  :: dlnpsspecdt_iau
   integer k, nt, kk
   real(r_double) dtx
   logical :: profile = .true. ! print out timing stats
   integer(8) count, count_rate, count_max
   real(8) t1,t2
+  ! if iau, allocate space for iau tendencies.
+  if (iau) then
+     if (.not. init_iauialized) call init_iau()
+     allocate(dvrtspecdt_iau(ndimspec,nlevs))
+     allocate(ddivspecdt_iau(ndimspec,nlevs))
+     allocate(dvirtempspecdt_iau(ndimspec,nlevs))
+     allocate(dtracerspecdt_iau(ndimspec,nlevs,ntrac))
+     allocate(dlnpsspecdt_iau(ndimspec))
+     call getiauforcing(dvrtspecdt_iau,ddivspecdt_iau,dvirtempspecdt_iau,dtracerspecdt_iau,dlnpsspecdt_iau,t)
+  endif
   ! save original fields.
   vrtspec_save = vrtspec
   divspec_save = divspec
@@ -255,6 +269,14 @@ subroutine advance(t)
          t2 = count*1.d0/count_rate
          if (profile) print *,'time in semimpadj=',t2-t1
      endif
+     ! add IAU contribution (constant over RK3 sub-steps).
+     if (iau) then
+        dvrtspecdt = dvrtspecdt + dvrtspecdt_iau
+        ddivspecdt = ddivspecdt + ddivspecdt_iau
+        dvirtempspecdt = dvirtempspecdt + dvirtempspecdt_iau
+        dtracerspecdt = dtracerspecdt + dtracerspecdt_iau
+        dlnpsspecdt = dlnpsspecdt + dlnpsspecdt_iau
+     endif
      ! update for RK3 sub-step.
      vrtspec=vrtspec_save+dtx*dvrtspecdt
      divspec=divspec_save+dtx*ddivspecdt
@@ -297,6 +319,14 @@ subroutine advance(t)
      if (ntrac > 0) tracerspec=tracerspec+dt*dtracerspecdt_phy
      lnpsspec=lnpsspec+dt*dlnpsspecdt_phy ! only needed for dry mass fixer.
   end if
+  ! freeup iau storage.
+  if (iau) then
+     deallocate(dvrtspecdt_iau)
+     deallocate(ddivspecdt_iau)
+     deallocate(dvirtempspecdt_iau)
+     deallocate(dtracerspecdt_iau)
+     deallocate(dlnpsspecdt_iau)
+  endif
 end subroutine advance
 
 subroutine set_dfi_wts(dfi_wts)
