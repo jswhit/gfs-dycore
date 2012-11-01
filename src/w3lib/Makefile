@@ -23,7 +23,7 @@ getgbep.o   pdseup.o    w3fi59.o    w3tagb.o \
 errmsg.o    getgbex.o   putgb.o     w3fi63.o \
 getgbexm.o  putgbe.o    w3fi68.o    baciof.o \
 gbytes_char.o  getgbh.o putgben.o   w3fi71.o \
-getbit.o   getgbm.o putgbens.o  w3fi72.o \
+bafrio.o getbit.o   getgbm.o putgbens.o  w3fi72.o \
 errexit.o fparsei.o fparser.o instrument.o \
 start.o summary.o w3utcdat.o w3fs21.o w3locdat.o
 
