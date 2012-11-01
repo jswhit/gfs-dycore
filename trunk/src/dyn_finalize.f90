@@ -7,7 +7,8 @@ module dyn_finalize
  use grid_data, only: destroy_griddata
  use stoch_data, only: destroy_stochdata
  use semimp_data, only: destroy_semimpdata
- use params, only: explicit
+ use params, only: explicit, iau
+ use iau_module, only: destroy_iau
 
  implicit none
  private
@@ -23,6 +24,7 @@ module dyn_finalize
     if (.not. explicit) call destroy_semimpdata()
     call destroy_stochdata()
     call shtns_destroy()
+    if (iau) call destroy_iau()
  end subroutine finalize_dyn
 
 
