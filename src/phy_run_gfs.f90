@@ -19,7 +19,7 @@
  use pressure_data, only:  prs,psg,pk,ak,bk
  use phy_data, only: flx_init,solcon,slag,sdec,cdec,nfxr,ncld,bfilt,&
     lsoil,timeoz,latsozp,levozp,pl_coeff,ozplin,pl_pres,pl_time,&
-    slmsk,sheleg,sncovr,snoalb,zorl,hprime,alvsf,ozjindx1,ozjindx2,ozddy,&
+    slmsk,sheleg,sncovr,snoalb,hprime,alvsf,ozjindx1,ozjindx2,ozddy,&
     alnsf,alvwf,alnwf,facsf,facwf,fice,tisfc,coszen,cv,cvt,cvb,sfcemis,&
     sfcnsw,sfcdsw,sfalb,sfcdlw,tsflw,slc,smc,stc,slope,shdmin,shdmax, &
     vfrac,tg3,stype,vtype,oro,oro_uf,uustar,phy_f3d,phy_f2d,&
