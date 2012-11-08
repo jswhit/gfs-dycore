@@ -292,11 +292,17 @@
    divspec_prev,virtempspec_prev
    complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
    real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
-   complex(r_kind), dimension(ndimspec,nlevs) :: &
+   complex(r_kind), allocatable, dimension(:,:) :: &
    divspec_new,virtempspec_new,espec,fspec
-   complex(r_kind), dimension(ndimspec) :: lnpsspec_new,gspec
-   complex(r_kind), dimension(nlevs) :: rhs
+   complex(r_kind), allocatable,  dimension(:) :: lnpsspec_new,gspec
+   complex(r_kind) rhs(nlevs)
    integer n
+
+   allocate(divspec_new(ndimspec,nlevs))
+   allocate(virtempspec_new(ndimspec,nlevs))
+   allocate(espec(ndimspec,nlevs))
+   allocate(fspec(ndimspec,nlevs))
+   allocate(lnpsspec_new(ndimspec),gspec(ndimspec))
 
 ! remove 0.5*linear terms from computed tendencies.
 !$omp parallel do private(n)
@@ -328,6 +334,9 @@
    ddivspecdt = (divspec_new - divspec_prev)/dtx
    dvirtempspecdt = (virtempspec_new - virtempspec_prev)/dtx
    dlnpsspecdt = (lnpsspec_new - lnpsspec_prev)/dtx
+
+   deallocate(virtempspec_new,divspec_new,espec,fspec)
+   deallocate(lnpsspec_new,gspec)
 
    return
  end subroutine semimpadj
@@ -514,7 +523,7 @@
    ! local variables 
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
    integer i,j,k
-   real(r_kind) phi(nlons,nlats),epstiny
+   real(r_kind) phi,epstiny
 
    allocate(datag_half(nlons,nlats,0:nlevs))
    allocate(datag_d(nlons,nlats,0:nlevs))
@@ -546,8 +555,27 @@
    enddo
 !$omp end parallel do 
 
+!!$omp parallel do private(i,j)
+!   do i=1,nlons
+!      do j=1,nlats
+!         if (datag(i,j,nlevs) >= 0) then
+!            datag_d(i,j,0) = datag(i,j,nlevs) - &
+!            max(0.,2.*datag(i,j,nlevs)-datag(i,j,nlevs-1))
+!         else
+!            datag_d(i,j,0) = datag(i,j,nlevs) - &
+!            min(0.,2.*datag(i,j,nlevs)-datag(i,j,nlevs-1))
+!         endif
+!         if (datag(i,j,1) >= 0) then
+!            datag_d(i,j,nlevs) = max(0.,2.*datag(i,j,1)-datag(i,j,2)) - datag(i,j,1)
+!         else
+!            datag_d(i,j,nlevs) = min(0.,2.*datag(i,j,1)-datag(i,j,2)) - datag(i,j,1)
+!         endif
+!      enddo
+!   enddo
+!!$omp end parallel do 
+
    ! to prevent NaNs in computation of van leer limiter
-   epstiny = tiny(phi(1,1))
+   epstiny = tiny(epstiny)
 !$omp parallel do private(i,j,k)
    do k=1,nlevs-1
       do j=1,nlats
@@ -560,19 +588,40 @@
    enddo
 !$omp end parallel do 
 
+!   ! apply flux limiter.
+! note: this segfaults with intel 12.1 at T574
+!!$omp parallel do private(k,phi)
+!   do k=1,nlevs-1
+!      where(etadot(:,:,k+1) > 0.)
+!         phi = datag_d(:,:,k-1)/datag_d(:,:,k)
+!         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
+!         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
+!      elsewhere
+!         phi = datag_d(:,:,k+1)/datag_d(:,:,k)
+!         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
+!         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
+!      end where
+!   enddo
+!!$omp end parallel do 
+
+!    ! apply flux limiter.
+! to avoid segfault, get rid of where statements inside parallel region.
 !$omp parallel do private(i,j,k,phi)
-   ! apply flux limiter.
-   do k=1,nlevs-1
-      where(etadot(:,:,k+1) > 0.)
-         phi = datag_d(:,:,k-1)/datag_d(:,:,k)
-         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
-         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
-      elsewhere
-         phi = datag_d(:,:,k+1)/datag_d(:,:,k)
-         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
-         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
-      end where
-   enddo
+    do k=1,nlevs-1
+       do j=1,nlats
+       do i=1,nlons
+          if (etadot(i,j,k+1) > 0.) then
+             phi = datag_d(i,j,k-1)/datag_d(i,j,k)
+             datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
+             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
+          else
+             phi = datag_d(i,j,k+1)/datag_d(i,j,k)
+             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
+             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs-k))
+          endif
+       enddo
+       enddo
+     enddo
 !$omp end parallel do 
 
 !$omp parallel do private(k)
