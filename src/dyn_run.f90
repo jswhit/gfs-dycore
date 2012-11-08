@@ -163,6 +163,7 @@
       deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
       deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
       deallocate(dlnpsdx,dlnpsdy)
+      if (vcamp > epstiny .or. svc > epstiny) deallocate(dvrtdx,dvrtdy)
       return
    endif
 
@@ -277,6 +278,7 @@
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
    deallocate(dlnpsdx,dlnpsdy)
+   if (vcamp > epstiny .or. svc > epstiny) deallocate(dvrtdx,dvrtdy)
 
    return
  end subroutine getdyntend
