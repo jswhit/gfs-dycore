@@ -15,7 +15,7 @@ module phy_data
  private
  public :: init_phydata, destroy_phydata, flx_init, wrtout_sfc, wrtout_flx
 
- type(sfcio_head) sfchead
+ type(sfcio_head),save :: sfchead
  integer, public :: lsoil, timeoz, pl_coeff, levozp, latsozp, &
                     levozc, latsozc, timeozc
  INTEGER, parameter, public :: MAX_SLOPETYP=30
