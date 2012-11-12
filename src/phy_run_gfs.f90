@@ -125,7 +125,7 @@
    integer :: numrdm(nlons*nlats*2), ixseed(nlons,nlats,2)
    integer :: i,j,k,n,nt,ipseed,nstep,nswr,nlwr,nnrcm,nszer
    integer, parameter :: ipsdlim = 1.0e8      ! upper limit for random seeds
-   real(8) tstart,tend
+   real(8) tstart,tend,t0,t2,tsum
    integer(8) count, count_rate, count_max
    logical :: testomp=.false.  ! openmp debug flag
 
@@ -369,6 +369,7 @@
 
    call system_clock(count, count_rate, count_max)
    tstart = count*1.d0/count_rate
+   tsum = 0.
 ! physics loop over horiz. grid points.
 !$omp parallel do private(n,k,i,j,&
 !$omp& gt,gu,gv,gq,vvel,prsi,prsl,prsik,prslk,&
@@ -409,6 +410,8 @@
       hprime_tmp(:) = hprime(i,j,:)
       swh_tmp(:) = swh(i,j,:); hlw_tmp(:) = hlw(i,j,:)
       slc_tmp(:) = slc(i,j,:); smc_tmp(:) = smc(i,j,:); stc_tmp(:) = stc(i,j,:)
+      call system_clock(count, count_rate, count_max)
+      t0 = count*1.d0/count_rate
 ! call GFS physics driver
       call gbphys                                                       &
 !  ---  inputs:
@@ -508,6 +511,9 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
+     call system_clock(count, count_rate, count_max)
+     t2 = count*1.d0/count_rate
+     tsum = tsum + t2-t0
      ! add a random humidity perturbation to updated specific humidity
      ! grd_hum is fractional perturbation (0.1 means 10%)
      if (shum > tiny(shum)) then
@@ -548,7 +554,7 @@
    print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
    call system_clock(count, count_rate, count_max)
    tend = count*1.d0/count_rate
-   print *,'time in gbphys = ',tend-tstart
+   print *,'time in gbphys = ',tend-tstart,tsum
    if (testomp) then
 !$omp parallel
       i = omp_get_num_threads()
