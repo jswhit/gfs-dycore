@@ -87,6 +87,7 @@
    if (vcamp > epstiny .or. svc > epstiny) then
       ! smoothing factors used to compute vorticity confinement
       ! anti-diffusion of vorticity.
+      ! rnn0 parameter controls strength of smoothing.
       rnn0 = 0.5*ntrunc*(0.5*ntrunc+1)
       do k=1,ndimspec
          rnn1 = degree(k)*(degree(k)+1)
