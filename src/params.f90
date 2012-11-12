@@ -21,9 +21,9 @@ module params
 ! iau parameters
  iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs,&
 ! vorticity confinement parameters
- vcamp,svc,svc_tau,svc_lscale,iseed_svc,svc_logit,&
+ vcamp,svc,svc_tau,svc_lscale,iseed_svc,&
 ! stochastic physics tendency parameters
- sppt,sppt_logit,sppt_tau,sppt_lscale,iseed_sppt, &
+ sppt,sppt_tau,sppt_lscale,iseed_sppt, &
 ! additive stochastic humidity perturbations
  shum,shum_tau,shum_lscale,iseed_shum,clipsupersat
  character(len=500) :: initfile ! init cond filename
@@ -140,11 +140,9 @@ module params
  real(r_kind) :: svc_tau=0.      ! stochastic vorticity confinement time scale
  real(r_kind) :: svc_lscale=0.   ! stochastic vorticity confinement length scale
  integer :: iseed_svc=0 ! random seed for stochastic vc (zero means use clock)
- logical :: svc_logit=.false.  ! logit transform for svc to bounded interval [-1,+1]
  real(r_kind) :: sppt=0.  ! stochastic physics tendency amplitude
  real(r_kind) :: sppt_tau=0.  ! stochastic physics tendency time scale
  real(r_kind) :: sppt_lscale=0.  ! stochastic dynamics tendency length scale
- logical :: sppt_logit=.false. ! logit transform for sppt to bounded interval [-1,+1]
  integer :: iseed_sppt=0 ! random seed for sppt (0 means use system clock)
  real(r_kind) :: shum=0.  ! stochastic humidity pert amplitude
  real(r_kind) :: shum_tau=0.  ! stochastic humidity pert time scale
@@ -177,7 +175,7 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- clipsupersat,svc_logit,sppt_logit,shum,shum_tau,shum_lscale,iseed_shum,&
+ clipsupersat,shum,shum_tau,shum_lscale,iseed_shum,&
  gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
 
  contains
