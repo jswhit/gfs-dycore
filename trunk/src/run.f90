@@ -6,7 +6,7 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
-  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt, sppt_logit, svc_logit
+  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
 use shtns, only: spectogrd, lats, areawts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -212,7 +212,7 @@ subroutine advance(t)
   real(r_double) dtx
   logical :: profile = .true. ! print out timing stats
   integer(8) count, count_rate, count_max
-  real(8) t1,t2
+  real(8) t1,t2,t0,t4
   ! if iau, allocate space for iau tendencies.
   if (iau) then
      if (.not. init_iauialized) call init_iau()
@@ -229,6 +229,8 @@ subroutine advance(t)
   virtempspec_save = virtempspec
   if (ntrac > 0) tracerspec_save = tracerspec
   lnpsspec_save = lnpsspec
+  call system_clock(count, count_rate, count_max)
+  t0 = count*1.d0/count_rate
   ! update dynamics using RK3.
   do k=0,2
      dtx = dt/float(3-k)
@@ -239,14 +241,12 @@ subroutine advance(t)
          if (svc > tiny(svc)) then
             call patterngenerator_advance(spec_svc,rpattern_svc)
             call spectogrd(spec_svc,grd_svc)
-            ! logit transform to bounded interval [-1,+1]
-            if (svc_logit) grd_svc = (2./(1.+exp(grd_svc)))-1.
          endif
          if (sppt > tiny(sppt)) then
             call patterngenerator_advance(spec_sppt,rpattern_sppt)
             call spectogrd(spec_sppt,grd_sppt)
-            ! logit transform to bounded interval [-1,+1]
-            if (sppt_logit) grd_sppt = (2./(1.+exp(grd_sppt)))-1.
+            ! logit transform to prevent changing the sign of tendencies.
+            grd_sppt = (2./(1.+exp(grd_sppt)))-1.
          endif
          if (shum > tiny(shum)) then
             call patterngenerator_advance(spec_shum,rpattern_shum)
@@ -300,6 +300,9 @@ subroutine advance(t)
       t2 = count*1.d0/count_rate
       if (profile) print *,'time in diffusion update=',t2-t1
   enddo
+  call system_clock(count, count_rate, count_max)
+  t4 = count*1.d0/count_rate
+  if (profile) print *,'time in dynamics update=',t4-t0
   ! apply physics parameterizations as an adjustment to fields updated by dynamics.
   ! (time-split approach)
   if (.not. adiabatic) then

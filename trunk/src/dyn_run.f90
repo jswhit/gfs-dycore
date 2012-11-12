@@ -51,13 +51,14 @@
    complex(r_kind), intent(out), dimension(ndimspec) :: dlnpsspecdt
 ! local variables.
    complex(r_kind), dimension(:,:),allocatable :: workspec
+   complex(r_kind), dimension(ndimspec) :: smoothfact
    real(r_kind), dimension(:,:), allocatable :: dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
-   prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy,dvrtdx,dvrtdy
+   prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
    integer, intent(in) :: kstep ! runge-kutta step (0,1,2)
    integer k,nt,ntrac_use
    logical :: profile = .false. ! print out timeing stats
-   real(r_kind) pmoist,pdry,epstiny
+   real(r_kind) pmoist,pdry,epstiny,rnn1,rnn0
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
 
@@ -84,8 +85,13 @@
    allocate(dvirtempdy(nlons,nlats,nlevs))
    allocate(workspec(ndimspec,nlevs))  
    if (vcamp > epstiny .or. svc > epstiny) then
-      allocate(dvrtdx(nlons,nlats,nlevs))
-      allocate(dvrtdy(nlons,nlats,nlevs))
+      ! smoothing factors used to compute vorticity confinement
+      ! anti-diffusion of vorticity.
+      rnn0 = 0.5*ntrunc*(0.5*ntrunc+1)
+      do k=1,ndimspec
+         rnn1 = degree(k)*(degree(k)+1)
+         smoothfact(k)=exp(-(rnn1/rnn0))
+      enddo
    endif
 
    ! compute u,v,virt temp, vorticity, divergence, ln(ps)
@@ -105,10 +111,6 @@
       do nt=1,ntrac
          call spectogrd(tracerspec(:,k,nt),tracerg(:,:,k,nt))
       enddo
-      ! vorticity gradient only needed for vorticity confinement.
-      if (vcamp > epstiny .or. svc > epstiny) then
-         call getgrad(vrtspec(:,k),dvrtdx(:,:,k),dvrtdy(:,:,k),rerth)
-      end if
    enddo
 !$omp end parallel do 
    call system_clock(count, count_rate, count_max)
@@ -163,7 +165,6 @@
       deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
       deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
       deallocate(dlnpsdx,dlnpsdy)
-      if (vcamp > epstiny .or. svc > epstiny) deallocate(dvrtdx,dvrtdy)
       return
    endif
 
@@ -222,27 +223,23 @@
       ! flux terms for vort, div eqns
       prsgx(:,:,k) = ug(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) + vadvv(:,:,k)
       prsgy(:,:,k) = vg(:,:,k)*(vrtg(:,:,k) + dlnpsdx(:,:)) - vadvu(:,:,k)
-      ! add vorticity confinement term.
-      if (vcamp > epstiny .or. svc > epstiny) then
-         ! abs(grad(vrt)) - stored in vadvu
-         vadvu(:,:,k) = sqrt(dvrtdx(:,:,k)**2 + dvrtdy(:,:,k)**2)
-         ! upgradient advection velocity is vcamp*grad(vrt)/abs(grad(vrt)) 
-         ! (unit normal vector pointing up vorticity gradient scaled by
-         ! vcamp, which has units of velocity)
-         ! vcamp stored in vadvv
-         vadvv(:,:,k) = vcamp
-         ! vcamp modulated by stochastic pattern.
-         if (svc > epstiny) vadvv(:,:,k) = (1.+vfact_svc(k)*grd_svc)*vadvv(:,:,k)
-         where (vadvu(:,:,k) > epstiny) 
-            dvrtdx(:,:,k) = dvrtdx(:,:,k)/vadvu(:,:,k)
-            dvrtdy(:,:,k) = dvrtdy(:,:,k)/vadvu(:,:,k)
-            prsgx(:,:,k) = prsgx(:,:,k) + vadvv(:,:,k)*dvrtdx(:,:,k)*abs(vrtg(:,:,k))
-            prsgy(:,:,k) = prsgy(:,:,k) + vadvv(:,:,k)*dvrtdy(:,:,k)*abs(vrtg(:,:,k))
-         end where
-      end if
       call getvrtdivspec(prsgx(:,:,k),prsgy(:,:,k),ddivspecdt(:,k),dvrtspecdt(:,k),rerth)
       ! flip sign of vort tend.
       dvrtspecdt(:,k) = -dvrtspecdt(:,k) 
+      if (vcamp > epstiny .or. svc > epstiny) then
+         ! add simplified vorticity confinement (anti-diffusion of vorticity)
+         ! operates on smoothed vorticity field.
+         ! multiply anti-diffusion by stochastic random pattern if svc > 0
+         if (svc > epstiny) then
+            workspec(:,k) = (lap/rerth**2)*smoothfact*vrtspec(:,k)
+            call spectogrd(workspec(:,k), prsgx(:,:,k))
+            prsgx(:,:,k) = (vcamp+vfact_svc(k)*grd_svc)*prsgx(:,:,k)
+            call grdtospec(prsgx(:,:,k),workspec(:,k))
+            dvrtspecdt(:,k) = dvrtspecdt(:,k) + workspec(:,k)
+         else ! if not stochastic, no transforms needed (VC is cost-free)
+            dvrtspecdt(:,k) = dvrtspecdt(:,k) + vcamp*(lap/rerth**2)*smoothfact*vrtspec(:,k)
+         endif
+      endif
       ! add laplacian(KE) term to div tendency
       prsgx(:,:,k) = 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
       call grdtospec(prsgx(:,:,k),workspec(:,k))
@@ -278,7 +275,6 @@
    deallocate(vadvq,workspec,dvirtempdx,dvirtempdy)
    deallocate(prsgx,prsgy,vadvu,vadvv,vadvt)
    deallocate(dlnpsdx,dlnpsdy)
-   if (vcamp > epstiny .or. svc > epstiny) deallocate(dvrtdx,dvrtdy)
 
    return
  end subroutine getdyntend
