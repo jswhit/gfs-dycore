@@ -46,7 +46,7 @@ module params
  integer    :: nlevs ! number of levels on grid
  integer    :: ntrunc ! spectral truncation
  integer    :: ndimspec ! spectral array dimension
-! order of runge-kutta scheme (must be >= 2,kmax=1 is unstable)
+! order of runge-kutta scheme (must be 2 or 3)
 ! kmax=2 results in modified-Euler or midpoint method (2nd order)
 ! kmax=3 results in Kutta's third order method (used in Kar 2006).
  integer    :: kmax = 3 
@@ -258,6 +258,14 @@ module params
       print *,'pdryini=',pdryini
       print *,'idate_start=',idate_start
    endif 
+   if (kmax .eq. 2) then
+     print *,'using 2nd-order Runge-Kutta (midpoint) semi-implicit scheme'
+   else if (kmax .eq. 3) then
+     print *,'using 3rd-order Runge-Kutta (Kar 2006) semi-implicit scheme'
+   else
+     print *,'kmax must be 2 or 3'
+     stop
+   endif
    tmax = fhmax*3600. 
    ntmax = nint((tmax-tstart)/dt)
    ntout = fhout*timestepsperhr
