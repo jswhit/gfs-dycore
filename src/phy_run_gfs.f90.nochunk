@@ -10,7 +10,7 @@
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
- sppt,shum,clipsupersat,ngptc
+ sppt,shum,clipsupersat
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, spectogrd, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
@@ -90,28 +90,20 @@
    real(r_kind), parameter :: qmin = 1.e-10 ! min value for clipping tracers
    real(r_kind), parameter :: typical_pgr = 95000.0
    real(r_kind)  :: fscav(ntrac-ncld-1),&
-   fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(ngptc),&
-   gt(ngptc,nlevs),prsl(ngptc,nlevs),prsi(ngptc,nlevs+1),vvel(ngptc,nlevs),&
+   fhour,dtsw,dtlw,facoz,clstp,solhr,dphi,dpshc(1),&
+   gt(nlevs),prsl(nlevs),prsi(nlevs+1),vvel(nlevs),&
    q,st,f_ice(nlevs),f_rain(nlevs),r_rime(nlevs),&
-   prslk(ngptc,nlevs),gq(ngptc,nlevs,ntrac),prsik(ngptc,nlevs+1),&
-   si_loc(nlevs+1),phii(ngptc,nlevs+1),&
-   phil(ngptc,nlevs),rann(ngptc),acv(ngptc),acvb(ngptc),acvt(ngptc),&
-   adt(ngptc,nlevs),adu(ngptc,nlevs),adv(ngptc,nlevs),&
-   dum1(ngptc),rqtk(ngptc),upd_mf(ngptc,nlevs),dwn_mf(ngptc,nlevs),&
-   det_mf(ngptc,nlevs),dkh(ngptc,nlevs),rnp(ngptc,nlevs),&
-   adq(ngptc,nlevs,ntrac),dt3dt(ngptc,nlevs,6),du3dt(ngptc,nlevs,4),&
-   dv3dt(ngptc,nlevs,4),dq3dt(ngptc,nlevs,5+pl_coeff),&
-   phy3d(ngptc,nlevs,num_p3d),phy2d(ngptc,num_p2d),hlw_tmp(ngptc,nlevs),&
-   swh_tmp(ngptc,nlevs),fluxr_tmp(ngptc,nfxr),&
-   cldcov_tmp(ngptc,nlevs),hprime_tmp(ngptc,nmtvr),slc_tmp(ngptc,lsoil),&
-   smc_tmp(ngptc,lsoil),stc_tmp(ngptc,lsoil),&
-   slats(ngptc),clats(ngptc),&
-   pwatg,pdry,pcorr,gu(ngptc,nlevs),gv(ngptc,nlevs)
-   integer :: icsdsw(ngptc),icsdlw(ngptc),ilons(ngptc), ipsd0
+   prslk(nlevs),gq(nlevs,ntrac),prsik(nlevs+1),si_loc(nlevs+1),phii(nlevs+1),&
+   phil(nlevs),rann(1),acv(1),acvb(1),acvt(1),adt(nlevs),adu(nlevs),adv(nlevs),&
+   dum1(1),rqtk(1),upd_mf(nlevs),dwn_mf(nlevs),det_mf(nlevs),dkh(nlevs),rnp(nlevs),&
+   adq(nlevs,ntrac),dt3dt(nlevs,6),du3dt(nlevs,4),dv3dt(nlevs,4),dq3dt(nlevs,5+pl_coeff),&
+   phy3d(nlevs,num_p3d),phy2d(num_p2d),hlw_tmp(nlevs),swh_tmp(nlevs),fluxr_tmp(nfxr),&
+   cldcov_tmp(nlevs),hprime_tmp(nmtvr),slc_tmp(lsoil),smc_tmp(lsoil),stc_tmp(lsoil),&
+   pwatg,pdry,pcorr,gu(nlevs),gv(nlevs)
+   integer :: icsdsw(1),icsdlw(1),ilons(1), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
    complex(r_kind), allocatable, dimension(:) :: workspec
-   real(r_kind), allocatable, dimension(:,:,:) :: dtdt,dudt,dvdt
-   real(r_kind), allocatable, dimension(:,:,:,:) :: ozplout
+   real(r_kind), allocatable, dimension(:,:,:) :: ozplout,dtdt,dudt,dvdt
    real(4), allocatable, dimension(:,:,:) :: work4
    real(r_kind), allocatable, dimension(:,:,:,:) :: dtracersdt
    logical :: sas_shal ! sas shallow convection.
@@ -131,19 +123,15 @@
    integer :: idat(8), jdat(8)
    type (random_stat) :: stat
    integer :: numrdm(nlons*nlats*2), ixseed(nlons,nlats,2)
-   integer :: i,j,k,m,im,n,nt,ipseed,nstep,nswr,nlwr,nnrcm,nszer,numthreads
+   integer :: i,j,k,n,nt,ipseed,nstep,nswr,nlwr,nnrcm,nszer
    integer, parameter :: ipsdlim = 1.0e8      ! upper limit for random seeds
    real(8) tstart,tend,t0,t2,tsum
    integer(8) count, count_rate, count_max
    logical :: testomp=.false.  ! openmp debug flag
 
    dtp = dtx
-   if (mod(nlons,ngptc) .ne. 0) then
-     print *,'nlons must be divisible by ngptc'
-     stop
-   endif
 
-   allocate(ozplout(ngptc,levozp,pl_coeff,nlats))
+   allocate(ozplout(levozp,pl_coeff,nlats))
    allocate(coszdg(nlons,nlats))
    allocate(dtdt(nlons,nlats,nlevs),dudt(nlons,nlats,nlevs),dvdt(nlons,nlats,nlevs))
    allocate(dtracersdt(nlons,nlats,nlevs,ntrac))
@@ -260,44 +248,44 @@
 
    call system_clock(count, count_rate, count_max)
    tstart = count*1.d0/count_rate
-!$omp parallel do private(m,n,k,nt,i,j,im,prslk,f_ice,f_rain,&
+!$omp parallel do private(n,k,nt,i,j,prslk,f_ice,f_rain,&
 !$omp& r_rime,prsi,prsl,gt,gq,vvel,icsdsw,icsdlw,fluxr_tmp,&
-!$omp& swh_tmp,hlw_tmp,cldcov_tmp) schedule(dynamic,1)
-   do j=1,nlats
-   do i=1,nlons,ngptc
-       n = i+ngptc-1
-       im = n-i+1
+!$omp& swh_tmp,hlw_tmp,cldcov_tmp) schedule(dynamic)
+   do n=1,nlons*nlats
+       ! n=i+(j-1)*nlons
+       j = 1+(n-1)/nlons
+       i = n-(j-1)*nlons
        do k=1,nlevs+1
           ! interface pressure, bottom to top (Pa)
-          prsi(1:im,k) = pk(i:n,j,nlevs-k+2)
+          prsi(k) = pk(i,j,nlevs-k+2)
        enddo
        ! layer pressure, bottom to top
-       prsl(1:im,:) = prs(i:n,j,:)
+       !prsl(1:nlevs) = 0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
+       prsl(:) = prs(i,j,:)
        prslk = (prsl/1.e5)**rk ! Exner function (non-dimensional)
        prsl = 0.001*prsl; prsi = 0.001*prsi ! convert to cb (kPa)
        do k=1,nlevs
           ! tracers (humidity, ozone, cloud condensate)
           ! clipped to qmin
           do nt=1,ntrac
-             do m=1,im
-               gq(m,k,nt) = max(qmin,tracerg(i+m-1,j,k,nt))
-             enddo
+             gq(k,nt) = max(qmin,tracerg(i,j,k,nt))
           enddo
           ! compute sensible temp.
-          gt(1:im,k) = virtempg(i:n,j,k)/(1.+fv*gq(1:im,k,1))
+          gt(k) = virtempg(i,j,k)/(1.+fv*gq(k,1))
        enddo
        ! omega in cb/sec
-       vvel(1:im,:) = dlnpdtg(i:n,j,:)*0.5*(prsi(1:im,1:nlevs)+prsi(1:im,2:nlevs+1))
+       !vvel(:) = dlnpdtg(i,j,:)*prsl
+       vvel(:) = dlnpdtg(i,j,:)*0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
 !  ---  assign random seeds for sw and lw radiations
        if ( ISUBC_LW==2 .or. ISUBC_SW==2 ) then
-           icsdsw(1:im) = ixseed(i:n,j,1)
-           icsdlw(1:im) = ixseed(i:n,j,2)
+           icsdsw(1) = ixseed(i,j,1)
+           icsdlw(1) = ixseed(i,j,2)
        endif
-       fluxr_tmp(:,:) = fluxr(i:n,j,:)
+       fluxr_tmp(:) = fluxr(i,j,:)
 ! call GFS radiation driver
        call grrad                                                   &
 !  ---  inputs:
-       ( prsi,prsl,prslk,gt,gq(1,1,1),gq,vvel,slmsk(i,j),           &
+       ( prsi,prsl,prslk,gt,gq(:,1),gq,vvel,slmsk(i,j),             &
          lons(i,j),lats(i,j),tsea(i,j),                             &
          sheleg(i,j),sncovr(i,j),snoalb(i,j),                       &
          zorl(i,j),hprime(i,j,1),                                   &
@@ -312,38 +300,37 @@
          icsdsw,icsdlw,NUM_P3D,NTCLW,NCLD,NTOZ,NTRAC,NFXR,          &
          dtlw,dtsw,lsswr,lslwr,lssav,sas_shal,norad_precip,         &
          crick_proof, ccnorm,                                       &
-         ngptc,im,nlevs,1,0,.false.,1,1,                            &
+         1,1,nlevs,1,0,.false.,1,1,                                 &
 !  ---  outputs:
          swh_tmp,sfcnsw(i,j),sfcdsw(i,j),                           &
          sfalb(i,j),                                                &
          hlw_tmp,sfcdlw(i,j),tsflw(i,j),                            &
          sfcemis(i,j),cldcov_tmp,                                   &
 !  ---  input/output:
-         fluxr_tmp                                                  &
+        fluxr_tmp                                                   &
        )
        ! avoid array temporaries by using these instead
        ! of passing non-contiguous slices.
-       hlw(i:n,j,:) = hlw_tmp(1:im,:)
-       swh(i:n,j,:) = swh_tmp(1:im,:)
-       fluxr(i:n,j,:) = fluxr_tmp(1:im,:)
+       hlw(i,j,:) = hlw_tmp(:)
+       swh(i,j,:) = swh_tmp(:)
+       fluxr(i,j,:) = fluxr_tmp(:)
        ! diagnosed 3d cloud fraction.
-       cldcov(i:n,j,:) = cldcov_tmp(1:im,:)
+       cldcov(i,j,:) = cldcov_tmp(:)
 
-   enddo ! loop over lons
-   enddo ! loop over lats
+   enddo ! loop over horiz grid points
 !$omp end parallel do 
    print *,'min/max swh',minval(swh),maxval(swh)
    print *,'min/max hlw',minval(hlw),maxval(hlw)
    call system_clock(count, count_rate, count_max)
    tend = count*1.d0/count_rate
    print *,'time in grrad = ',tend-tstart
-!$omp parallel
-   numthreads = omp_get_num_threads()
-!$omp end parallel
    if (testomp) then
+!$omp parallel
+      i = omp_get_num_threads()
+!$omp end parallel
       allocate(work4(nlons,nlats,nlevs))
       open(7,file='grrad.dat',form='unformatted')
-      if (numthreads > 1) then
+      if (i > 1) then
          read(7) work4
          print *,'sw diff',maxval(abs(work4-swh))
          read(7) work4
@@ -373,74 +360,68 @@
 ! interpolate oz forcing to model latitudes, day of year.
    ozplout = 0.
    if (ntoz .gt. 0) then
-      call ozinterpol(jdat,ozplout,ngptc)
+      call ozinterpol(jdat,ozplout)
    endif
    ! random number needed for RAS and old SAS
    rann(:) = 0.6
    fscav = 0 ! only relevant for RAS
-   ilons(:) = nlons
+   ilons(1) = nlons
 
    call system_clock(count, count_rate, count_max)
    tstart = count*1.d0/count_rate
-   tsum = 0
+   tsum = 0.
 ! physics loop over horiz. grid points.
-!$omp parallel do private(m,n,k,i,j,im,&
+!$omp parallel do private(n,k,i,j,&
 !$omp& gt,gu,gv,gq,vvel,prsi,prsl,prsik,prslk,&
 !$omp& phii,phil,dphi,dpshc,dum1,&
 !$omp& adt,adu,adv,adq,slc_tmp,stc_tmp,smc_tmp,&
 !$omp& phy3d,phy2d,hlw_tmp,swh_tmp,hprime_tmp,&
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
-!$omp& acv,acvt,acvb,rqtk,t0,t2,count,count_rate,count_max,&
-!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic,1) 
-!!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic,1) reduction(+:tsum)
-   do j=1,nlats
-   do i=1,nlons,ngptc
-      n = i+ngptc-1
-      im = n-i+1
+!$omp& acv,acvt,acvb,rqtk,&
+!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic)
+   do n=1,nlons*nlats
+      ! n=i+(j-1)*nlons
+      j = 1+(n-1)/nlons
+      i = n-(j-1)*nlons
       ! tracers (humidity, ozone, cloud condensate - don't clip)
-      gq(1:im,:,:) = tracerg(i:n,j,:,:)
+      gq = tracerg(i,j,:,:)
       ! compute sensible temp (clip humidity in computation).
       do k=1,nlevs
-         do m=1,im
-            gt(m,k) = virtempg(i+m-1,j,k)/(1.+fv*max(qmin,gq(m,k,1)))
-         enddo
+         gt(k) = virtempg(i,j,k)/(1.+fv*max(qmin,gq(k,1)))
       enddo
       ! horizontal winds.
-      gu(1:im,:) = ug(i:n,j,:)
-      gv(1:im,:) = vg(i:n,j,:)
-      ! interface pressure, bottom to top, in Pa
+      gu(:) = ug(i,j,:); gv(:) = vg(i,j,:)
       do k=1,nlevs+1
          ! interface pressure, bottom to top, in Pa
-         prsi(1:im,k) = pk(i:n,j,nlevs-k+2)
+         prsi(k) = pk(i,j,nlevs-k+2)
       enddo
       ! layer pressure, bottom to top, in Pa.
-      prsl(1:im,:) = prs(i:n,j,:)
-      prslk(1:im,:) = (prsl(1:im,:)/1.e5)**rk ! Exner function
-      prsik(1:im,:) = (prsi(1:im,:)/1.e5)**rk
-      phil(1:im,nlevs) = 0. ! forces recomputation in gbphys (get_prs).
+      !prsl(1:nlevs) = 0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
+      prsl(:) = prs(i,j,:)
+      prslk = (prsl/1.e5)**rk ! Exner function
+      prsik = (prsi/1.e5)**rk
+      phil(nlevs) = 0. ! forces recomputation in gbphys (get_prs).
       ! omega in Pa/sec
-      vvel(1:im,:) = dlnpdtg(i:n,j,:)*0.5*(prsi(1:im,1:nlevs)+prsi(1:im,2:nlevs+1))
-      dpshc(1:im)  = 0.3*prsi(1:im,1) ! max press depth for shallow convection.
-      phy3d(1:im,:,:) = phy_f3d(i:n,j,:,:)
-      phy2d(1:im,:) = phy_f2d(i:n,j,:)
-      hprime_tmp(1:im,:) = hprime(i:n,j,:)
-      swh_tmp(1:im,:) = swh(i:n,j,:); hlw_tmp(1:im,:) = hlw(i:n,j,:)
-      slc_tmp(1:im,:) = slc(i:n,j,:); smc_tmp(1:im,:) = smc(i:n,j,:)
-      stc_tmp(1:im,:) = stc(i:n,j,:)
-      slats = sin(lats(i:n,j))
-      clats = cos(lats(i:n,j))
-      !call system_clock(count, count_rate, count_max)
-      !t0 = count*1.d0/count_rate
+      !vvel(:) = dlnpdtg(i,j,:)*prsl
+      vvel(:) = dlnpdtg(i,j,:)*0.5*(prsi(1:nlevs)+prsi(2:nlevs+1))
+      dpshc(1)     = 0.3*prsi(1) ! max press depth for shallow convection.
+      phy3d(:,:) = phy_f3d(i,j,:,:)
+      phy2d(:) = phy_f2d(i,j,:)
+      hprime_tmp(:) = hprime(i,j,:)
+      swh_tmp(:) = swh(i,j,:); hlw_tmp(:) = hlw(i,j,:)
+      slc_tmp(:) = slc(i,j,:); smc_tmp(:) = smc(i,j,:); stc_tmp(:) = stc(i,j,:)
+      call system_clock(count, count_rate, count_max)
+      t0 = count*1.d0/count_rate
 ! call GFS physics driver
       call gbphys                                                       &
 !  ---  inputs:
-          ( ngptc,im,nlevs,lsoil,1,ntrac,ncld,ntoz,ntclw,               &
+          ( 1,1,nlevs,lsoil,1,ntrac,ncld,ntoz,ntclw,                    &
             nmtvr,nnrcm,levozp,nlons,nlats,ntrunc,num_p3d,num_p2d,      &
             nstep,1,0,pl_coeff,ilons,ncw,flgmin,crtrh,cdmbgwd,          &
             ccwf,dlqf,ctei_rm,clstp,dtp,dtp,fhour,solhr,                &
-            slag,sdec,cdec,slats,clats,psg(i,j),gu,gv,                  &
+            slag,sdec,cdec,sin(lats(i,j)),cos(lats(i,j)),psg(i,j),gu,gv,&
             gt,gq,vvel,prsi,prsl,prslk,prsik,phii,phil,                 &
-            rann,ozplout(1,1,1,j),pl_pres,dpshc,                        &
+            rann,ozplout(:,:,j),pl_pres,dpshc,                          &
             hprime_tmp,lons(i,j),lats(i,j),                             &
             slope (i,j),    shdmin(i,j),                                &
             shdmax(i,j),    snoalb(i,j),                                &
@@ -530,44 +511,37 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
-     !call system_clock(count, count_rate, count_max)
-     !t2 = count*1.d0/count_rate
-     !tsum = tsum + t2-t0
+     call system_clock(count, count_rate, count_max)
+     t2 = count*1.d0/count_rate
+     tsum = tsum + t2-t0
      ! add a random humidity perturbation to updated specific humidity
      ! grd_hum is fractional perturbation (0.1 means 10%)
      if (shum > tiny(shum)) then
         do k=1,nlevs
-           adq(1:im,k,1) = adq(1:im,k,1)*(1. + vfact_shum(k)*grd_shum(i:n,j))
-           if (clipsupersat) then
-             do m=1,im
-              call clipq(adt(m,k),adq(m,k,1),prsl(m,k),qmin)
-             enddo
-           endif
+           adq(k,1) = adq(k,1)*(1. + vfact_shum(k)*grd_shum(i,j))
+           if (clipsupersat) call clipq(adt(k),adq(k,1),prsl(k),qmin)
         enddo
      endif
      ! convert sensible temp back to virt temp.
      ! (clip humidity in conversion)
      do k=1,nlevs
-        do m=1,im
-          adt(m,k) = adt(m,k)*(1.+fv*max(qmin,adq(m,k,1)))
-        enddo
+        adt(k) = adt(k)*(1.+fv*max(qmin,adq(k,1)))
      enddo
      ! compute tendencies, 
      ! update grid data.
-     dtdt(i:n,j,:) = adt(1:im,:)-virtempg(i:n,j,:)
-     dtracersdt(i:n,j,:,:) = adq(1:im,:,:)-tracerg(i:n,j,:,:)
-     dudt(i:n,j,:) = adu(1:im,:)-ug(i:n,j,:)
-     dvdt(i:n,j,:) = adv(1:im,:)-vg(i:n,j,:)
-     dpsdt(i:n,j) = rqtk(1:im) ! not used
+     dtdt(i,j,:) = adt-virtempg(i,j,:)
+     dtracersdt(i,j,:,:) = adq-tracerg(i,j,:,:)
+     dudt(i,j,:) = adu-ug(i,j,:)
+     dvdt(i,j,:) = adv-vg(i,j,:)
+     dpsdt(i,j) = rqtk(1) ! not used
      ! avoid array temporaries by using these instead
      ! of passing non-contiguous slices.
-     phy_f3d(i:n,j,:,:) = phy3d(1:im,:,:)
-     phy_f2d(i:n,j,:) = phy2d(1:im,:)
-     smc(i:n,j,:) = smc_tmp(1:im,:)
-     slc(i:n,j,:) = slc_tmp(1:im,:)
-     stc(i:n,j,:) = stc_tmp(1:im,:)
-   enddo ! end loop over longitudes
-   enddo ! end loop over latitudes
+     phy_f3d(i,j,:,:) = phy3d(:,:)
+     phy_f2d(i,j,:) = phy2d(:)
+     smc(i,j,:) = smc_tmp(:)
+     slc(i,j,:) = slc_tmp(:)
+     stc(i,j,:) = stc_tmp(:)
+   enddo ! end loop over horiz grid points
 !$omp end parallel do 
    print *,'min/max dtdt',minval(dtdt),maxval(dtdt)
    print *,'min/max dudt',minval(dudt),maxval(dudt)
@@ -580,11 +554,13 @@
    print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
    call system_clock(count, count_rate, count_max)
    tend = count*1.d0/count_rate
-   !print *,'time in gbphys = ',tend-tstart,tsum/float(numthreads)
-   print *,'time in gbphys = ',tend-tstart
+   print *,'time in gbphys = ',tend-tstart,tsum
    if (testomp) then
+!$omp parallel
+      i = omp_get_num_threads()
+!$omp end parallel
       open(7,file='gbphys.dat',form='unformatted')
-      if (numthreads > 1) then
+      if (i > 1) then
          read(7) work4
          print *,'dtdt diff',maxval(abs(work4-dtdt))
          read(7) work4
@@ -724,14 +700,13 @@
     call w3movdat(fh,id,jd)
  end subroutine getvaliddate
 
- SUBROUTINE ozinterpol(jdat,ozplout,ngptc)
+ SUBROUTINE ozinterpol(jdat,ozplout)
    ! interpolate climatological ozone forcing in space and time.
    implicit none
    integer  j,j1,j2,l,nc,n1,n2,jdow,jdoy,jday
-   integer, intent(in) :: ngptc
    real(r_kind) rjday, tx1, tx2
    integer,intent(in) :: JDAT(8)
-   real(r_kind), intent(out) ::  ozplout(ngptc,levozp,pl_coeff,nlats)
+   real(r_kind), intent(out) ::  ozplout(levozp,pl_coeff,nlats)
    jdow = 0
    jdoy = 0
    jday = 0
@@ -755,7 +730,7 @@
        DO J=1,nlats
          J1  = OZJINDX1(J)
          J2  = OZJINDX2(J)
-         ozplout(:,L,nc,j) = &
+         ozplout(L,nc,j) = &
          tx1*((1.-OZDDY(J))*ozplin(J1,L,nc,n1)+OZDDY(J)*ozplin(J2,L,nc,n1)) +&
          tx2*((1.-OZDDY(J))*ozplin(J1,L,nc,n2)+OZDDY(J)*ozplin(J2,L,nc,n2))
        ENDDO

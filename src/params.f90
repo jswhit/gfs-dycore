@@ -10,14 +10,14 @@ module params
 
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
  tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,dcmip,&
- ntout,fhdfi,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
+ kmax,ntout,fhdfi,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
  pdryini,massfix,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,gfsio_out,sigio_out,&
 ! gfs phys parameters.
  nmtvr,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h,gloopb_filter,&
+ ngptc,pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h,gloopb_filter,&
 ! iau parameters
  iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs,&
 ! vorticity confinement parameters
@@ -46,6 +46,10 @@ module params
  integer    :: nlevs ! number of levels on grid
  integer    :: ntrunc ! spectral truncation
  integer    :: ndimspec ! spectral array dimension
+! order of runge-kutta scheme (must be >= 2,kmax=1 is unstable)
+! kmax=2 results in modified-Euler or midpoint method (2nd order)
+! kmax=3 results in Kutta's third order method (used in Kar 2006).
+ integer    :: kmax = 3 
  type(sigio_head),save  :: sighead ! header struct from initfile
  logical    :: dry = .false. ! no moisture, cloud condensate or ozone.
  logical    :: adiabatic = .false. ! don't call physics
@@ -81,6 +85,7 @@ module params
  integer :: ntoz=2 ! ozone tracer number
  integer :: ntclw=3 ! cloud condensate tracer number
  integer :: nmtvr=14 ! number of fields in mtnvar file.
+ integer :: ngptc=24 ! pass this many profiles to gbphys in one call.
  real(r_kind) :: taustratdamp=5.*86400. ! extra linear drag near top of model
 ! parameters relevant for GFS physics
  ! interval in hours to call long-wave radiation (0 means every time step)
@@ -175,8 +180,8 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- clipsupersat,shum,shum_tau,shum_lscale,iseed_shum,&
- gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
+ ngptc,clipsupersat,shum,shum_tau,shum_lscale,iseed_shum,&
+ kmax,gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
 
  contains
 
