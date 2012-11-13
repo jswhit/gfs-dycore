@@ -10,7 +10,7 @@
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
- sppt,shum,clipsupersat
+ sppt,shum,clipsupersat,ngptc
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, spectogrd, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
@@ -79,7 +79,6 @@
    use mersenne_twister, only : random_setseed, random_index, random_stat
    use module_radiation_astronomy, only: astronomy
    use module_radiation_driver, only: radinit, grrad
-   integer, parameter :: ngptc = 128
    ! compute physics tendencies for gfs physics
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    dvrtspecdt,ddivspecdt,dvirtempspecdt
@@ -132,7 +131,7 @@
    integer :: idat(8), jdat(8)
    type (random_stat) :: stat
    integer :: numrdm(nlons*nlats*2), ixseed(nlons,nlats,2)
-   integer :: i,j,k,m,im,n,nt,ipseed,nstep,nswr,nlwr,nnrcm,nszer
+   integer :: i,j,k,m,im,n,nt,ipseed,nstep,nswr,nlwr,nnrcm,nszer,numthreads
    integer, parameter :: ipsdlim = 1.0e8      ! upper limit for random seeds
    real(8) tstart,tend,t0,t2,tsum
    integer(8) count, count_rate, count_max
@@ -263,7 +262,7 @@
    tstart = count*1.d0/count_rate
 !$omp parallel do private(m,n,k,nt,i,j,im,prslk,f_ice,f_rain,&
 !$omp& r_rime,prsi,prsl,gt,gq,vvel,icsdsw,icsdlw,fluxr_tmp,&
-!$omp& swh_tmp,hlw_tmp,cldcov_tmp) schedule(dynamic)
+!$omp& swh_tmp,hlw_tmp,cldcov_tmp) schedule(dynamic,1)
    do j=1,nlats
    do i=1,nlons,ngptc
        n = i+ngptc-1
@@ -338,13 +337,13 @@
    call system_clock(count, count_rate, count_max)
    tend = count*1.d0/count_rate
    print *,'time in grrad = ',tend-tstart
-   if (testomp) then
 !$omp parallel
-      i = omp_get_num_threads()
+   numthreads = omp_get_num_threads()
 !$omp end parallel
+   if (testomp) then
       allocate(work4(nlons,nlats,nlevs))
       open(7,file='grrad.dat',form='unformatted')
-      if (i > 1) then
+      if (numthreads > 1) then
          read(7) work4
          print *,'sw diff',maxval(abs(work4-swh))
          read(7) work4
@@ -392,7 +391,8 @@
 !$omp& phy3d,phy2d,hlw_tmp,swh_tmp,hprime_tmp,&
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
 !$omp& acv,acvt,acvb,rqtk,t0,t2,count,count_rate,count_max,&
-!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic) reduction(+:tsum)
+!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic,1) 
+!!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic,1) reduction(+:tsum)
    do j=1,nlats
    do i=1,nlons,ngptc
       n = i+ngptc-1
@@ -429,8 +429,8 @@
       stc_tmp(1:im,:) = stc(i:n,j,:)
       slats = sin(lats(i:n,j))
       clats = cos(lats(i:n,j))
-      call system_clock(count, count_rate, count_max)
-      t0 = count*1.d0/count_rate
+      !call system_clock(count, count_rate, count_max)
+      !t0 = count*1.d0/count_rate
 ! call GFS physics driver
       call gbphys                                                       &
 !  ---  inputs:
@@ -530,9 +530,9 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
-     call system_clock(count, count_rate, count_max)
-     t2 = count*1.d0/count_rate
-     tsum = tsum + t2-t0
+     !call system_clock(count, count_rate, count_max)
+     !t2 = count*1.d0/count_rate
+     !tsum = tsum + t2-t0
      ! add a random humidity perturbation to updated specific humidity
      ! grd_hum is fractional perturbation (0.1 means 10%)
      if (shum > tiny(shum)) then
@@ -580,13 +580,11 @@
    print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
    call system_clock(count, count_rate, count_max)
    tend = count*1.d0/count_rate
-!$omp parallel
-   i = omp_get_num_threads()
-!$omp end parallel
-   print *,'time in gbphys = ',tend-tstart,tsum/float(i)
+   !print *,'time in gbphys = ',tend-tstart,tsum/float(numthreads)
+   print *,'time in gbphys = ',tend-tstart
    if (testomp) then
       open(7,file='gbphys.dat',form='unformatted')
-      if (i > 1) then
+      if (numthreads > 1) then
          read(7) work4
          print *,'dtdt diff',maxval(abs(work4-dtdt))
          read(7) work4
