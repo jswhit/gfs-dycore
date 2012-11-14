@@ -125,7 +125,7 @@
    ! results stored in module pressure_data
    call calc_pressdata(lnpsg) 
 
-! compute global mean dry ps (only first step in rk3).
+! compute global mean dry ps (only first step in RK scheme).
    if (kstep .eq. 0) then
       pmoist = 0.
       if (.not. dry) then

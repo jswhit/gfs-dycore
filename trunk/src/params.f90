@@ -46,9 +46,10 @@ module params
  integer    :: nlevs ! number of levels on grid
  integer    :: ntrunc ! spectral truncation
  integer    :: ndimspec ! spectral array dimension
-! order of runge-kutta scheme (must be 2 or 3)
+! order of runge-kutta scheme (must be 2,3 or 4)
 ! kmax=2 results in modified-Euler or midpoint method (2nd order)
-! kmax=3 results in Kutta's third order method (used in Kar 2006).
+! kmax=3 results in 3-stage, 2nd order scheme used in Kar 2006.
+! kmax=4 results in 4-stage, 2nd order scheme of Baldauf 2010.
  integer    :: kmax = 3 
  type(sigio_head),save  :: sighead ! header struct from initfile
  logical    :: dry = .false. ! no moisture, cloud condensate or ozone.
@@ -62,12 +63,12 @@ module params
  ! dcmip test cases
  integer    :: dcmip = -1 ! 4x for baroclinic wave, 5x for tropical cyclone.
  ! use explicit time differencing
- ! if .true., explicit RK3 is used.
- ! if .false., semi-implicit RK3 (Kar, 2006, MWR p. 2916,
+ ! if .true., explicit RK is used.
+ ! if .false., semi-implicit RK (Kar, 2006, MWR p. 2916,
  ! http://dx.doi.org/10.1175/MWR3214.1) is used.
- ! explicit or semi-implicit rk3
- !logical    :: explicit = .true. ! use explicit rk3
- logical    :: explicit = .false. ! use semi-implicit rk3
+ ! explicit or semi-implicit RK
+ !logical    :: explicit = .true. ! use explicit RK
+ logical    :: explicit = .false. ! use semi-implicit RK
  ! starting forecast time in seconds (read in from initfile)
  real(r_kind) :: tstart
  integer    :: idate_start(4) ! starting date (hr,month,day,year)
@@ -259,11 +260,13 @@ module params
       print *,'idate_start=',idate_start
    endif 
    if (kmax .eq. 2) then
-     print *,'using 2nd-order Runge-Kutta (midpoint) semi-implicit scheme'
+     print *,'using 2nd-order Runge-Kutta (midpoint) scheme'
    else if (kmax .eq. 3) then
-     print *,'using 3rd-order Runge-Kutta (Kar 2006) semi-implicit scheme'
+     print *,'using 3-stage Runge-Kutta (Wicker and Skamarock, 2002) scheme'
+   else if (kmax .eq. 4) then
+     print *,'using 4-stage Runge-Kutta (Baldauf doi:10.1175/2010MWR3355.1)'
    else
-     print *,'kmax must be 2 or 3'
+     print *,'kmax must be 2, 3, 23 or 4'
      stop
    endif
    tmax = fhmax*3600. 
