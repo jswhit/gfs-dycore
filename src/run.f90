@@ -66,7 +66,7 @@ subroutine run()
      do nt=1,2*ntdfi
         call system_clock(count, count_rate, count_max)
         t1 = count*1.d0/count_rate
-        call advance(t)
+        call advance(t,nt)
         t = t + dt ! absolute forecast time.
         ta = ta + dt ! absolute forecast time.
         fh = t/3600.
@@ -138,8 +138,8 @@ subroutine run()
   do nt=ntstart,ntmax
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
-     ! advance solution with RK3
-     call advance(t)
+     ! advance solution with RK
+     call advance(t,nt)
      t = t + dt ! absolute forecast time.
      ta = ta + dt ! time in accumulaton interval.
      fh = t/3600.
@@ -181,7 +181,7 @@ subroutine run()
 
 end subroutine run
 
-subroutine advance(t)
+subroutine advance(t,nstep)
 ! advance model state to next time step.
 ! (using explicit or semi-implicit third-order runge-kutta)
 ! hybrid sigma-pressure dynamical core described in
@@ -195,6 +195,7 @@ subroutine advance(t)
      spec_svc,spec_sppt,grd_svc,grd_sppt,&
      spec_shum,grd_shum,rpattern_shum
   real(r_double), intent(in) :: t
+  integer, intent(in) :: nstep
   complex(r_kind),dimension(ndimspec,nlevs) :: &
   vrtspec_save,divspec_save,virtempspec_save
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
@@ -231,7 +232,7 @@ subroutine advance(t)
   lnpsspec_save = lnpsspec
   call system_clock(count, count_rate, count_max)
   t0 = count*1.d0/count_rate
-  ! update dynamics using RK3.
+  ! update dynamics using Runge-Kutta (RK).
   do k=0,kmax-1
      dtx = dt/float(kmax-k)
      ! dynamics tendencies.
@@ -269,7 +270,7 @@ subroutine advance(t)
          t2 = count*1.d0/count_rate
          if (profile) print *,'time in semimpadj=',t2-t1
      endif
-     ! add IAU contribution (constant over RK3 sub-steps).
+     ! add IAU contribution (constant over RK sub-steps).
      if (iau) then
         dvrtspecdt = dvrtspecdt + dvrtspecdt_iau
         ddivspecdt = ddivspecdt + ddivspecdt_iau
@@ -277,7 +278,7 @@ subroutine advance(t)
         dtracerspecdt = dtracerspecdt + dtracerspecdt_iau
         dlnpsspecdt = dlnpsspecdt + dlnpsspecdt_iau
      endif
-     ! update for RK3 sub-step.
+     ! update for RK sub-step.
      vrtspec=vrtspec_save+dtx*dvrtspecdt
      divspec=divspec_save+dtx*ddivspecdt
      virtempspec=virtempspec_save+dtx*dvirtempspecdt
