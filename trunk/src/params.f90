@@ -48,8 +48,10 @@ module params
  integer    :: ndimspec ! spectral array dimension
 ! order of runge-kutta scheme (must be 2,3 or 4)
 ! kmax=2 results in modified-Euler or midpoint method (2nd order)
-! kmax=3 results in 3-stage, 2nd order scheme used in Kar 2006.
-! kmax=4 results in 4-stage, 2nd order scheme of Baldauf 2010.
+! kmax=3 results in 3-stage, 4th/2nd order scheme used in Kar 2006.
+! (the scheme is 3rd order for linear problems, 2nd order in general)
+! kmax=4 results in 4-stage, 4th/2nd order scheme of Baldauf 2010.
+! (the scheme is 4th order for linear problems, 2nd order in general)
  integer    :: kmax = 3 
  type(sigio_head),save  :: sighead ! header struct from initfile
  logical    :: dry = .false. ! no moisture, cloud condensate or ozone.
@@ -266,7 +268,7 @@ module params
    else if (kmax .eq. 4) then
      print *,'using 4-stage Runge-Kutta (Baldauf doi:10.1175/2010MWR3355.1)'
    else
-     print *,'kmax must be 2, 3, 23 or 4'
+     print *,'kmax must be 2, 3 or 4'
      stop
    endif
    tmax = fhmax*3600. 
