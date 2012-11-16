@@ -232,9 +232,11 @@ subroutine advance(t,nstep)
   lnpsspec_save = lnpsspec
   call system_clock(count, count_rate, count_max)
   t0 = count*1.d0/count_rate
-  ! update dynamics using Runge-Kutta (RK).
+
   do k=0,kmax-1
-     dtx = dt/float(kmax-k)
+     
+     dtx = dt/float(kmax-k) 
+
      ! dynamics tendencies.
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
@@ -258,8 +260,7 @@ subroutine advance(t,nstep)
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
      if (profile) print *,'time in getdyntend=',t2-t1
-     ! semi-implicit adjustment includes physics tendencies for process-split
-     ! physics.
+     ! semi-implicit adjustment of tendencies.
      if (.not. explicit) then
          ! semi-implicit adjustment.
          call system_clock(count, count_rate, count_max)

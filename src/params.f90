@@ -203,6 +203,8 @@ module params
    open(912,file='gfs_namelist',form='formatted')
    read(912,nam_mrf)
    close(912)
+   print *,'namelist nam_mrf:'
+   write(6, nam_mrf)
    if (initfile == "") then
       print *,'initfile must be specified in namelist'
       stop
@@ -262,13 +264,13 @@ module params
       print *,'idate_start=',idate_start
    endif 
    if (kmax .eq. 2) then
-     print *,'using 2nd-order Runge-Kutta (midpoint) scheme'
+     print *,'using 2-stage Runge-Kutta 2nd order scheme'
    else if (kmax .eq. 3) then
      print *,'using 3-stage Runge-Kutta (Wicker and Skamarock, 2002) scheme'
    else if (kmax .eq. 4) then
      print *,'using 4-stage Runge-Kutta (Baldauf doi:10.1175/2010MWR3355.1)'
    else
-     print *,'kmax must be 2, 3 or 4'
+     print *,'illegal kmax'
      stop
    endif
    tmax = fhmax*3600. 
@@ -308,8 +310,6 @@ module params
    if (iau) then
      print *,'IAU forcing on'
    endif
-   print *,'namelist nam_mrf:'
-   write(6, nam_mrf)
  end subroutine read_namelist
 
 end module params
