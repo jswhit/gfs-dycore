@@ -11,7 +11,7 @@
 ! getvadv: calculate vertical advection terms.
 
  use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,&
-   dcmip,dry,vcamp,svc
+   dcmip,dry,vcamp,svc,offcenter
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,areawts
@@ -311,18 +311,18 @@
       dlnpsspecdt(n) = dlnpsspecdt(n) + sum(svhyb(:)*divspec(n,:))
 ! solve for updated divergence
       espec(:) = divspec_prev(n,:) + dtx*ddivspecdt(n,:) - & 
-                 0.5*dtx*lap(n)*(matmul(amhyb,virtempspec(n,:)) + &
-                                 tor_hyb(:)*lnpsspec(n))
+                 (1.-offcenter)*dtx*lap(n)*(matmul(amhyb,virtempspec_prev(n,:)) + &
+                                 tor_hyb(:)*lnpsspec_prev(n))
       fspec(:) = virtempspec_prev(n,:) + dtx*dvirtempspecdt(n,:) - &
-                 0.5*dtx*matmul(bmhyb, divspec_prev(n,:))
+                 (1.-offcenter)*dtx*matmul(bmhyb, divspec_prev(n,:))
       gspec = lnpsspec_prev(n) + dtx*dlnpsspecdt(n) - &
-              0.5*dtx*sum(svhyb(:)*divspec_prev(n,:))
-      rhs(:) = espec(:) - 0.5*lap(n)*dtx*&
+              (1.-offcenter)*dtx*sum(svhyb(:)*divspec_prev(n,:))
+      rhs(:) = espec(:) - offcenter*lap(n)*dtx*&
                (matmul(amhyb,fspec(:)) + tor_hyb(:)*gspec)
       divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
 ! back substitution to get updated virt temp, lnps.
-      virtempspec_new(n,:) = fspec(:) - 0.5*dtx*matmul(bmhyb,divspec_new(n,:))
-      lnpsspec_new(n) = gspec - 0.5*dtx*sum(svhyb(:)*divspec_new(n,:))
+      virtempspec_new(n,:) = fspec(:) - offcenter*dtx*matmul(bmhyb,divspec_new(n,:))
+      lnpsspec_new(n) = gspec - offcenter*dtx*sum(svhyb(:)*divspec_new(n,:))
    enddo
 !!$omp end parallel do 
 
