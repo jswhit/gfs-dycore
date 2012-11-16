@@ -51,7 +51,7 @@
    complex(r_kind), intent(out), dimension(ndimspec) :: dlnpsspecdt
 ! local variables.
    complex(r_kind), dimension(:,:),allocatable :: workspec
-   complex(r_kind), dimension(ndimspec) :: smoothfact
+   real(r_kind), dimension(ndimspec) :: smoothfact
    real(r_kind), dimension(:,:), allocatable :: dlnpsdx,dlnpsdy
    real(r_kind), dimension(:,:,:), allocatable :: &
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
@@ -290,51 +290,48 @@
    divspec_prev,virtempspec_prev
    complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
    real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
-   complex(r_kind), allocatable, dimension(:,:) :: &
-   divspec_new,virtempspec_new,espec,fspec
-   complex(r_kind), allocatable,  dimension(:) :: lnpsspec_new,gspec
-   complex(r_kind) rhs(nlevs)
+   complex(r_kind), allocatable, dimension(:,:) :: divspec_new,virtempspec_new
+   complex(r_kind), allocatable,  dimension(:) :: lnpsspec_new
+   complex(r_kind) :: espec(nlevs),fspec(nlevs),gspec,rhs(nlevs)
    integer n
 
    allocate(divspec_new(ndimspec,nlevs))
    allocate(virtempspec_new(ndimspec,nlevs))
-   allocate(espec(ndimspec,nlevs))
-   allocate(fspec(ndimspec,nlevs))
-   allocate(lnpsspec_new(ndimspec),gspec(ndimspec))
-
-! remove 0.5*linear terms from computed tendencies.
-!$omp parallel do private(n)
-   do n=1,ndimspec
-      ddivspecdt(n,:) = ddivspecdt(n,:) + 0.5*lap(n)*& 
-      (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
-      dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + 0.5*matmul(bmhyb,divspec(n,:))
-      dlnpsspecdt(n) = dlnpsspecdt(n) + 0.5*sum(svhyb(:)*divspec(n,:))
-   enddo
-!$omp end parallel do 
+   allocate(lnpsspec_new(ndimspec))
 
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
-   espec = divspec_prev + dtx*ddivspecdt
-   fspec = virtempspec_prev + dtx*dvirtempspecdt
-   gspec = lnpsspec_prev + dtx*dlnpsspecdt
-!$omp parallel do private(n,rhs)
+
+!!$omp parallel do private(n, rhs, espec, fspec, gspec)
    do n=1,ndimspec
-      rhs = espec(n,:) - 0.5*lap(n)*dtx*&
-      (matmul(amhyb,fspec(n,:)) + tor_hyb(:)*gspec(n))
+! first remove linear terms from computed tendencies.
+      ddivspecdt(n,:) = ddivspecdt(n,:) + lap(n)*& 
+      (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
+      dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + matmul(bmhyb,divspec(n,:))
+      dlnpsspecdt(n) = dlnpsspecdt(n) + sum(svhyb(:)*divspec(n,:))
+! solve for updated divergence
+      espec(:) = divspec_prev(n,:) + dtx*ddivspecdt(n,:) - & 
+                 0.5*dtx*lap(n)*(matmul(amhyb,virtempspec(n,:)) + &
+                                 tor_hyb(:)*lnpsspec(n))
+      fspec(:) = virtempspec_prev(n,:) + dtx*dvirtempspecdt(n,:) - &
+                 0.5*dtx*matmul(bmhyb, divspec_prev(n,:))
+      gspec = lnpsspec_prev(n) + dtx*dlnpsspecdt(n) - &
+              0.5*dtx*sum(svhyb(:)*divspec_prev(n,:))
+      rhs(:) = espec(:) - 0.5*lap(n)*dtx*&
+               (matmul(amhyb,fspec(:)) + tor_hyb(:)*gspec)
       divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
-      virtempspec_new(n,:) = fspec(n,:) - 0.5*dtx*&
-      matmul(bmhyb,divspec_new(n,:))
-      lnpsspec_new(n) = gspec(n) - 0.5*dtx*sum(svhyb(:)*divspec_new(n,:))
+! back substitution to get updated virt temp, lnps.
+      virtempspec_new(n,:) = fspec(:) - 0.5*dtx*matmul(bmhyb,divspec_new(n,:))
+      lnpsspec_new(n) = gspec - 0.5*dtx*sum(svhyb(:)*divspec_new(n,:))
    enddo
-!$omp end parallel do 
+!!$omp end parallel do 
 
 ! create new tendencies, including semi-implicit contribution.
    ddivspecdt = (divspec_new - divspec_prev)/dtx
    dvirtempspecdt = (virtempspec_new - virtempspec_prev)/dtx
    dlnpsspecdt = (lnpsspec_new - lnpsspec_prev)/dtx
 
-   deallocate(virtempspec_new,divspec_new,espec,fspec)
-   deallocate(lnpsspec_new,gspec)
+   deallocate(virtempspec_new,divspec_new, lnpsspec_new)
 
    return
  end subroutine semimpadj
