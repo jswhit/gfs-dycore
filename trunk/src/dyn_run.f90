@@ -11,7 +11,7 @@
 ! getvadv: calculate vertical advection terms.
 
  use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,&
-   dcmip,dry,vcamp,svc,offcenter
+   dcmip,dry,vcamp,svc
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,areawts
@@ -41,7 +41,7 @@
    ! based on hybrid sigma-pressure dynamical core described in
    ! http://www.emc.ncep.noaa.gov/officenotes/newernotes/on462.pdf
    ! The only difference is that here we use a forward in time
-   ! runge-kutta scheme instead of assellin-filtered leap-frog.
+   ! runge-kutta scheme instead of robert-assellin time filtered leap-frog.
    logical, optional, intent(in) :: just_do_inverse_transform
    logical :: early_return = .false. ! if true. spectral-> grid only
    complex(r_kind), intent(out), dimension(ndimspec,nlevs) :: &
@@ -235,9 +235,9 @@
             call spectogrd(workspec(:,k), prsgx(:,:,k))
             prsgx(:,:,k) = (vcamp+vfact_svc(k)*grd_svc)*prsgx(:,:,k)
             call grdtospec(prsgx(:,:,k),workspec(:,k))
-            dvrtspecdt(:,k) = dvrtspecdt(:,k) + workspec(:,k)
+            dvrtspecdt(:,k) = dvrtspecdt(:,k) - workspec(:,k)
          else ! if not stochastic, no transforms needed (VC is cost-free)
-            dvrtspecdt(:,k) = dvrtspecdt(:,k) + vcamp*(lap/rerth**2)*smoothfact*vrtspec(:,k)
+            dvrtspecdt(:,k) = dvrtspecdt(:,k) - vcamp*(lap/rerth**2)*smoothfact*vrtspec(:,k)
          endif
       endif
       ! add laplacian(KE) term to div tendency
@@ -290,19 +290,14 @@
    divspec_prev,virtempspec_prev
    complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
    real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
-   complex(r_kind), allocatable, dimension(:,:) :: divspec_new,virtempspec_new
-   complex(r_kind), allocatable,  dimension(:) :: lnpsspec_new
-   complex(r_kind) :: espec(nlevs),fspec(nlevs),gspec,rhs(nlevs)
+   complex(r_kind) :: espec(nlevs),fspec(nlevs),gspec,rhs(nlevs),&
+    divav(nlevs),vtempav(nlevs),lnpsav
    integer n
-
-   allocate(divspec_new(ndimspec,nlevs))
-   allocate(virtempspec_new(ndimspec,nlevs))
-   allocate(lnpsspec_new(ndimspec))
 
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
 
-!!$omp parallel do private(n, rhs, espec, fspec, gspec)
+!$omp parallel do private(n,rhs,espec,fspec,gspec,divav,lnpsav,vtempav)
    do n=1,ndimspec
 ! first remove linear terms from computed tendencies.
       ddivspecdt(n,:) = ddivspecdt(n,:) + lap(n)*& 
@@ -310,28 +305,34 @@
       dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + matmul(bmhyb,divspec(n,:))
       dlnpsspecdt(n) = dlnpsspecdt(n) + sum(svhyb(:)*divspec(n,:))
 ! solve for updated divergence
+      ! in Kar 2006, vtempav,divav and lnpsav are equal
+      ! to the *_prev values (the start of the RK interval)
+      ! this results in a more severe time step restriction (don't
+      ! know why). Here I average the *_prev and current values,
+      ! which works better (allows longer time steps)..
+      vtempav  = 0.5*(virtempspec(n,:)+virtempspec_prev(n,:))
+      divav    = 0.5*(divspec(n,:)+divspec_prev(n,:))
+      lnpsav   = 0.5*(lnpsspec(n)+lnpsspec_prev(n))
       espec(:) = divspec_prev(n,:) + dtx*ddivspecdt(n,:) - & 
-                 (1.-offcenter)*dtx*lap(n)*(matmul(amhyb,virtempspec_prev(n,:)) + &
-                                 tor_hyb(:)*lnpsspec_prev(n))
+                 0.5*dtx*lap(n)*(matmul(amhyb,vtempav(:)) + &
+                                 tor_hyb(:)*lnpsav)
       fspec(:) = virtempspec_prev(n,:) + dtx*dvirtempspecdt(n,:) - &
-                 (1.-offcenter)*dtx*matmul(bmhyb, divspec_prev(n,:))
-      gspec = lnpsspec_prev(n) + dtx*dlnpsspecdt(n) - &
-              (1.-offcenter)*dtx*sum(svhyb(:)*divspec_prev(n,:))
-      rhs(:) = espec(:) - offcenter*lap(n)*dtx*&
-               (matmul(amhyb,fspec(:)) + tor_hyb(:)*gspec)
-      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
+                 0.5*dtx*matmul(bmhyb, divav(:))
+      gspec    = lnpsspec_prev(n) + dtx*dlnpsspecdt(n) - &
+                 0.5*dtx*sum(svhyb(:)*divav(:))
+      rhs(:)   = espec(:) - 0.5*lap(n)*dtx*&
+                 (matmul(amhyb,fspec(:)) + tor_hyb(:)*gspec)
 ! back substitution to get updated virt temp, lnps.
-      virtempspec_new(n,:) = fspec(:) - offcenter*dtx*matmul(bmhyb,divspec_new(n,:))
-      lnpsspec_new(n) = gspec - offcenter*dtx*sum(svhyb(:)*divspec_new(n,:))
-   enddo
-!!$omp end parallel do 
-
 ! create new tendencies, including semi-implicit contribution.
-   ddivspecdt = (divspec_new - divspec_prev)/dtx
-   dvirtempspecdt = (virtempspec_new - virtempspec_prev)/dtx
-   dlnpsspecdt = (lnpsspec_new - lnpsspec_prev)/dtx
-
-   deallocate(virtempspec_new,divspec_new, lnpsspec_new)
+      ! espec holds updated divergence.
+      espec(:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
+      ddivspecdt(n,:) = (espec(:)-divspec_prev(n,:))/dtx
+      dvirtempspecdt(n,:) = (fspec(:) - 0.5*dtx*matmul(bmhyb,espec(:))-&
+                             virtempspec_prev(n,:))/dtx
+      dlnpsspecdt(n) = (gspec - 0.5*dtx*sum(svhyb(:)*espec(:))-&
+                        lnpsspec_prev(n))/dtx
+   enddo
+!$omp end parallel do 
 
    return
  end subroutine semimpadj

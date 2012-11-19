@@ -4,7 +4,7 @@ module semimp_data
 ! init_semimpdata: allocate and populate arrays.
 ! destroy_semimpdata: deallocate arrays.
  use kinds, only: r_kind, default_real, r_double
- use params, only: dt,ntrunc,nlons,nlats,nlevs,kmax,offcenter
+ use params, only: dt,ntrunc,nlons,nlats,nlevs,kmax
  use pressure_data, only: ak,bk
  use physcons, only: rd => con_rd, cp => con_cp, rerth => con_rerth,&
                      kappa => con_rocp
@@ -110,7 +110,7 @@ module semimp_data
    do nn=1,ntrunc+1
       n = nn-1
       rnn1 = n*(n+1)
-      yecm = rim + (offcenter*dtx)**2*rnn1*ym
+      yecm = rim + (0.5*dtx)**2*rnn1*ym
       ! invert matrix using LAPACK, save in d_hyb_m
       call dgetrf(nlevs,nlevs,yecm,nlevs,ipiv,iret)
       call dgetri(nlevs,yecm,nlevs,ipiv,vecm,nlevs,iret)
