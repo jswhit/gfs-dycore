@@ -66,7 +66,7 @@ subroutine run()
      do nt=1,2*ntdfi
         call system_clock(count, count_rate, count_max)
         t1 = count*1.d0/count_rate
-        call advance(t,nt)
+        call advance(t)
         t = t + dt ! absolute forecast time.
         ta = ta + dt ! absolute forecast time.
         fh = t/3600.
@@ -139,7 +139,7 @@ subroutine run()
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
      ! advance solution with RK
-     call advance(t,nt)
+     call advance(t)
      t = t + dt ! absolute forecast time.
      ta = ta + dt ! time in accumulaton interval.
      fh = t/3600.
@@ -181,7 +181,7 @@ subroutine run()
 
 end subroutine run
 
-subroutine advance(t,nstep)
+subroutine advance(t)
 ! advance model state to next time step.
 ! (using explicit or semi-implicit third-order runge-kutta)
 ! hybrid sigma-pressure dynamical core described in
@@ -195,7 +195,6 @@ subroutine advance(t,nstep)
      spec_svc,spec_sppt,grd_svc,grd_sppt,&
      spec_shum,grd_shum,rpattern_shum
   real(r_double), intent(in) :: t
-  integer, intent(in) :: nstep
   complex(r_kind),dimension(ndimspec,nlevs) :: &
   vrtspec_save,divspec_save,virtempspec_save
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
