@@ -293,7 +293,7 @@
            icsdsw(1:im) = ixseed(i:n,j,1)
            icsdlw(1:im) = ixseed(i:n,j,2)
        endif
-       fluxr_tmp(:,:) = fluxr(i:n,j,:)
+       fluxr_tmp(1:n,:) = fluxr(i:n,j,:)
 ! call GFS radiation driver
        call grrad                                                   &
 !  ---  inputs:
