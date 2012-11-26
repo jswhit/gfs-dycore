@@ -11,7 +11,7 @@
 ! getvadv: calculate vertical advection terms.
 
  use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,&
-   dcmip,dry,vcamp,svc
+   kmax,dcmip,dry,vcamp,svc
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,areawts
@@ -293,6 +293,7 @@
    complex(r_kind) :: espec(nlevs),fspec(nlevs),gspec,rhs(nlevs),&
     divav(nlevs),vtempav(nlevs),lnpsav
    integer n
+   real(r_kind) dtfact
 
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
@@ -305,31 +306,44 @@
       dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + matmul(bmhyb,divspec(n,:))
       dlnpsspecdt(n) = dlnpsspecdt(n) + sum(svhyb(:)*divspec(n,:))
 ! solve for updated divergence
-      ! in Kar 2006, vtempav,divav and lnpsav are equal
-      ! to the *_prev values (the start of the RK interval)
-      ! this results in a more severe time step restriction (don't
-      ! know why). Here I average the *_prev and current values,
-      ! which works better (allows longer time steps)..
-      vtempav  = 0.5*(virtempspec(n,:)+virtempspec_prev(n,:))
-      divav    = 0.5*(divspec(n,:)+divspec_prev(n,:))
-      lnpsav   = 0.5*(lnpsspec(n)+lnpsspec_prev(n))
+      if (kt .eq. kmax-1) then
+         ! modified versions of Kar 2006 scheme (stable for gravity waves)
+         !dtfact = 0.25
+         !vtempav  = 2.*dtfact*virtempspec(n,:)+dtfact*virtempspec_prev(n,:)
+         !divav    = 2.*dtfact*divspec(n,:)    +dtfact*divspec_prev(n,:)
+         !lnpsav   = 2.*dtfact*lnpsspec(n)     +dtfact*lnpsspec_prev(n)
+         dtfact = 1./3.
+         vtempav  = dtfact*(virtempspec(n,:)+virtempspec_prev(n,:))
+         divav    = dtfact*(divspec(n,:)    +divspec_prev(n,:))
+         lnpsav   = dtfact*(lnpsspec(n)     +lnpsspec_prev(n))
+         ! original Kar 2006 scheme (unstable for gravity waves)
+         !dtfact = 0.5
+         !vtempav  = dtfact*virtempspec_prev(n,:)
+         !divav    = dtfact*divspec_prev(n,:)
+         !lnpsav   = dtfact*lnpsspec_prev(n)
+      else
+         dtfact = 0.5
+         vtempav  = dtfact*virtempspec_prev(n,:)
+         divav    = dtfact*divspec_prev(n,:)
+         lnpsav   = dtfact*lnpsspec_prev(n)
+      endif
       espec(:) = divspec_prev(n,:) + dtx*ddivspecdt(n,:) - & 
-                 0.5*dtx*lap(n)*(matmul(amhyb,vtempav(:)) + &
+                 dtx*lap(n)*(matmul(amhyb,vtempav(:)) + &
                                  tor_hyb(:)*lnpsav)
       fspec(:) = virtempspec_prev(n,:) + dtx*dvirtempspecdt(n,:) - &
-                 0.5*dtx*matmul(bmhyb, divav(:))
+                 dtx*matmul(bmhyb, divav(:))
       gspec    = lnpsspec_prev(n) + dtx*dlnpsspecdt(n) - &
-                 0.5*dtx*sum(svhyb(:)*divav(:))
-      rhs(:)   = espec(:) - 0.5*lap(n)*dtx*&
+                 dtx*sum(svhyb(:)*divav(:))
+      rhs(:)   = espec(:) - dtfact*lap(n)*dtx*&
                  (matmul(amhyb,fspec(:)) + tor_hyb(:)*gspec)
 ! back substitution to get updated virt temp, lnps.
 ! create new tendencies, including semi-implicit contribution.
       ! espec holds updated divergence.
       espec(:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
       ddivspecdt(n,:) = (espec(:)-divspec_prev(n,:))/dtx
-      dvirtempspecdt(n,:) = (fspec(:) - 0.5*dtx*matmul(bmhyb,espec(:))-&
+      dvirtempspecdt(n,:) = (fspec(:) - dtfact*dtx*matmul(bmhyb,espec(:))-&
                              virtempspec_prev(n,:))/dtx
-      dlnpsspecdt(n) = (gspec - 0.5*dtx*sum(svhyb(:)*espec(:))-&
+      dlnpsspecdt(n) = (gspec - dtfact*dtx*sum(svhyb(:)*espec(:))-&
                         lnpsspec_prev(n))/dtx
    enddo
 !$omp end parallel do 
