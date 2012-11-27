@@ -9,7 +9,7 @@ module params
  private
 
  public :: read_namelist,initfile,sfcinitfile,fhmax,dt,ntmax,ndimspec,nlons,nlats,&
- kmax,tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,dcmip,&
+ tstart,ndiss,efold,nlevs,ntrunc,sighead,dry,explicit,heldsuarez,dcmip,&
  ntout,fhdfi,fhout,fhzer,idate_start,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,&
  pdryini,massfix,timestepsperhr,ncw,taustratdamp,polar_opt,ntdfi,gfsio_out,sigio_out,&
 ! gfs phys parameters.
@@ -46,13 +46,6 @@ module params
  integer    :: nlevs ! number of levels on grid
  integer    :: ntrunc ! spectral truncation
  integer    :: ndimspec ! spectral array dimension
-! order of runge-kutta scheme (must be 2,3 or 4)
-! kmax=2 results in modified-Euler or midpoint method (2nd order)
-! kmax=3 results in 3-stage, 4th/2nd order scheme used in Kar 2006.
-! (the scheme is 3rd order for linear problems, 2nd order in general)
-! kmax=4 results in 4-stage, 4th/2nd order scheme of Baldauf 2010.
-! (the scheme is 4th order for linear problems, 2nd order in general)
- integer    :: kmax = 3 
  type(sigio_head),save  :: sighead ! header struct from initfile
  logical    :: dry = .false. ! no moisture, cloud condensate or ozone.
  logical    :: adiabatic = .false. ! don't call physics
@@ -184,7 +177,7 @@ module params
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
  ngptc,clipsupersat,shum,shum_tau,shum_lscale,iseed_shum,&
- kmax,gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
+ gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
 
  contains
 
@@ -263,16 +256,6 @@ module params
       print *,'pdryini=',pdryini
       print *,'idate_start=',idate_start
    endif 
-   if (kmax .eq. 2) then
-     print *,'using 2-stage Runge-Kutta 2nd order scheme'
-   else if (kmax .eq. 3) then
-     print *,'using 3-stage Runge-Kutta (Wicker and Skamarock, 2002) scheme'
-   else if (kmax .eq. 4) then
-     print *,'using 4-stage Runge-Kutta (Baldauf doi:10.1175/2010MWR3355.1)'
-   else
-     print *,'illegal kmax'
-     stop
-   endif
    tmax = fhmax*3600. 
    ntmax = nint((tmax-tstart)/dt)
    ntout = fhout*timestepsperhr

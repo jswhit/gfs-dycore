@@ -106,7 +106,7 @@
    cldcov_tmp(ngptc,nlevs),hprime_tmp(ngptc,nmtvr),slc_tmp(ngptc,lsoil),&
    smc_tmp(ngptc,lsoil),stc_tmp(ngptc,lsoil),&
    slats(ngptc),clats(ngptc),&
-   pwatg,pdry,pcorr,gu(ngptc,nlevs),gv(ngptc,nlevs)
+   pwatg,pmean,pdry,pcorr,gu(ngptc,nlevs),gv(ngptc,nlevs)
    integer :: icsdsw(ngptc),icsdlw(ngptc),ilons(ngptc), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
    complex(r_kind), allocatable, dimension(:) :: workspec
@@ -667,12 +667,14 @@
 ! global mean dry mass 'fixer'
    if (massfix) then
 ! compute global mean dry ps.
-      pdry = sum(areawts*psg) - grav*pwatg
+      pmean = sum(areawts*psg)
+      pdry = pmean - grav*pwatg
       print *,'pdry after physics update',pdry
 ! implied ps correction needed to return dry mass to initial value
-      pcorr = pdry - pdryini
-! add constant correction to every grid point
-      dpsdt = psg - pcorr 
+      pcorr = (pdryini + grav*pwatg)/pmean
+! apply correction as a multiplication to provisional value of ps so as
+! not to change gradients of ln(ps).
+      dpsdt = psg*pcorr
 ! compute implied lnps tendency in spectral space.
       dpsdt = log(dpsdt)
       call grdtospec(dpsdt,workspec)

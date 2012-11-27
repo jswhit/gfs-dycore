@@ -6,7 +6,7 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
-  kmax, gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
+  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
 use shtns, only: spectogrd, lats, areawts
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
@@ -232,9 +232,9 @@ subroutine advance(t)
   call system_clock(count, count_rate, count_max)
   t0 = count*1.d0/count_rate
 
-  do k=0,kmax-1
+  do k=0,2
      
-     dtx = dt/float(kmax-k) 
+     dtx = dt/float(3-k) 
 
      ! dynamics tendencies.
      call system_clock(count, count_rate, count_max)
