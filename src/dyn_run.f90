@@ -11,7 +11,7 @@
 ! getvadv: calculate vertical advection terms.
 
  use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,&
-   kmax,dcmip,dry,vcamp,svc
+   dcmip,dry,vcamp,svc
  use kinds, only: r_kind,r_double
  use shtns, only: degree,order,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,areawts
@@ -306,7 +306,7 @@
       dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + matmul(bmhyb,divspec(n,:))
       dlnpsspecdt(n) = dlnpsspecdt(n) + sum(svhyb(:)*divspec(n,:))
 ! solve for updated divergence
-      if (kt .eq. kmax-1) then
+      if (kt .eq. 2) then
          ! modified versions of Kar 2006 scheme (stable for gravity waves)
          !dtfact = 0.25
          !vtempav  = 2.*dtfact*virtempspec(n,:)+dtfact*virtempspec_prev(n,:)
@@ -533,7 +533,8 @@
    ! local variables 
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
    integer i,j,k
-   real(r_kind) phi,epstiny
+   real(r_kind) epstiny
+   real(r_kind) phi(nlons,nlats)
 
    allocate(datag_half(nlons,nlats,0:nlevs))
    allocate(datag_d(nlons,nlats,0:nlevs))
@@ -565,6 +566,7 @@
    enddo
 !$omp end parallel do 
 
+! same as above, but without where blocks inside parallel region.
 !!$omp parallel do private(i,j)
 !   do i=1,nlons
 !      do j=1,nlats
@@ -598,41 +600,41 @@
    enddo
 !$omp end parallel do 
 
-!   ! apply flux limiter.
-! note: this segfaults with intel 12.1 at T574
-!!$omp parallel do private(k,phi)
-!   do k=1,nlevs-1
-!      where(etadot(:,:,k+1) > 0.)
-!         phi = datag_d(:,:,k-1)/datag_d(:,:,k)
-!         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
-!         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
-!      elsewhere
-!         phi = datag_d(:,:,k+1)/datag_d(:,:,k)
-!         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
-!         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
-!      end where
-!   enddo
-!!$omp end parallel do 
-
-!    ! apply flux limiter.
-! to avoid segfault, get rid of where statements inside parallel region.
-!$omp parallel do private(i,j,k,phi)
-    do k=1,nlevs-1
-       do j=1,nlats
-       do i=1,nlons
-          if (etadot(i,j,k+1) > 0.) then
-             phi = datag_d(i,j,k-1)/datag_d(i,j,k)
-             datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
-             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
-          else
-             phi = datag_d(i,j,k+1)/datag_d(i,j,k)
-             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
-             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs-k))
-          endif
-       enddo
-       enddo
-     enddo
+   ! apply flux limiter.
+!note: this segfaults with intel 12.1 at T574
+!$omp parallel do private(k,phi)
+   do k=1,nlevs-1
+      where(etadot(:,:,k+1) > 0.)
+         phi = datag_d(:,:,k-1)/datag_d(:,:,k)
+         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
+         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
+      elsewhere
+         phi = datag_d(:,:,k+1)/datag_d(:,:,k)
+         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
+         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
+      end where
+   enddo
 !$omp end parallel do 
+
+!!    ! apply flux limiter.
+!! to avoid t574 segfault, get rid of where statements inside parallel region.
+!!$omp parallel do private(i,j,k,phi)
+!    do k=1,nlevs-1
+!       do j=1,nlats
+!       do i=1,nlons
+!          if (etadot(i,j,k+1) > 0.) then
+!             phi = datag_d(i,j,k-1)/datag_d(i,j,k)
+!             datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
+!             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
+!          else
+!             phi = datag_d(i,j,k+1)/datag_d(i,j,k)
+!             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
+!             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs-k))
+!          endif
+!       enddo
+!       enddo
+!     enddo
+!!$omp end parallel do 
 
 !$omp parallel do private(k)
    do k=1,nlevs

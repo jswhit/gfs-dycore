@@ -4,7 +4,7 @@ module semimp_data
 ! init_semimpdata: allocate and populate arrays.
 ! destroy_semimpdata: deallocate arrays.
  use kinds, only: r_kind, default_real, r_double
- use params, only: dt,ntrunc,nlons,nlats,nlevs,kmax
+ use params, only: dt,ntrunc,nlons,nlats,nlevs
  use pressure_data, only: ak,bk
  use physcons, only: rd => con_rd, cp => con_cp, rerth => con_rerth,&
                      kappa => con_rocp
@@ -31,7 +31,7 @@ module semimp_data
    allocate(amhyb(nlevs,nlevs),bmhyb(nlevs,nlevs))
    allocate(tref(nlevs),pkref(nlevs+1),dpkref(nlevs),alfaref(nlevs))
    allocate(svhyb(nlevs),tor_hyb(nlevs))
-   allocate(d_hyb_m(nlevs,nlevs,ntrunc+1,kmax))
+   allocate(d_hyb_m(nlevs,nlevs,ntrunc+1,3))
    ! temp storage.
    allocate(yecm(nlevs,nlevs),tecm(nlevs,nlevs))
    allocate(ym(nlevs,nlevs))
@@ -103,14 +103,14 @@ module semimp_data
    enddo
 
 ! computations that do depend on wavenumber
-   do k=0,kmax-1
-   dtx = dt/float(kmax-k) 
+   do k=0,2
+   dtx = dt/float(3-k) 
 ! enabling openmp for this loop doesn't work with intel MKL
 !!$omp parallel do private(nn,n,rnn1,yecm,ipiv,iret,vecm)
    do nn=1,ntrunc+1
       n = nn-1
       rnn1 = n*(n+1)
-      if (k .eq. kmax-1) then
+      if (k .eq. 2) then
          !yecm = rim + (dtx/4.)**2*rnn1*ym
          yecm = rim + (dtx/3.)**2*rnn1*ym
          !yecm = rim + (dtx/2.)**2*rnn1*ym
