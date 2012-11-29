@@ -25,7 +25,8 @@
  use physcons, only: rerth => con_rerth, rd => con_rd, cp => con_cp, &
                eps => con_eps, omega => con_omega, cvap => con_cvap, &
                grav => con_g, fv => con_fvirt, kappa => con_rocp
- use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,tref,pkref,alfaref
+ use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,tref,pkref,alfaref,&
+                        getdtfact
 
  implicit none
  private
@@ -280,20 +281,24 @@
  end subroutine getdyntend
 
  subroutine semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
-                      divspec_prev,virtempspec_prev,lnpsspec_prev,kt,dtx)
+                      divspec_orig,virtempspec_orig,lnpsspec_orig,kt,dtx)
 ! semi-implicit adjustment of tendencies (using a trapezoidal forward in time scheme)
-   integer, intent(in) :: kt ! iteration index for RK (zero based - 0,1 or 2 for RK3)
+   integer, intent(in) :: kt ! RK stage (zero based - 0,1 or 2 for 3-stage RK)
    complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
    ddivspecdt,dvirtempspecdt
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    complex(r_kind), intent(in), dimension(ndimspec,nlevs) :: &
-   divspec_prev,virtempspec_prev
-   complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
-   real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
+   divspec_orig,virtempspec_orig
+   complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_orig
+   real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th RK stage.
    complex(r_kind) :: espec(nlevs),fspec(nlevs),gspec,rhs(nlevs),&
     divav(nlevs),vtempav(nlevs),lnpsav
    integer n
-   real(r_kind) dtfact
+   real(r_kind) dtfact_new,dtfact_orig,dtfact_current
+
+   ! dtfact_new is coeff for next stage, dtfact_current is coeff for current
+   ! stage, dtfact_orig is coeff for value at beginning of RK cycle.
+   call getdtfact(kt,dtfact_orig,dtfact_current,dtfact_new)
 
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
@@ -306,50 +311,83 @@
       dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + matmul(bmhyb,divspec(n,:))
       dlnpsspecdt(n) = dlnpsspecdt(n) + sum(svhyb(:)*divspec(n,:))
 ! solve for updated divergence
-      if (kt .eq. 2) then
-         ! modified versions of Kar 2006 scheme (stable for gravity waves)
-         !dtfact = 0.25
-         !vtempav  = 2.*dtfact*virtempspec(n,:)+dtfact*virtempspec_prev(n,:)
-         !divav    = 2.*dtfact*divspec(n,:)    +dtfact*divspec_prev(n,:)
-         !lnpsav   = 2.*dtfact*lnpsspec(n)     +dtfact*lnpsspec_prev(n)
-         dtfact = 1./3.
-         vtempav  = dtfact*(virtempspec(n,:)+virtempspec_prev(n,:))
-         divav    = dtfact*(divspec(n,:)    +divspec_prev(n,:))
-         lnpsav   = dtfact*(lnpsspec(n)     +lnpsspec_prev(n))
-         ! original Kar 2006 scheme (unstable for gravity waves)
-         !dtfact = 0.5
-         !vtempav  = dtfact*virtempspec_prev(n,:)
-         !divav    = dtfact*divspec_prev(n,:)
-         !lnpsav   = dtfact*lnpsspec_prev(n)
-      else
-         dtfact = 0.5
-         vtempav  = dtfact*virtempspec_prev(n,:)
-         divav    = dtfact*divspec_prev(n,:)
-         lnpsav   = dtfact*lnpsspec_prev(n)
-      endif
-      espec(:) = divspec_prev(n,:) + dtx*ddivspecdt(n,:) - & 
+      vtempav  = dtfact_current*virtempspec(n,:)+dtfact_orig*virtempspec_orig(n,:)
+      divav    = dtfact_current*divspec(n,:)    +dtfact_orig*divspec_orig(n,:)
+      lnpsav   = dtfact_current*lnpsspec(n)     +dtfact_orig*lnpsspec_orig(n)
+      espec(:) = divspec_orig(n,:) + dtx*ddivspecdt(n,:) - & 
                  dtx*lap(n)*(matmul(amhyb,vtempav(:)) + &
-                                 tor_hyb(:)*lnpsav)
-      fspec(:) = virtempspec_prev(n,:) + dtx*dvirtempspecdt(n,:) - &
+                                    tor_hyb(:)*lnpsav)
+      fspec(:) = virtempspec_orig(n,:) + dtx*dvirtempspecdt(n,:) - &
                  dtx*matmul(bmhyb, divav(:))
-      gspec    = lnpsspec_prev(n) + dtx*dlnpsspecdt(n) - &
+      gspec    = lnpsspec_orig(n) + dtx*dlnpsspecdt(n) - &
                  dtx*sum(svhyb(:)*divav(:))
-      rhs(:)   = espec(:) - dtfact*lap(n)*dtx*&
+      rhs(:)   = espec(:) - dtfact_new*lap(n)*dtx*&
                  (matmul(amhyb,fspec(:)) + tor_hyb(:)*gspec)
 ! back substitution to get updated virt temp, lnps.
 ! create new tendencies, including semi-implicit contribution.
       ! espec holds updated divergence.
-      espec(:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
-      ddivspecdt(n,:) = (espec(:)-divspec_prev(n,:))/dtx
-      dvirtempspecdt(n,:) = (fspec(:) - dtfact*dtx*matmul(bmhyb,espec(:))-&
-                             virtempspec_prev(n,:))/dtx
-      dlnpsspecdt(n) = (gspec - dtfact*dtx*sum(svhyb(:)*espec(:))-&
-                        lnpsspec_prev(n))/dtx
+      espec(:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs(:))
+      ddivspecdt(n,:) = (espec(:)-divspec_orig(n,:))/dtx
+      dvirtempspecdt(n,:) = (fspec(:) - dtfact_new*dtx*matmul(bmhyb,espec(:))-&
+                             virtempspec_orig(n,:))/dtx
+      dlnpsspecdt(n) = (gspec - dtfact_new*dtx*sum(svhyb(:)*espec(:))-&
+                        lnpsspec_orig(n))/dtx
    enddo
 !$omp end parallel do 
 
    return
  end subroutine semimpadj
+
+ subroutine semimpadj_old(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
+                      divspec_prev,virtempspec_prev,lnpsspec_prev,kt,dtx)
+! semi-implicit adjustment of tendencies (using a trapezoidal forward in time scheme)
+   integer, intent(in) :: kt ! iteration index for RK (zero based - 0,1 or 2 for RK3)
+   complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
+   ddivspecdt,dvirtempspecdt
+   complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
+   complex(r_kind), intent(in), dimension(ndimspec,nlevs) :: &
+   divspec_prev,virtempspec_prev
+   complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
+   real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
+   complex(r_kind), dimension(ndimspec,nlevs) :: &
+   divspec_new,virtempspec_new,espec,fspec
+   complex(r_kind), dimension(ndimspec) :: lnpsspec_new,gspec
+   complex(r_kind), dimension(nlevs) :: rhs
+   integer n
+
+! remove 0.5*linear terms from computed tendencies.
+!$omp parallel do private(n)
+   do n=1,ndimspec
+      ddivspecdt(n,:) = ddivspecdt(n,:) + 0.5*lap(n)*& 
+      (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
+      dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + 0.5*matmul(bmhyb,divspec(n,:))
+      dlnpsspecdt(n) = dlnpsspecdt(n) + 0.5*sum(svhyb(:)*divspec(n,:))
+   enddo
+!$omp end parallel do 
+
+! solve for updated divergence.
+! back subsitution to get updated virt temp, lnps.
+   espec = divspec_prev + dtx*ddivspecdt
+   fspec = virtempspec_prev + dtx*dvirtempspecdt
+   gspec = lnpsspec_prev + dtx*dlnpsspecdt
+!$omp parallel do private(n,rhs)
+   do n=1,ndimspec
+      rhs = espec(n,:) - 0.5*lap(n)*dtx*&
+      (matmul(amhyb,fspec(n,:)) + tor_hyb(:)*gspec(n))
+      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
+      virtempspec_new(n,:) = fspec(n,:) - 0.5*dtx*&
+      matmul(bmhyb,divspec_new(n,:))
+      lnpsspec_new(n) = gspec(n) - 0.5*dtx*sum(svhyb(:)*divspec_new(n,:))
+   enddo
+!$omp end parallel do 
+
+! create new tendencies, including semi-implicit contribution.
+   ddivspecdt = (divspec_new - divspec_prev)/dtx
+   dvirtempspecdt = (virtempspec_new - virtempspec_prev)/dtx
+   dlnpsspecdt = (lnpsspec_new - lnpsspec_prev)/dtx
+
+   return
+ end subroutine semimpadj_old
 
  subroutine getomega(ug,vg,divg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot,&
 ! pass in work storage so it can be re-used, saving memory.
@@ -533,8 +571,8 @@
    ! local variables 
    real(r_kind), dimension(:,:,:), allocatable :: datag_half, datag_d
    integer i,j,k
-   real(r_kind) epstiny
-   real(r_kind) phi(nlons,nlats)
+   real(r_kind) epstiny,phi
+   !real(r_kind) phi(nlons,nlats)
 
    allocate(datag_half(nlons,nlats,0:nlevs))
    allocate(datag_d(nlons,nlats,0:nlevs))
@@ -600,41 +638,41 @@
    enddo
 !$omp end parallel do 
 
-   ! apply flux limiter.
-!note: this segfaults with intel 12.1 at T574
-!$omp parallel do private(k,phi)
-   do k=1,nlevs-1
-      where(etadot(:,:,k+1) > 0.)
-         phi = datag_d(:,:,k-1)/datag_d(:,:,k)
-         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
-         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
-      elsewhere
-         phi = datag_d(:,:,k+1)/datag_d(:,:,k)
-         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
-         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
-      end where
-   enddo
-!$omp end parallel do 
-
-!!    ! apply flux limiter.
-!! to avoid t574 segfault, get rid of where statements inside parallel region.
-!!$omp parallel do private(i,j,k,phi)
-!    do k=1,nlevs-1
-!       do j=1,nlats
-!       do i=1,nlons
-!          if (etadot(i,j,k+1) > 0.) then
-!             phi = datag_d(i,j,k-1)/datag_d(i,j,k)
-!             datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
-!             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
-!          else
-!             phi = datag_d(i,j,k+1)/datag_d(i,j,k)
-!             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
-!             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs-k))
-!          endif
-!       enddo
-!       enddo
-!     enddo
+!   ! apply flux limiter.
+!!note: this segfaults with intel 12.1 at T574
+!!$omp parallel do private(k,phi)
+!   do k=1,nlevs-1
+!      where(etadot(:,:,k+1) > 0.)
+!         phi = datag_d(:,:,k-1)/datag_d(:,:,k)
+!         datag_half(:,:,k) = datag(:,:,nlevs+1-k) + &
+!         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs+1-k))
+!      elsewhere
+!         phi = datag_d(:,:,k+1)/datag_d(:,:,k)
+!         datag_half(:,:,k) = datag(:,:,nlevs-k) + &
+!         (phi+abs(phi))/(1.+abs(phi))*(datag_half(:,:,k)-datag(:,:,nlevs-k))
+!      end where
+!   enddo
 !!$omp end parallel do 
+
+!    ! apply flux limiter.
+! to avoid t574 segfault, get rid of where statements inside parallel region.
+!$omp parallel do private(i,j,k,phi)
+    do k=1,nlevs-1
+       do j=1,nlats
+       do i=1,nlons
+          if (etadot(i,j,k+1) > 0.) then
+             phi = datag_d(i,j,k-1)/datag_d(i,j,k)
+             datag_half(i,j,k) = datag(i,j,nlevs+1-k) + &
+             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs+1-k))
+          else
+             phi = datag_d(i,j,k+1)/datag_d(i,j,k)
+             datag_half(i,j,k) = datag(i,j,nlevs-k) + &
+             (phi+abs(phi))/(1.+abs(phi))*(datag_half(i,j,k)-datag(i,j,nlevs-k))
+          endif
+       enddo
+       enddo
+     enddo
+!$omp end parallel do 
 
 !$omp parallel do private(k)
    do k=1,nlevs

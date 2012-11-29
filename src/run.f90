@@ -196,10 +196,10 @@ subroutine advance(t)
      spec_shum,grd_shum,rpattern_shum
   real(r_double), intent(in) :: t
   complex(r_kind),dimension(ndimspec,nlevs) :: &
-  vrtspec_save,divspec_save,virtempspec_save
+  vrtspec_orig,divspec_orig,virtempspec_orig
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
-  tracerspec_save
-  complex(r_kind),dimension(ndimspec) :: lnpsspec_save
+  tracerspec_orig
+  complex(r_kind),dimension(ndimspec) :: lnpsspec_orig
   complex(r_kind), dimension(ndimspec,nlevs) :: &
   dvrtspecdt,ddivspecdt,dvirtempspecdt,dvrtspecdt_phy,ddivspecdt_phy,dvirtempspecdt_phy
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
@@ -224,11 +224,11 @@ subroutine advance(t)
      call getiauforcing(dvrtspecdt_iau,ddivspecdt_iau,dvirtempspecdt_iau,dtracerspecdt_iau,dlnpsspecdt_iau,t)
   endif
   ! save original fields.
-  vrtspec_save = vrtspec
-  divspec_save = divspec
-  virtempspec_save = virtempspec
-  if (ntrac > 0) tracerspec_save = tracerspec
-  lnpsspec_save = lnpsspec
+  vrtspec_orig = vrtspec
+  divspec_orig = divspec
+  virtempspec_orig = virtempspec
+  if (ntrac > 0) tracerspec_orig = tracerspec
+  lnpsspec_orig = lnpsspec
   call system_clock(count, count_rate, count_max)
   t0 = count*1.d0/count_rate
 
@@ -265,7 +265,7 @@ subroutine advance(t)
          call system_clock(count, count_rate, count_max)
          t1 = count*1.d0/count_rate
          call semimpadj(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
-                        divspec_save,virtempspec_save,lnpsspec_save,k,dtx)
+                        divspec_orig,virtempspec_orig,lnpsspec_orig,k,dtx)
          call system_clock(count, count_rate, count_max)
          t2 = count*1.d0/count_rate
          if (profile) print *,'time in semimpadj=',t2-t1
@@ -279,11 +279,11 @@ subroutine advance(t)
         dlnpsspecdt = dlnpsspecdt + dlnpsspecdt_iau
      endif
      ! update for RK sub-step.
-     vrtspec=vrtspec_save+dtx*dvrtspecdt
-     divspec=divspec_save+dtx*ddivspecdt
-     virtempspec=virtempspec_save+dtx*dvirtempspecdt
-     if (ntrac > 0) tracerspec=tracerspec_save+dtx*dtracerspecdt
-     lnpsspec=lnpsspec_save+dtx*dlnpsspecdt
+     vrtspec=vrtspec_orig+dtx*dvrtspecdt
+     divspec=divspec_orig+dtx*ddivspecdt
+     virtempspec=virtempspec_orig+dtx*dvirtempspecdt
+     if (ntrac > 0) tracerspec=tracerspec_orig+dtx*dtracerspecdt
+     lnpsspec=lnpsspec_orig+dtx*dlnpsspecdt
      ! forward implicit treatment of linear damping/diffusion
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
