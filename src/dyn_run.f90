@@ -338,57 +338,6 @@
    return
  end subroutine semimpadj
 
- subroutine semimpadj_old(ddivspecdt,dvirtempspecdt,dlnpsspecdt,&
-                      divspec_prev,virtempspec_prev,lnpsspec_prev,kt,dtx)
-! semi-implicit adjustment of tendencies (using a trapezoidal forward in time scheme)
-   integer, intent(in) :: kt ! iteration index for RK (zero based - 0,1 or 2 for RK3)
-   complex(r_kind), intent(inout), dimension(ndimspec,nlevs) :: &
-   ddivspecdt,dvirtempspecdt
-   complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
-   complex(r_kind), intent(in), dimension(ndimspec,nlevs) :: &
-   divspec_prev,virtempspec_prev
-   complex(r_kind), intent(in), dimension(ndimspec) :: lnpsspec_prev
-   real(r_double),intent(in) ::  dtx ! time step for (kt+1)'th iteration of RK
-   complex(r_kind), dimension(ndimspec,nlevs) :: &
-   divspec_new,virtempspec_new,espec,fspec
-   complex(r_kind), dimension(ndimspec) :: lnpsspec_new,gspec
-   complex(r_kind), dimension(nlevs) :: rhs
-   integer n
-
-! remove 0.5*linear terms from computed tendencies.
-!$omp parallel do private(n)
-   do n=1,ndimspec
-      ddivspecdt(n,:) = ddivspecdt(n,:) + 0.5*lap(n)*& 
-      (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
-      dvirtempspecdt(n,:) = dvirtempspecdt(n,:) + 0.5*matmul(bmhyb,divspec(n,:))
-      dlnpsspecdt(n) = dlnpsspecdt(n) + 0.5*sum(svhyb(:)*divspec(n,:))
-   enddo
-!$omp end parallel do 
-
-! solve for updated divergence.
-! back subsitution to get updated virt temp, lnps.
-   espec = divspec_prev + dtx*ddivspecdt
-   fspec = virtempspec_prev + dtx*dvirtempspecdt
-   gspec = lnpsspec_prev + dtx*dlnpsspecdt
-!$omp parallel do private(n,rhs)
-   do n=1,ndimspec
-      rhs = espec(n,:) - 0.5*lap(n)*dtx*&
-      (matmul(amhyb,fspec(n,:)) + tor_hyb(:)*gspec(n))
-      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1,kt+1),rhs)
-      virtempspec_new(n,:) = fspec(n,:) - 0.5*dtx*&
-      matmul(bmhyb,divspec_new(n,:))
-      lnpsspec_new(n) = gspec(n) - 0.5*dtx*sum(svhyb(:)*divspec_new(n,:))
-   enddo
-!$omp end parallel do 
-
-! create new tendencies, including semi-implicit contribution.
-   ddivspecdt = (divspec_new - divspec_prev)/dtx
-   dvirtempspecdt = (virtempspec_new - virtempspec_prev)/dtx
-   dlnpsspecdt = (lnpsspec_new - lnpsspec_prev)/dtx
-
-   return
- end subroutine semimpadj_old
-
  subroutine getomega(ug,vg,divg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot,&
 ! pass in work storage so it can be re-used, saving memory.
   workb,workc,cg,cb,db)
