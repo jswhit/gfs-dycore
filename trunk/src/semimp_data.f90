@@ -10,7 +10,7 @@ module semimp_data
                      kappa => con_rocp
  implicit none
  private
- public :: init_semimpdata, destroy_semimpdata
+ public :: init_semimpdata, destroy_semimpdata, getdtfact
  real(r_kind), allocatable, public, dimension(:,:,:,:) :: d_hyb_m
  real(r_kind), allocatable, public, dimension(:,:) :: amhyb,bmhyb
  real(r_kind), allocatable, public, dimension(:) ::  &
@@ -25,6 +25,7 @@ module semimp_data
    real(r_double), allocatable, dimension(:,:) :: yecm,tecm,ym,rim
    real(r_double), allocatable, dimension(:) :: vecm
    integer, allocatable, dimension(:) :: ipiv
+   real(r_kind) :: dtfact_new,dtfact_orig,dtfact_current
 
    ! module vars
    allocate(ipiv(nlevs))
@@ -104,19 +105,14 @@ module semimp_data
 
 ! computations that do depend on wavenumber
    do k=0,2
+   call getdtfact(k,dtfact_orig,dtfact_current,dtfact_new)
    dtx = dt/float(3-k) 
 ! enabling openmp for this loop doesn't work with intel MKL
 !!$omp parallel do private(nn,n,rnn1,yecm,ipiv,iret,vecm)
    do nn=1,ntrunc+1
       n = nn-1
       rnn1 = n*(n+1)
-      if (k .eq. 2) then
-         !yecm = rim + (dtx/4.)**2*rnn1*ym
-         yecm = rim + (dtx/3.)**2*rnn1*ym
-         !yecm = rim + (dtx/2.)**2*rnn1*ym
-      else
-         yecm = rim + (dtx/2.)**2*rnn1*ym
-      endif
+      yecm = rim + (dtfact_new*dtx)**2*rnn1*ym
       ! invert matrix using LAPACK, save in d_hyb_m
       call dgetrf(nlevs,nlevs,yecm,nlevs,ipiv,iret)
       call dgetri(nlevs,yecm,nlevs,ipiv,vecm,nlevs,iret)
@@ -127,6 +123,26 @@ module semimp_data
    deallocate(rim,yecm,tecm,ym,vecm,ipiv)
 
  end subroutine init_semimpdata
+
+ subroutine getdtfact(kt,dtfact_orig,dtfact_current,dtfact_new)
+   integer, intent(in) :: kt
+   real(r_kind), intent(out) :: dtfact_new,dtfact_orig,dtfact_current
+
+   ! dtfact_new is coeff for next stage, dtfact_current is coeff for current
+   ! stage, dtfact_orig is coeff for value at beginning of RK cycle.
+   if (kt .eq. 2) then
+      ! modified version of Kar 2006 scheme (stable for gravity waves)
+      !dtfact_new = 1./4.
+      !dtfact_new = 3./8.
+      dtfact_new = 1./3.
+      dtfact_current = 2.*(0.5-dtfact_new)
+      dtfact_orig = 1.-(dtfact_new+dtfact_current)
+   else
+      dtfact_new = 1./2.; dtfact_orig = 1./2.; dtfact_current = 0.
+   endif
+   !dtfact_new = 1./2.; dtfact_orig = 0.; dtfact_current = 1./2.
+
+ end subroutine getdtfact
 
  subroutine destroy_semimpdata()
    deallocate(amhyb,bmhyb,d_hyb_m)
