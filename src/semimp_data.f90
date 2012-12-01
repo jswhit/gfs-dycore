@@ -143,7 +143,7 @@ module semimp_data
    ! for the shallow water eqns).
    !dtfact_new = 1./2.; dtfact_orig = 0.; dtfact_current = 1./2.
    ! original Kar 2006 scheme
-   dtfact_new = 1./2.; dtfact_orig = 1./2.; dtfact_current = 0.
+   !dtfact_new = 1./2.; dtfact_orig = 1./2.; dtfact_current = 0.
 
  end subroutine getdtfact
 
