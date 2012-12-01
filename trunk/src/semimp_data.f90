@@ -132,15 +132,18 @@ module semimp_data
    ! stage, dtfact_orig is coeff for value at beginning of RK cycle.
    if (kt .eq. 2) then
       ! modified version of Kar 2006 scheme (stable for gravity waves)
-      !dtfact_new = 1./4.
-      !dtfact_new = 3./8.
       dtfact_new = 1./3.
       dtfact_current = 2.*(0.5-dtfact_new)
       dtfact_orig = 1.-(dtfact_new+dtfact_current)
    else
       dtfact_new = 1./2.; dtfact_orig = 1./2.; dtfact_current = 0.
    endif
+   ! using this really hammers the gravity waves (but is 
+   ! formally not 2nd order accurate and has a smaller stability region
+   ! for the shallow water eqns).
    !dtfact_new = 1./2.; dtfact_orig = 0.; dtfact_current = 1./2.
+   ! original Kar 2006 scheme
+   dtfact_new = 1./2.; dtfact_orig = 1./2.; dtfact_current = 0.
 
  end subroutine getdtfact
 
