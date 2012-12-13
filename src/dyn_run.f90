@@ -37,7 +37,7 @@
 
  subroutine getdyntend(dvrtspecdt,ddivspecdt,dvirtempspecdt,&
                        dtracerspecdt,dlnpsspecdt,kstep,just_do_inverse_transform)
-   ! compute dynamics tendencies (notincluding hyper-diffusion.and linear drag,
+   ! compute dynamics tendencies (not including hyper-diffusion.and linear drag,
    ! which are treated implicitly)
    ! based on hybrid sigma-pressure dynamical core described in
    ! http://www.emc.ncep.noaa.gov/officenotes/newernotes/on462.pdf
@@ -58,7 +58,7 @@
    prsgx,prsgy,vadvu,vadvv,vadvt,vadvq,dvirtempdx,dvirtempdy
    integer, intent(in) :: kstep ! runge-kutta step (0,1,2)
    integer k,nt,ntrac_use
-   logical :: profile = .false. ! print out timeing stats
+   logical :: profile = .false. ! print out timing stats
    real(r_kind) pmoist,pdry,epstiny,rnn1,rnn0
    real(8) t1,t2,t0
    integer(8) count, count_rate, count_max
