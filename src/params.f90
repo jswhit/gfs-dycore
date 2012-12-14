@@ -25,7 +25,9 @@ module params
 ! stochastic physics tendency parameters
  sppt,sppt_tau,sppt_lscale,iseed_sppt, &
 ! additive stochastic humidity perturbations
- shum,shum_tau,shum_lscale,iseed_shum,clipsupersat
+ shum,shum_tau,shum_lscale,iseed_shum,clipsupersat,&
+! runge kutta parameters
+ rk3_offcenter, rk3_b4impl
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
  integer            :: fhmax ! hours to run
@@ -64,6 +66,10 @@ module params
  ! explicit or semi-implicit RK
  !logical    :: explicit = .true. ! use explicit RK
  logical    :: explicit = .false. ! use semi-implicit RK
+ ! runge kutta time scheme parameters
+ real       :: rk3_offcenter = 0.0 ! offcentering for implicit part
+ ! last entry in bottom row of implicit part of tableau.
+ real       :: rk3_b4impl = 1./3.
  ! starting forecast time in seconds (read in from initfile)
  real(r_kind) :: tstart
  integer    :: idate_start(4) ! starting date (hr,month,day,year)
@@ -167,7 +173,7 @@ module params
  ! if dt not given, but timestepsperhr is, dt=3600/timestepsperhr
  real(r_double) :: timestepsperhr = -1
 
- namelist/nam_mrf/initfile,sfcinitfile,fhmax,&
+ namelist/nam_mrf/initfile,sfcinitfile,fhmax,rk3_offcenter,rk3_b4impl,&
  massfix,deltim,dry,efold,ndiss,dcmip,heldsuarez,explicit,fhdfi,&
  fhout,fhzer,adiabatic,hdif_fac,hdif_fac2,fshk,ntrac,ntoz,ntclw,taustratdamp,&
  fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,polar_opt,&

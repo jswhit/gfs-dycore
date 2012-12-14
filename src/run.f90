@@ -6,8 +6,9 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
-  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
-use shtns, only: spectogrd, lats, areawts
+  ntrunc, gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
+use shtns, only: spectogrd, lats, areawts, degree
+use physcons, only: rerth => con_rerth
 use dyn_run, only: getdyntend, semimpadj
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
@@ -17,7 +18,7 @@ use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
 use iau_module, only: getiauforcing, init_iau, init_iauialized
 ! these arrays used to print diagnostics after each time step.
 use pressure_data, only: psg
-use grid_data, only: ug,vg,dlnpsdt
+use grid_data, only: keg,dlnpsdt
 private
 public :: run
 contains
@@ -26,10 +27,9 @@ subroutine run()
   use omp_lib, only: omp_get_num_threads, omp_get_thread_num
   implicit none
   integer nt,ntstart,my_id
-  real(r_kind) fh,fha,pstendmean
+  real(r_kind) fh,fha,pstendmean,spdmax
   real(r_double) ta,t
   real(8) t1,t2
-  real(r_kind), dimension(nlons,nlats,nlevs) :: spd
   real(r_kind), dimension(nlons,nlats) :: pstend
   complex(r_kind), dimension(:,:), allocatable :: &
   vrtspec_dfi,divspec_dfi,virtempspec_dfi
@@ -77,10 +77,10 @@ subroutine run()
         lnpsspec_dfi = lnpsspec_dfi + dfi_wts(nt)*lnpsspec
         call system_clock(count, count_rate, count_max)
         t2 = count*1.d0/count_rate
-        spd = sqrt(ug**2+vg**2) ! max wind speed
         pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
         pstendmean = sqrt(sum(pstend*areawts))
-        write(6,8998) fh,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+        spdmax = maxval(sqrt(2.*keg)) ! max wind speed
+        write(6,8998) fh,spdmax,minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
         ! write out surface and flux data in middle of dfi window.
         if (nt .eq. ntdfi) then
            write(filename_save,9000) nint(fh)
@@ -146,10 +146,10 @@ subroutine run()
      fha = ta/3600.
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
-     spd = sqrt(ug**2+vg**2) ! max wind speed
      pstend = (36.*psg*dlnpsdt)**2 ! ps tend variance (mb/hr)**2
      pstendmean = sqrt(sum(pstend*areawts))
-     write(6,8998) fh,maxval(spd),minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
+     spdmax = maxval(sqrt(2.*keg)) ! max wind speed
+     write(6,8998) fh,spdmax,minval(psg/100.),maxval(psg/100.),pstendmean,t2-t1
 8998 format('t = ',f0.3,' hrs, spdmax = ',f7.3,', min/max ps = ',f7.2,'/',f7.2,', pstend = ',f0.3,', cpu time = ',f0.3)
      ! write out data at specified intervals.
      ! data always written at first time step.
@@ -284,11 +284,12 @@ subroutine advance(t)
      virtempspec=virtempspec_orig+dtx*dvirtempspecdt
      if (ntrac > 0) tracerspec=tracerspec_orig+dtx*dtracerspecdt
      lnpsspec=lnpsspec_orig+dtx*dlnpsspecdt
-     ! forward implicit treatment of linear damping/diffusion
+     ! implicit treatment of linear damping/diffusion
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
      !$omp parallel do private(kk,nt)
      do kk=1,nlevs
+        ! forward implicit operator-split
         vrtspec(:,kk) = vrtspec(:,kk)/(1. - (disspec(:)*diff_prof(kk) - dmp_prof(kk))*dtx)
         divspec(:,kk) = divspec(:,kk)/(1. - (disspec(:)*diff_prof(kk) - dmp_prof(kk))*dtx)
         virtempspec(:,kk) = virtempspec(:,kk)/(1. - disspec(:)*diff_prof(kk)*dtx)

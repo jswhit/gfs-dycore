@@ -9,7 +9,7 @@ module grid_data
  private
  public :: init_griddata, destroy_griddata
  real(r_kind), allocatable, public, dimension(:,:,:) :: ug,vg,vrtg,divg,&
- virtempg,etadot,dlnpdtg
+ keg,virtempg,etadot,dlnpdtg
  real(r_kind), allocatable, public, dimension(:,:,:,:) :: tracerg
 ! (nlons,nlons,nlevs) arrays (bottom to top unless otherwise noted)
 ! they are transformed to the grid from spectral space in subroutine
@@ -32,6 +32,7 @@ module grid_data
  subroutine init_griddata()
     allocate(ug(nlons,nlats,nlevs))
     allocate(vg(nlons,nlats,nlevs))
+    allocate(keg(nlons,nlats,nlevs))
     allocate(vrtg(nlons,nlats,nlevs))
     allocate(divg(nlons,nlats,nlevs))
     allocate(virtempg(nlons,nlats,nlevs))
@@ -46,7 +47,7 @@ module grid_data
  end subroutine init_griddata
  subroutine destroy_griddata()
     deallocate(ug,vg,vrtg,divg,virtempg,dlnpdtg,etadot)
-    deallocate(tracerg)
+    deallocate(tracerg,keg)
     deallocate(lnpsg,phis,dphisdx,dphisdy,dlnpsdt)
  end subroutine destroy_griddata
 
