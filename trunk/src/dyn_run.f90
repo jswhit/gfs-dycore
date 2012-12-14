@@ -18,7 +18,7 @@
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
  tracerspec, topospec
  use grid_data, only: ug,vg,vrtg,virtempg,divg,tracerg,dlnpdtg,etadot,lnpsg,&
- phis,dphisdx,dphisdy,dlnpsdt
+ phis,dphisdx,dphisdy,dlnpsdt,keg
  use pressure_data, only:  ak, bk, ck, dbk, dpk, rlnp, pk, alfa, dpk, psg,&
  calc_pressdata
  use stoch_data, only:  grd_svc, vfact_svc
@@ -242,8 +242,8 @@
          endif
       endif
       ! add laplacian(KE) term to div tendency
-      prsgx(:,:,k) = 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
-      call grdtospec(prsgx(:,:,k),workspec(:,k))
+      keg(:,:,k) = 0.5*(ug(:,:,k)**2+vg(:,:,k)**2)
+      call grdtospec(keg(:,:,k),workspec(:,k))
       ddivspecdt(:,k) = ddivspecdt(:,k) - &
       (lap(:)/rerth**2)*workspec(:,k)
    enddo
