@@ -67,9 +67,9 @@ module params
  !logical    :: explicit = .true. ! use explicit RK
  logical    :: explicit = .false. ! use semi-implicit RK
  ! runge kutta time scheme parameters
- real       :: rk3_offcenter = 0.0 ! offcentering for implicit part
+ real       :: rk3_offcenter = 0.5 ! offcentering for implicit part
  ! last entry in bottom row of implicit part of tableau.
- real       :: rk3_b4impl = 1./3.
+ real       :: rk3_b4impl = 0.5
  ! starting forecast time in seconds (read in from initfile)
  real(r_kind) :: tstart
  integer    :: idate_start(4) ! starting date (hr,month,day,year)
