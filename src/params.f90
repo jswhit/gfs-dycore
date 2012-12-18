@@ -17,7 +17,7 @@ module params
  iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,psautco,prautco,evpco,wminco,flgmin,&
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
- ngptc,pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h,gloopb_filter,&
+ ngptc,pre_rad,bkgd_vdif_m,bkgd_vdif_s,bkgd_vdif_h,gloopb_filter,nsphys,&
 ! iau parameters
  iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs,&
 ! vorticity confinement parameters
@@ -172,6 +172,8 @@ module params
  real(r_kind) :: bkgd_vdif_s = 0.2 ! sigma threshold for background mom. diffusn 
  ! if dt not given, but timestepsperhr is, dt=3600/timestepsperhr
  real(r_double) :: timestepsperhr = -1
+ ! number of physics calls per timestep
+ integer :: nsphys = 1
 
  namelist/nam_mrf/initfile,sfcinitfile,fhmax,rk3_offcenter,rk3_b4impl,&
  massfix,deltim,dry,efold,ndiss,dcmip,heldsuarez,explicit,fhdfi,&
@@ -182,7 +184,7 @@ module params
  old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,mstrat,&
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
- ngptc,clipsupersat,shum,shum_tau,shum_lscale,iseed_shum,&
+ ngptc,clipsupersat,shum,shum_tau,shum_lscale,iseed_shum,nsphys,&
  gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
 
  contains
