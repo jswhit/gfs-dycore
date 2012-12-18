@@ -19,7 +19,7 @@ module semimp_data
  real(r_kind), public :: ref_temp, ref_press
  real(r_kind),parameter :: alpha=1.-sqrt(2.)/2.
  real(r_kind),parameter :: delta=1.-0.5/alpha
- !real(r_kind),parameter :: delta=-2.*sqrt(2.)/3. # gives ARS 2.5
+ !real(r_kind),parameter :: delta=-2.*sqrt(2.)/3. ! gives ARS 2.5
  real(r_kind),parameter, public :: a21=alpha
  real(r_kind),parameter, public :: a31=delta
  real(r_kind),parameter, public :: a32=1-delta
