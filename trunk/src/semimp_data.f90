@@ -11,7 +11,7 @@ module semimp_data
  implicit none
  private
  public :: init_semimpdata, destroy_semimpdata
- real(r_kind), allocatable, public, dimension(:,:,:,:) :: d_hyb_m
+ real(r_kind), allocatable, public, dimension(:,:,:) :: d_hyb_m
  real(r_kind), allocatable, public, dimension(:,:) :: amhyb,bmhyb
  real(r_kind), allocatable, public, dimension(:) ::  &
  tref,pkref,dpkref,alfaref,svhyb,tor_hyb
@@ -28,6 +28,7 @@ module semimp_data
  real(r_kind),parameter, public :: a21=alpha
  real(r_kind),parameter, public :: a31=delta
  real(r_kind),parameter, public :: a32=1-delta
+ ! Note: it is assumed scheme is diagonally implicit (a22=a33=alpha)
  real(r_kind),parameter, public :: aa21=0.
  real(r_kind),parameter, public :: aa22=alpha
  real(r_kind),parameter, public :: aa31=0.
@@ -43,7 +44,7 @@ module semimp_data
  contains
 
  subroutine init_semimpdata()
-   real(r_double) rnn1,coeff
+   real(r_double) rnn1
    integer irow,icol,icolbeg,i,j,k,n,icolend,nn,iret
    real(r_double), allocatable, dimension(:,:) :: yecm,tecm,ym,rim
    real(r_double), allocatable, dimension(:) :: vecm
@@ -54,7 +55,7 @@ module semimp_data
    allocate(amhyb(nlevs,nlevs),bmhyb(nlevs,nlevs))
    allocate(tref(nlevs),pkref(nlevs+1),dpkref(nlevs),alfaref(nlevs))
    allocate(svhyb(nlevs),tor_hyb(nlevs))
-   allocate(d_hyb_m(nlevs,nlevs,ntrunc+1,2))
+   allocate(d_hyb_m(nlevs,nlevs,ntrunc+1))
    ! temp storage.
    allocate(yecm(nlevs,nlevs),tecm(nlevs,nlevs))
    allocate(ym(nlevs,nlevs))
@@ -126,22 +127,18 @@ module semimp_data
    enddo
 
 ! computations that do depend on wavenumber
-   do k=1,2
-   if (k .eq. 1) coeff = aa22
-   if (k .eq. 2) coeff = aa33
 ! enabling openmp for this loop doesn't work with intel MKL
 !!$omp parallel do private(nn,n,rnn1,yecm,ipiv,iret,vecm)
    do nn=1,ntrunc+1
       n = nn-1
       rnn1 = n*(n+1)
-      yecm = rim + (coeff*dt)**2*rnn1*ym
+      yecm = rim + (alpha*dt)**2*rnn1*ym
       ! invert matrix using LAPACK, save in d_hyb_m
       call dgetrf(nlevs,nlevs,yecm,nlevs,ipiv,iret)
       call dgetri(nlevs,yecm,nlevs,ipiv,vecm,nlevs,iret)
-      d_hyb_m(:,:,nn,k) = yecm
+      d_hyb_m(:,:,nn) = yecm
    enddo
 !!$omp end parallel do 
-   enddo
    deallocate(rim,yecm,tecm,ym,vecm,ipiv)
 
  end subroutine init_semimpdata
