@@ -10,7 +10,7 @@
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
  massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
- sppt,shum,clipsupersat,ngptc
+ sppt,shum,clipsupersat,ngptc,nsphys
  use kinds, only: r_kind,r_single,r_double
  use shtns, only: grdtospec, spectogrd, getvrtdivspec, lons, lats, areawts
  use grid_data, only: virtempg,dlnpdtg,tracerg,ug,vg
@@ -85,7 +85,7 @@
    complex(r_kind), intent(out), dimension(ndimspec,nlevs,ntrac) :: &
    dtracerspecdt
    real(r_double), intent(in) :: t,dtx
-   real(r_kind) dtp
+   real(r_kind) dtp,dtf
    complex(r_kind), intent(inout), dimension(ndimspec) :: dlnpsspecdt
    real(r_kind), parameter :: qmin = 1.e-10 ! min value for clipping tracers
    real(r_kind), parameter :: typical_pgr = 95000.0
@@ -131,13 +131,14 @@
    integer :: idat(8), jdat(8)
    type (random_stat) :: stat
    integer :: numrdm(nlons*nlats*2), ixseed(nlons,nlats,2)
-   integer :: i,j,k,m,im,n,nt,ipseed,nstep,nswr,nlwr,nnrcm,nszer,numthreads
+   integer :: i,j,k,m,im,n,nt,ipseed,nstep,nswr,nlwr,nnrcm,nszer,numthreads,nn
    integer, parameter :: ipsdlim = 1.0e8      ! upper limit for random seeds
    real(8) tstart,tend,t0,t2,tsum
    integer(8) count, count_rate, count_max
    logical :: testomp=.false.  ! openmp debug flag
 
-   dtp = dtx
+   dtp = dtx/nsphys ! physics time step
+   dtf = dtx ! dynamics time step
    if (mod(nlons,ngptc) .ne. 0) then
      print *,'nlons must be divisible by ngptc'
      stop
@@ -363,7 +364,7 @@
      print *,'old sas and ras not yet supported...'
      stop
    end if
-   nnrcm=1 ! random numbers only used for old sas and ras
+   nnrcm  = 1
    ncw=1 ! only used for Ferrier microphysics (not yet supported)
    clstp=1.0 ! legacy parameter, not used
 ! hour of day at beginning of time step
@@ -432,12 +433,13 @@
       !call system_clock(count, count_rate, count_max)
       !t0 = count*1.d0/count_rate
 ! call GFS physics driver
+      do nn=1,nsphys
       call gbphys                                                       &
 !  ---  inputs:
           ( ngptc,im,nlevs,lsoil,1,ntrac,ncld,ntoz,ntclw,               &
             nmtvr,nnrcm,levozp,nlons,nlats,ntrunc,num_p3d,num_p2d,      &
             nstep,1,0,pl_coeff,ilons,ncw,flgmin,crtrh,cdmbgwd,          &
-            ccwf,dlqf,ctei_rm,clstp,dtp,dtp,fhour,solhr,                &
+            ccwf,dlqf,ctei_rm,clstp,dtp,dtf,fhour,solhr,                &
             slag,sdec,cdec,slats,clats,psg(i,j),gu,gv,                  &
             gt,gq,vvel,prsi,prsl,prslk,prsik,phii,phil,                 &
             rann,ozplout(1,1,1,j),pl_pres,dpshc,                        &
@@ -530,6 +532,13 @@
 !           nst_fld%w_0 (i,j),       nst_fld%w_d(i,j),                  &
 !           rqtk)
             dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,dum1,rqtk)
+            if (nn < nsphys) then
+              gt   = adt
+              gq   = adq
+              gu   = adu
+              gv   = adv
+            endif
+       enddo                                ! end of nsphys loop
      !call system_clock(count, count_rate, count_max)
      !t2 = count*1.d0/count_rate
      !tsum = tsum + t2-t0
