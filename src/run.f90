@@ -298,7 +298,7 @@ subroutine advance(t)
 ! solve implicit part for updated divergence.
       rhs(:)   = divspec_new(n,:) - aa22*lap(n)*dt*&
                  (matmul(amhyb,virtempspec_new(n,:)) + tor_hyb(:)*lnpsspec_new(n))
-      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1,1),rhs(:))
+      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1),rhs(:))
 ! back substitute to get implicit contribution to virtual temp and lnps update.
       virtempspec_new(n,:) = virtempspec_new(n,:) - aa22*dt*matmul(bmhyb,divspec_new(n,:))
       lnpsspec_new(n) = lnpsspec_new(n) - aa22*dt*sum(svhyb(:)*divspec_new(n,:))
@@ -363,7 +363,7 @@ subroutine advance(t)
 ! solve implicit part for updated divergence.
       rhs(:)   = divspec_new(n,:) - aa33*lap(n)*dt*&
                  (matmul(amhyb,virtempspec_new(n,:)) + tor_hyb(:)*lnpsspec_new(n))
-      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1,2),rhs(:))
+      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1),rhs(:))
 ! back substitute to get implicit contribution to virtual temp and lnps update.
       virtempspec_new(n,:) = virtempspec_new(n,:) - aa33*dt*matmul(bmhyb,divspec_new(n,:))
       lnpsspec_new(n) = lnpsspec_new(n) - aa33*dt*sum(svhyb(:)*divspec_new(n,:))
