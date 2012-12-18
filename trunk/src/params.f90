@@ -57,12 +57,10 @@ module params
  logical    :: heldsuarez = .false.
  ! dcmip test cases
  integer    :: dcmip = -1 ! 4x for baroclinic wave, 5x for tropical cyclone.
- ! use explicit time differencing
- ! if .true., explicit RK is used.
- ! if .false., semi-implicit RK (Kar, 2006, MWR p. 2916,
- ! http://dx.doi.org/10.1175/MWR3214.1) is used.
- ! explicit or semi-implicit RK
- !logical    :: explicit = .true. ! use explicit RK
+ ! 3-stage, 2nd order RK time differencing is used.
+ ! explicit=.true. means use explicit time differencing
+ ! if .false., semi-implicit or additive RK (Ascher, Spiteri and Ruth 1997
+ ! DOI:10.1016/S0168-9274(97)00056-1) is used.
  logical    :: explicit = .false. ! use semi-implicit RK
  ! starting forecast time in seconds (read in from initfile)
  real(r_kind) :: tstart
