@@ -7,7 +7,7 @@ AUTOFLAG      = -auto
 FFLAGS        = -O3 -xHost -convert big_endian  
 DEBUGFLAGS    = -warn all -implicitnone -traceback 
 #DEBUGFLAGS    = 
-EXEC          = ../bin/gfsyy
+EXEC          = ../bin/gfs
 LDFLAGS       = -openmp -mkl=sequential 
 # jet
 LIBS          = -L/pan2/projects/gfsenkf/whitaker/lib -lshtns -lfftw3 libgfs/libgfs.a w3lib/libw3.a
