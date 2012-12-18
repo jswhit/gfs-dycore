@@ -17,7 +17,6 @@ module semimp_data
  tref,pkref,dpkref,alfaref,svhyb,tor_hyb
  ! schemes from Ascher, Spiteri and Ruuth 1997.
  ! Applied Numerical Mathematics DOI:10.1016/S0168-9274(97)00056-1
- real(r_kind), public :: ref_temp, ref_press
  ! both of these choices of alpha lead to a 2nd order scheme.
  real(r_kind),parameter :: alpha=1.-sqrt(2.)/2.
  !real(r_kind),parameter :: alpha=1.+sqrt(2.)/2. ! stronger damping, less stable
@@ -40,6 +39,8 @@ module semimp_data
  real(r_kind),parameter, public :: bb1=0.
  real(r_kind),parameter, public :: bb2=1.-alpha
  real(r_kind),parameter, public :: bb3=alpha
+ real(r_kind),parameter, public :: ref_temp = 300.
+ real(r_kind),parameter, public :: ref_press = 800.e2
 
  contains
 
@@ -62,8 +63,6 @@ module semimp_data
    allocate(vecm(nlevs))
    allocate(rim(nlevs,nlevs)) ! identity matrix
 
-   ref_temp = 300.
-   ref_press = 800.e2
    tref = ref_temp
    do k=1,nlevs+1
       pkref(k) = ak(k) + bk(k)*ref_press
