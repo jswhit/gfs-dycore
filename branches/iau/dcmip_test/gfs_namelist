@@ -1,9 +1,0 @@
- &nam_mrf
- initfile="gec00.t00z.sanl",
- sfcinitfile="gec00.t00z.sfcanl",
- fhmax=240,
- fhout=24,
- deltim=1200,
- dcmip=51,
- /
- &END
