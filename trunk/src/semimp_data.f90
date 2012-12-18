@@ -19,8 +19,8 @@ module semimp_data
  ! Applied Numerical Mathematics DOI:10.1016/S0168-9274(97)00056-1
  real(r_kind), public :: ref_temp, ref_press
  ! both of these choices of alpha lead to a 2nd order scheme.
- !real(r_kind),parameter :: alpha=1.-sqrt(2.)/2.
- real(r_kind),parameter :: alpha=1.+sqrt(2.)/2. ! stronger damping
+ real(r_kind),parameter :: alpha=1.-sqrt(2.)/2.
+ !real(r_kind),parameter :: alpha=1.+sqrt(2.)/2. ! stronger damping, less stable
  ! this choice of delta gives absolute stability for courant numbers < sqrt(2)
  ! it's a combination of ARS 2.5 and 2.6 (tableus from 2.5, value of delta from 2.6)
  real(r_kind),parameter :: delta=1.-0.5/alpha 
