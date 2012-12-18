@@ -1,0 +1,14 @@
+#gnu fortran 
+FC = gfortran
+OMPFLAG = -fopenmp
+###FFLAGS=-O0 -pedantic -fimplicit-none -fbounds-check -fbacktrace -Wall -fcheck-array-temporaries -g
+DEBUGFLAGS=-fimplicit-none
+FFLAGS=-O3 -march=native -ffast-math -pipe -fomit-frame-pointer -fbacktrace -fno-range-check
+#FFLAGS=-O3 -march=core2 -ffast-math -pipe -fomit-frame-pointer -fbacktrace -fno-range-check
+FREEFLAG=-ffree-form
+AUTOFLAG=-frecursive
+EXEC          = ../bin/gfs
+LDFLAGS       = $(OMPFLAG)  
+LIBS          = -L/Users/$(USER)/lib -lshtns -L/opt/local/lib -lfftw3 -llapack libgfs/libgfs.a w3lib/libw3.a 
+CFLAGS  = -O2 -DLINUX
+CC      = gcc
