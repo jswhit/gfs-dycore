@@ -190,23 +190,18 @@ subroutine advance(t)
   use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,tref,pkref,alfaref,&
                          a21,a31,a32,aa21,aa22,aa31,aa32,aa33,b1,b2,b3,bb1,bb2,bb3
   real(r_double), intent(in) :: t
-  complex(r_kind),dimension(ndimspec,nlevs) :: &
-  vrtspec_orig,divspec_orig,virtempspec_orig,&
-  vrtspec_new,divspec_new,virtempspec_new
-  complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
-  tracerspec_orig,tracerspec_new
-  complex(r_kind),dimension(ndimspec) :: lnpsspec_orig,lnpsspec_new,&
-  dlnpsdtlin_orig, dlnpsdtlin1, dlnpsdtlin2
+  complex(r_kind),dimension(ndimspec) :: &
+      lnpsspec_orig,dlnpsdtlin_orig, dlnpsdtlin1, dlnpsdtlin2,&
+      dlnpsspecdt_orig,dlnpsspecdt1,dlnpsspecdt2
   complex(r_kind), dimension(ndimspec,nlevs) :: &
-  dvrtspecdt_orig,ddivspecdt_orig,dvirtempspecdt_orig,&
-  dvrtspecdt1,ddivspecdt1,dvirtempspecdt1,&
-  dvrtspecdt2,ddivspecdt2,dvirtempspecdt2,&
-  ddivdtlin_orig, ddivdtlin1, ddivdtlin2,&
-  dtvdtlin_orig, dtvdtlin1, dtvdtlin2
+      vrtspec_orig,divspec_orig,virtempspec_orig,&
+      dvrtspecdt_orig,ddivspecdt_orig,dvirtempspecdt_orig,&
+      dvrtspecdt1,ddivspecdt1,dvirtempspecdt1,&
+      dvrtspecdt2,ddivspecdt2,dvirtempspecdt2,&
+      ddivdtlin_orig, ddivdtlin1, ddivdtlin2,&
+      dtvdtlin_orig, dtvdtlin1, dtvdtlin2
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
-  dtracerspecdt_orig,dtracerspecdt1,dtracerspecdt2
-  complex(r_kind), dimension(ndimspec) :: &
-  dlnpsspecdt_orig,dlnpsspecdt1,dlnpsspecdt2
+      tracerspec_orig,dtracerspecdt_orig,dtracerspecdt1,dtracerspecdt2
   complex(r_kind) :: rhs(nlevs)
   complex(r_kind), allocatable, dimension(:,:) :: dvrtspecdt_iau,ddivspecdt_iau,dvirtempspecdt_iau
   complex(r_kind), allocatable, dimension(:,:,:) :: dtracerspecdt_iau
@@ -225,6 +220,12 @@ subroutine advance(t)
      allocate(dtracerspecdt_iau(ndimspec,nlevs,ntrac))
      allocate(dlnpsspecdt_iau(ndimspec))
      call getiauforcing(dvrtspecdt_iau,ddivspecdt_iau,dvirtempspecdt_iau,dtracerspecdt_iau,dlnpsspecdt_iau,t)
+  endif
+
+  ! check to make sure aa22=aa33 (diagonally implicit scheme)
+  if (aa33 .ne. aa22) then
+    print *,'error in semi-implicit scheme coeffs (aa33 != aa22)'
+    print *,'fix in semimp_data.f90!'
   endif
 
   ! save original fields.
@@ -269,12 +270,12 @@ subroutine advance(t)
   endif
   if (profile) print *,'time in getdyntend (stage 1) =',t2-t1
   ! update vorticity and tracers (always explicit)
-  vrtspec_new=vrtspec_orig+a21*dt*dvrtspecdt_orig
-  if (ntrac > 0) tracerspec_new=tracerspec_orig+a21*dt*dtracerspecdt_orig
+  vrtspec=vrtspec_orig+a21*dt*dvrtspecdt_orig
+  if (ntrac > 0) tracerspec=tracerspec_orig+a21*dt*dtracerspecdt_orig
   if (explicit) then
-     divspec_new=divspec_orig+a21*dt*ddivspecdt_orig
-     virtempspec_new=virtempspec_orig+a21*dt*dvirtempspecdt_orig
-     lnpsspec_new=lnpsspec_orig+a21*dt*dlnpsspecdt_orig
+     divspec=divspec_orig+a21*dt*ddivspecdt_orig
+     virtempspec=virtempspec_orig+a21*dt*dvirtempspecdt_orig
+     lnpsspec=lnpsspec_orig+a21*dt*dlnpsspecdt_orig
   else
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
@@ -289,26 +290,22 @@ subroutine advance(t)
       dlnpsdtlin_orig(n) = -sum(svhyb(:)*divspec_orig(n,:))
       dlnpsspecdt_orig(n) = dlnpsspecdt_orig(n) - dlnpsdtlin_orig(n)
 ! compute explicit part of update
-      divspec_new(n,:) = divspec_orig(n,:) + dt*(a21*ddivspecdt_orig(n,:)  +&
-                                              aa21*ddivdtlin_orig(n,:))
-      virtempspec_new(n,:) = virtempspec_orig(n,:) + dt*(a21*dvirtempspecdt_orig(n,:)  +&
-                                                      aa21*dtvdtlin_orig(n,:))
-      lnpsspec_new(n) = lnpsspec_orig(n) + dt*(a21*dlnpsspecdt_orig(n) +&
-                                            aa21*dlnpsdtlin_orig(n))
+      divspec(n,:) = divspec_orig(n,:) + dt*(a21*ddivspecdt_orig(n,:)  +&
+                                             aa21*ddivdtlin_orig(n,:))
+      virtempspec(n,:) = virtempspec_orig(n,:) + dt*(a21*dvirtempspecdt_orig(n,:)  +&
+                                                     aa21*dtvdtlin_orig(n,:))
+      lnpsspec(n) = lnpsspec_orig(n) + dt*(a21*dlnpsspecdt_orig(n) +&
+                                           aa21*dlnpsdtlin_orig(n))
 ! solve implicit part for updated divergence.
-      rhs(:)   = divspec_new(n,:) - aa22*lap(n)*dt*&
-                 (matmul(amhyb,virtempspec_new(n,:)) + tor_hyb(:)*lnpsspec_new(n))
-      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1),rhs(:))
+      rhs(:)   = divspec(n,:) - aa22*lap(n)*dt*&
+                 (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
+      divspec(n,:) = matmul(d_hyb_m(:,:,degree(n)+1),rhs(:))
 ! back substitute to get implicit contribution to virtual temp and lnps update.
-      virtempspec_new(n,:) = virtempspec_new(n,:) - aa22*dt*matmul(bmhyb,divspec_new(n,:))
-      lnpsspec_new(n) = lnpsspec_new(n) - aa22*dt*sum(svhyb(:)*divspec_new(n,:))
+      virtempspec(n,:) = virtempspec(n,:) - aa22*dt*matmul(bmhyb,divspec(n,:))
+      lnpsspec(n) = lnpsspec(n) - aa22*dt*sum(svhyb(:)*divspec(n,:))
   enddo
 !$omp end parallel do 
   endif
-  ! update variables in spectral_data module.
-  vrtspec = vrtspec_new; divspec = divspec_new; virtempspec = virtempspec_new
-  if (ntrac > 0) tracerspec = tracerspec_new
-  lnpsspec = lnpsspec_new
 
   ! stage 2
   ! compute dynamics tendencies.
@@ -327,13 +324,13 @@ subroutine advance(t)
      dlnpsspecdt1 = dlnpsspecdt1 + dlnpsspecdt_iau
   endif
   ! update vorticity and tracers (always explicit)
-  vrtspec_new=vrtspec_orig+dt*(a31*dvrtspecdt_orig+a32*dvrtspecdt1)
+  vrtspec=vrtspec_orig+dt*(a31*dvrtspecdt_orig+a32*dvrtspecdt1)
   if (ntrac > 0) &
-  tracerspec_new=tracerspec_orig+dt*(a31*dtracerspecdt_orig+a32*dtracerspecdt1)
+  tracerspec=tracerspec_orig+dt*(a31*dtracerspecdt_orig+a32*dtracerspecdt1)
   if (explicit) then
-     divspec_new=divspec_orig+dt*(a31*ddivspecdt_orig+a32*ddivspecdt1)
-     virtempspec_new=virtempspec_orig+dt*(a31*dvirtempspecdt_orig+a32*dvirtempspecdt1)
-     lnpsspec_new=lnpsspec_orig+dt*(a31*dlnpsspecdt_orig+a32*dlnpsspecdt1)
+     divspec=divspec_orig+dt*(a31*ddivspecdt_orig+a32*ddivspecdt1)
+     virtempspec=virtempspec_orig+dt*(a31*dvirtempspecdt_orig+a32*dvirtempspecdt1)
+     lnpsspec=lnpsspec_orig+dt*(a31*dlnpsspecdt_orig+a32*dlnpsspecdt1)
   else
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
@@ -341,39 +338,35 @@ subroutine advance(t)
   do n=1,ndimspec
 ! remove linear terms from computed tendencies.
       ddivdtlin1(n,:) = -lap(n)*& 
-      (matmul(amhyb,virtempspec_new(n,:)) + tor_hyb(:)*lnpsspec_new(n))
+      (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
       ddivspecdt1(n,:) = ddivspecdt1(n,:) - ddivdtlin1(n,:)
-      dtvdtlin1(n,:) = -matmul(bmhyb,divspec_new(n,:))
+      dtvdtlin1(n,:) = -matmul(bmhyb,divspec(n,:))
       dvirtempspecdt1(n,:) = dvirtempspecdt1(n,:) - dtvdtlin1(n,:)
-      dlnpsdtlin1(n) = -sum(svhyb(:)*divspec_new(n,:))
+      dlnpsdtlin1(n) = -sum(svhyb(:)*divspec(n,:))
       dlnpsspecdt1(n) = dlnpsspecdt1(n) - dlnpsdtlin1(n)
 ! compute explicit part of update
-      divspec_new(n,:) = divspec_orig(n,:) + dt*(a31*ddivspecdt_orig(n,:)  +&
-                                              aa31*ddivdtlin_orig(n,:)  +&
-                                              a32*ddivspecdt1(n,:)      +&
-                                              aa32*ddivdtlin1(n,:))   
-      virtempspec_new(n,:) = virtempspec_orig(n,:) + dt*(a31*dvirtempspecdt_orig(n,:)  +&
-                                                      aa31*dtvdtlin_orig(n,:)       +&
-                                                      a32*dvirtempspecdt1(n,:)      +&
-                                                      aa32*dtvdtlin1(n,:))
-      lnpsspec_new(n) = lnpsspec_orig(n) + dt*(a31*dlnpsspecdt_orig(n)     +&
-                                            aa31*dlnpsdtlin_orig(n)     +&
-                                            a32*dlnpsspecdt1(n)         +&
-                                            aa32*dlnpsdtlin1(n))     
+      divspec(n,:) = divspec_orig(n,:) + dt*(a31*ddivspecdt_orig(n,:)  +&
+                                             aa31*ddivdtlin_orig(n,:)  +&
+                                             a32*ddivspecdt1(n,:)      +&
+                                             aa32*ddivdtlin1(n,:))   
+      virtempspec(n,:) = virtempspec_orig(n,:) + dt*(a31*dvirtempspecdt_orig(n,:)  +&
+                                                     aa31*dtvdtlin_orig(n,:)       +&
+                                                     a32*dvirtempspecdt1(n,:)      +&
+                                                     aa32*dtvdtlin1(n,:))
+      lnpsspec(n) = lnpsspec_orig(n) + dt*(a31*dlnpsspecdt_orig(n)     +&
+                                           aa31*dlnpsdtlin_orig(n)     +&
+                                           a32*dlnpsspecdt1(n)         +&
+                                           aa32*dlnpsdtlin1(n))     
 ! solve implicit part for updated divergence.
-      rhs(:)   = divspec_new(n,:) - aa33*lap(n)*dt*&
-                 (matmul(amhyb,virtempspec_new(n,:)) + tor_hyb(:)*lnpsspec_new(n))
-      divspec_new(n,:) = matmul(d_hyb_m(:,:,degree(n)+1),rhs(:))
+      rhs(:)   = divspec(n,:) - aa33*lap(n)*dt*&
+                 (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
+      divspec(n,:) = matmul(d_hyb_m(:,:,degree(n)+1),rhs(:))
 ! back substitute to get implicit contribution to virtual temp and lnps update.
-      virtempspec_new(n,:) = virtempspec_new(n,:) - aa33*dt*matmul(bmhyb,divspec_new(n,:))
-      lnpsspec_new(n) = lnpsspec_new(n) - aa33*dt*sum(svhyb(:)*divspec_new(n,:))
+      virtempspec(n,:) = virtempspec(n,:) - aa33*dt*matmul(bmhyb,divspec(n,:))
+      lnpsspec(n) = lnpsspec(n) - aa33*dt*sum(svhyb(:)*divspec(n,:))
   enddo
 !$omp end parallel do 
   endif
-  ! update variables in spectral_data module.
-  vrtspec = vrtspec_new; divspec = divspec_new; virtempspec = virtempspec_new
-  if (ntrac > 0) tracerspec = tracerspec_new
-  lnpsspec = lnpsspec_new
 
   ! stage 3
   ! compute dynamics tendencies.
@@ -404,11 +397,11 @@ subroutine advance(t)
   do n=1,ndimspec
 ! remove linear terms from computed tendencies.
       ddivdtlin2(n,:) = -lap(n)*& 
-      (matmul(amhyb,virtempspec_new(n,:)) + tor_hyb(:)*lnpsspec_new(n))
+      (matmul(amhyb,virtempspec(n,:)) + tor_hyb(:)*lnpsspec(n))
       ddivspecdt2(n,:) = ddivspecdt2(n,:) - ddivdtlin2(n,:)
-      dtvdtlin2(n,:) = -matmul(bmhyb,divspec_new(n,:))
+      dtvdtlin2(n,:) = -matmul(bmhyb,divspec(n,:))
       dvirtempspecdt2(n,:) = dvirtempspecdt2(n,:) - dtvdtlin2(n,:)
-      dlnpsdtlin2(n) = -sum(svhyb(:)*divspec_new(n,:))
+      dlnpsdtlin2(n) = -sum(svhyb(:)*divspec(n,:))
       dlnpsspecdt2(n) = dlnpsspecdt2(n) - dlnpsdtlin2(n)
 ! compute final update
       divspec(n,:) = divspec_orig(n,:) + dt*(b1*ddivspecdt_orig(n,:)  +&
