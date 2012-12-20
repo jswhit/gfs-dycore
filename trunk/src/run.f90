@@ -187,7 +187,7 @@ subroutine advance(t)
   use stoch_data, only: rpattern_svc,rpattern_sppt,&
      spec_svc,spec_sppt,grd_svc,grd_sppt,&
      spec_shum,grd_shum,rpattern_shum
-  use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,tref,pkref,alfaref,&
+  use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,&
                          a21,a31,a32,aa21,aa22,aa31,aa32,aa33,b1,b2,b3,bb1,bb2,bb3
   real(r_double), intent(in) :: t
   complex(r_kind),dimension(ndimspec) :: &
