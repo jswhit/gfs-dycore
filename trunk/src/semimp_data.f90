@@ -15,13 +15,28 @@ module semimp_data
  real(r_kind), allocatable, public, dimension(:,:) :: amhyb,bmhyb
  real(r_kind), allocatable, public, dimension(:) ::  &
  tref,pkref,dpkref,alfaref,svhyb,tor_hyb
+ !
  ! scheme derived from Ascher, Spiteri and Ruuth 1997.
  ! Applied Numerical Mathematics DOI:10.1016/S0168-9274(97)00056-1
+ ! it's a combination of schemes in sxns 2.5 and 2.6
+ ! from that paper (tableaus from 2.5, value of delta from 2.6)
+ !  
+ ! Double tableau:  a = alpha = 1 - sqrt(2)/2;  d = delta = 1 - 1/2a
+ !  *explicit part*  *implicit part* 
+ !
+ !  0 | 0             0 | 0
+ !  a | a 0           a | 0 a
+ !  1 ! d 1-d 0       1 | 0 1-a a
+ ! -------------      -----------
+ !      0 1-a a           0 1-a a
+ !
+ ! when used to discretize 'fast'/'slow' double oscillator eqn
+ ! this scheme is:
+ ! stable for 'slow' courant numbers < sqrt(2)
+ ! stable for all 'fast' courant numbers
+ !
  real(r_kind),parameter :: alpha=1.-sqrt(2.)/2.
- ! this choice of delta gives absolute stability for courant numbers < sqrt(2)
- ! it's a combination of ARS 2.5 and 2.6 (tableaus from 2.5, value of delta from 2.6)
  real(r_kind),parameter :: delta=1.-0.5/alpha 
- !real(r_kind),parameter :: delta=-2.*sqrt(2.)/3. ! gives ARS 2.5
  real(r_kind),parameter, public :: a21=alpha
  real(r_kind),parameter, public :: a31=delta
  real(r_kind),parameter, public :: a32=1-delta
