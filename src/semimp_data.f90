@@ -15,13 +15,11 @@ module semimp_data
  real(r_kind), allocatable, public, dimension(:,:) :: amhyb,bmhyb
  real(r_kind), allocatable, public, dimension(:) ::  &
  tref,pkref,dpkref,alfaref,svhyb,tor_hyb
- ! schemes from Ascher, Spiteri and Ruuth 1997.
+ ! scheme derived from Ascher, Spiteri and Ruuth 1997.
  ! Applied Numerical Mathematics DOI:10.1016/S0168-9274(97)00056-1
- ! both of these choices of alpha lead to a 2nd order scheme.
  real(r_kind),parameter :: alpha=1.-sqrt(2.)/2.
- !real(r_kind),parameter :: alpha=1.+sqrt(2.)/2. ! stronger damping, less stable
  ! this choice of delta gives absolute stability for courant numbers < sqrt(2)
- ! it's a combination of ARS 2.5 and 2.6 (tableus from 2.5, value of delta from 2.6)
+ ! it's a combination of ARS 2.5 and 2.6 (tableaus from 2.5, value of delta from 2.6)
  real(r_kind),parameter :: delta=1.-0.5/alpha 
  !real(r_kind),parameter :: delta=-2.*sqrt(2.)/3. ! gives ARS 2.5
  real(r_kind),parameter, public :: a21=alpha
