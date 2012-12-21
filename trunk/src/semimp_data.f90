@@ -42,14 +42,14 @@ module semimp_data
  real(r_kind),parameter, public :: a32=1-delta
  ! Note: it is assumed scheme is diagonally implicit (a22=a33=alpha)
  real(r_kind),parameter, public :: aa21=0.
- real(r_kind),parameter, public :: aa22=alpha
+ real(r_kind),parameter, public :: aa22=alpha ! must be same as aa33
  real(r_kind),parameter, public :: aa31=0.
  real(r_kind),parameter, public :: aa32=1.-alpha
- real(r_kind),parameter, public :: aa33=alpha
- real(r_kind),parameter, public :: b1=0.
+ real(r_kind),parameter, public :: aa33=alpha ! must be same as aa22
+ real(r_kind),parameter, public :: b1=0.  ! must be zero
  real(r_kind),parameter, public :: b2=1.-alpha
  real(r_kind),parameter, public :: b3=alpha
- real(r_kind),parameter, public :: bb1=0.
+ real(r_kind),parameter, public :: bb1=0. ! must be zero
  real(r_kind),parameter, public :: bb2=1.-alpha
  real(r_kind),parameter, public :: bb3=alpha
  real(r_kind),parameter, public :: ref_temp = 300.
@@ -63,6 +63,45 @@ module semimp_data
    real(r_double), allocatable, dimension(:,:) :: yecm,tecm,ym,rim
    real(r_double), allocatable, dimension(:) :: vecm
    integer, allocatable, dimension(:) :: ipiv
+   real(r_kind) epstiny
+
+   ! check to make sure aa22=aa33 (diagonally implicit scheme)
+   if (aa33 .ne. aa22) then
+     print *,'error in semi-implicit scheme coeffs (aa33 != aa22)'
+     print *,'fix in semimp_data.f90!'
+   endif
+   ! check to make sure b1=bb1=0
+   if (b1 .ne. 0. .or. bb1 .ne. 0) then
+     print *,'error in semi-implicit scheme coeffs (b1,bb1 should be zero)'
+     print *,'fix in semimp_data.f90!'
+     stop
+   endif
+   ! make sure progression in time the same in explicit and implicit
+   ! parts of additive runge-kutta scheme.
+   epstiny = 10.*tiny(bb1)
+   if (abs(a21-aa22) > epstiny .or. abs(a31+a32-(aa32+aa33)) > epstiny) then
+     print *,a21,a31+a32,abs(a21-aa22) 
+     print *,aa22,aa32+aa33,abs(a31+a32-(aa32+aa33))
+     print *,'time progression different in explicit and implict parts of RK'
+     print *,'fix in semimp_data.f90!'
+     stop
+   endif
+   ! check to make sure b1+b2+b3=bb1+bb2+bb3=1
+   if (abs(b1+b2+b3-1.) > epstiny .or. abs(bb1+bb2+bb3-1) > epstiny) then
+     print *,'b1+b2+b3 or bb1+bb2+bb3 != 1'
+     print *,'fix in semimp_data.f90!'
+     stop
+   endif
+   ! check to make sure scheme is 2nd order
+   if (abs(a21*b2+(a31+a32)*b3-0.5) > epstiny .or.&
+       abs(aa22*bb2+(aa32+aa33)*bb3-0.5) > epstiny) then
+     print *,a21*b2 + (a31+a32)*b3,abs(a21*b2+(a31+a32)*b3-0.5)
+     print *,aa22*bb2+(aa32+aa33)*bb3 ,&
+        abs(aa22*bb2+(aa32+aa33)*bb3-0.5)
+     print *,'scheme not 2nd order'
+     print *,'fix in semimp_data.f90!'
+     stop
+   endif
 
    ! module vars
    allocate(ipiv(nlevs))
