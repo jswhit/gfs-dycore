@@ -78,7 +78,7 @@ module semimp_data
    endif
    ! make sure progression in time the same in explicit and implicit
    ! parts of additive runge-kutta scheme.
-   epstiny = 10.*tiny(bb1)
+   epstiny = 1.e-5
    if (abs(a21-aa22) > epstiny .or. abs(a31+a32-(aa32+aa33)) > epstiny) then
      print *,a21,a31+a32,abs(a21-aa22) 
      print *,aa22,aa32+aa33,abs(a31+a32-(aa32+aa33))
