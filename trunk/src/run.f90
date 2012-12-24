@@ -6,11 +6,11 @@ module run_mod
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
-  gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
+  massfix,gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
 use shtns, only: spectogrd, lats, areawts, lap, degree
-use dyn_run, only: getdyntend
+use dyn_run, only: getdyntend, dry_mass_fixer
 use phy_run, only: getphytend
-use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata
+use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata, pwat
 use dyn_init, only: wrtout_sig, wrtout_gfsgrb
 use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
                           tracerspec, disspec, dmp_prof, diff_prof
@@ -466,6 +466,12 @@ subroutine advance(t)
      divspec=divspec+dt*ddivspecdt1
      virtempspec=virtempspec+dt*dvirtempspecdt1
      if (ntrac > 0) tracerspec=tracerspec+dt*dtracerspecdt1
+! modify spectral lnps tendency to include contribution
+! from dry mass 'fixer' (adjusts dry surface pressure to
+! remain equal to pdryini).
+     if (massfix) then
+        call dry_mass_fixer(psg,pwat,dlnpsspecdt1,dt)
+     endif
      lnpsspec=lnpsspec+dt*dlnpsspecdt1 ! only needed for dry mass fixer.
   end if
 

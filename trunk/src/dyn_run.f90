@@ -11,10 +11,10 @@
  use params, only: nlevs,ntrunc,nlons,nlats,ndimspec,dt,ntrac,pdryini,&
    dcmip,dry,vcamp,svc
  use kinds, only: r_kind,r_double
- use shtns, only: degree,order,&
+ use shtns, only: degree,order,areawts,&
  lap,invlap,lats,grdtospec,spectogrd,getuv,getvrtdivspec,getgrad,areawts
  use spectral_data, only:  lnpsspec, vrtspec, divspec, virtempspec,&
- tracerspec, topospec
+ tracerspec, topospec, disspec, dmp_prof, diff_prof
  use grid_data, only: ug,vg,vrtg,virtempg,divg,tracerg,dlnpdtg,etadot,lnpsg,&
  phis,dphisdx,dphisdy,dlnpsdt
  use pressure_data, only:  ak, bk, ck, dbk, dpk, rlnp, pk, alfa, dpk, psg,&
@@ -26,7 +26,7 @@
  implicit none
  private
 
- public :: getdyntend, getomega, getpresgrad, getvadv
+ public :: getdyntend, getomega, getpresgrad, getvadv, dry_mass_fixer
 
  contains
 
@@ -575,5 +575,36 @@
 
    return
  end subroutine getvadv_tracers
+
+ subroutine dry_mass_fixer(psg,pwat,dlnpsspecdt,dtx)
+! adjust psg to global integral of dry mass is equal
+! to pdryini.
+! input: psg,pwatg (gridded surface pressure, precipitable water)
+! input/output: dlnpsspecdt (spectral lnps tendency) - modified
+!  to include correction term for dry mass adjustment.
+! input: dtx (time step)
+      real(r_kind), intent(in), dimension(nlons,nlats) ::&
+          psg(nlons,nlats),pwat(nlons,nlats)
+      complex(r_kind), intent(inout) :: dlnpsspecdt(ndimspec)
+      real(r_double), intent(in) :: dtx
+      real(r_kind) pmean,pdry,pcorr,pwatg
+      real(r_kind) dpsdt(nlons,nlats)
+      complex(r_kind) workspec(ndimspec)
+! compute global mean dry ps.
+      pwatg = sum(areawts*pwat)
+      print *,'global mean pwat = ',pwatg
+      pmean = sum(areawts*psg)
+      pdry = pmean - grav*pwatg
+      print *,'pdry after physics update',pdry
+! implied ps correction needed to return dry mass to initial value
+      pcorr = (pdryini + grav*pwatg)/pmean
+! apply correction as a multiplication to provisional value of ps so as
+! not to change gradients of ln(ps).
+      dpsdt = psg*pcorr
+! compute implied lnps tendency in spectral space.
+      dpsdt = log(dpsdt)
+      call grdtospec(dpsdt,workspec)
+      dlnpsspecdt = (workspec - lnpsspec)/dtx
+  end subroutine dry_mass_fixer
 
 end module dyn_run

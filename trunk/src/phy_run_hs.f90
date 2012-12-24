@@ -5,7 +5,7 @@
 ! getphytend: compute newtonian damping of temperature, drag terms
 ! in vort and div eqns.
 
- use params, only: nlevs,nlons,nlats,ndimspec,ntrac,massfix,pdryini
+ use params, only: nlevs,nlons,nlats,ndimspec,ntrac,pdryini
  use kinds, only: r_kind, r_double
  use shtns, only: grdtospec, lats, areawts
  use grid_data, only: vrtg,divg,virtempg
@@ -79,23 +79,6 @@
 
    deallocate(blprof,radequiltemp)
    deallocate(forcingg,forcingspec)
-
-! global mean dry mass 'fixer'
-   if (massfix) then
-! compute global mean dry ps.
-      pdry = sum(areawts*psg)
-      print *,'pdry after physics update',pdry
-! implied ps correction needed to return dry mass to initial value
-      pcorr = pdry - pdryini
-! add constant correction to every grid point
-      allocate(wrkg(nlons,nlats),wrkspec(ndimspec))
-      wrkg = psg - pcorr 
-! compute implied lnps tendency in spectral space.
-      wrkg = log(wrkg)
-      call grdtospec(wrkg,wrkspec)
-      dlnpsspecdt = (wrkspec - lnpsspec)/dt
-      deallocate(wrkg,wrkspec)
-   endif ! massfix
 
    return
  end subroutine getphytend
