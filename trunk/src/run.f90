@@ -251,8 +251,8 @@ subroutine advance(t)
   vrtspec_orig = vrtspec
   divspec_orig = divspec
   virtempspec_orig = virtempspec
+  tracerspec_orig = tracerspec
 !$omp end workshare
-  if (ntrac > 0) tracerspec_orig = tracerspec
   lnpsspec_orig = lnpsspec
   call system_clock(count, count_rate, count_max)
   t0 = count*1.d0/count_rate
