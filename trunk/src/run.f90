@@ -243,9 +243,11 @@ subroutine advance(t)
   endif
 
   ! save original fields.
+!$omp workshare
   vrtspec_orig = vrtspec
   divspec_orig = divspec
   virtempspec_orig = virtempspec
+!$omp end workshare
   if (ntrac > 0) tracerspec_orig = tracerspec
   lnpsspec_orig = lnpsspec
   call system_clock(count, count_rate, count_max)
@@ -276,20 +278,30 @@ subroutine advance(t)
   t2 = count*1.d0/count_rate
   ! add IAU contribution (constant over RK sub-steps).
   if (iau) then
+!$omp workshare
      dvrtspecdt2 = dvrtspecdt2 + dvrtspecdt_iau
      ddivspecdt2 = ddivspecdt2 + ddivspecdt_iau
      dvirtempspecdt2 = dvirtempspecdt2 + dvirtempspecdt_iau
      dtracerspecdt2 = dtracerspecdt2 + dtracerspecdt_iau
      dlnpsspecdt2 = dlnpsspecdt2 + dlnpsspecdt_iau
+!$omp end workshare
   endif
   if (profile) print *,'time in getdyntend (stage 1) =',t2-t1
   ! update vorticity and tracers (always explicit)
+!$omp workshare
   vrtspec=vrtspec_orig+a21*dt*dvrtspecdt2
-  if (ntrac > 0) tracerspec=tracerspec_orig+a21*dt*dtracerspecdt2
+!$omp end workshare
+  if (ntrac > 0) then 
+!$omp workshare
+     tracerspec=tracerspec_orig+a21*dt*dtracerspecdt2
+!$omp end workshare
+  endif
   if (explicit) then
+!$omp workshare
      divspec=divspec_orig+a21*dt*ddivspecdt2
      virtempspec=virtempspec_orig+a21*dt*dvirtempspecdt2
      lnpsspec=lnpsspec_orig+a21*dt*dlnpsspecdt2
+!$omp end workshare
   else
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
@@ -331,20 +343,29 @@ subroutine advance(t)
   if (profile) print *,'time in getdyntend (stage 2) =',t2-t1
   ! add IAU contribution (constant over RK sub-steps).
   if (iau) then
+!$omp workshare
      dvrtspecdt1 = dvrtspecdt1 + dvrtspecdt_iau
      ddivspecdt1 = ddivspecdt1 + ddivspecdt_iau
      dvirtempspecdt1 = dvirtempspecdt1 + dvirtempspecdt_iau
      dtracerspecdt1 = dtracerspecdt1 + dtracerspecdt_iau
      dlnpsspecdt1 = dlnpsspecdt1 + dlnpsspecdt_iau
+!$omp end workshare
   endif
   ! update vorticity and tracers (always explicit)
+!$omp workshare
   vrtspec=vrtspec_orig+dt*(a31*dvrtspecdt2+a32*dvrtspecdt1)
-  if (ntrac > 0) &
-  tracerspec=tracerspec_orig+dt*(a31*dtracerspecdt2+a32*dtracerspecdt1)
+!$omp end workshare
+  if (ntrac > 0) then
+!$omp workshare
+     tracerspec=tracerspec_orig+dt*(a31*dtracerspecdt2+a32*dtracerspecdt1)
+!$omp end workshare
+  endif
   if (explicit) then
+!$omp workshare
      divspec=divspec_orig+dt*(a31*ddivspecdt2+a32*ddivspecdt1)
      virtempspec=virtempspec_orig+dt*(a31*dvirtempspecdt2+a32*dvirtempspecdt1)
      lnpsspec=lnpsspec_orig+dt*(a31*dlnpsspecdt2+a32*dlnpsspecdt1)
+!$omp end workshare
   else
 ! solve for updated divergence.
 ! back subsitution to get updated virt temp, lnps.
@@ -392,20 +413,29 @@ subroutine advance(t)
   if (profile) print *,'time in getdyntend (stage 3) =',t2-t1
   ! add IAU contribution (constant over RK sub-steps).
   if (iau) then
+!$omp workshare
      dvrtspecdt2 = dvrtspecdt2 + dvrtspecdt_iau
      ddivspecdt2 = ddivspecdt2 + ddivspecdt_iau
      dvirtempspecdt2 = dvirtempspecdt2 + dvirtempspecdt_iau
      dtracerspecdt2 = dtracerspecdt2 + dtracerspecdt_iau
      dlnpsspecdt2 = dlnpsspecdt2 + dlnpsspecdt_iau
+!$omp end workshare
   endif
   ! final update of vorticity and tracers (always explicit)
+!$omp workshare
   vrtspec=vrtspec_orig+dt*(b2*dvrtspecdt1+b3*dvrtspecdt2)
-  if (ntrac > 0) &
-  tracerspec=tracerspec_orig+dt*(b2*dtracerspecdt1+b3*dtracerspecdt2)
+!$omp end workshare
+  if (ntrac > 0) then
+!$omp workshare
+     tracerspec=tracerspec_orig+dt*(b2*dtracerspecdt1+b3*dtracerspecdt2)
+!$omp end workshare
+  endif
   if (explicit) then
+!$omp workshare
      divspec=divspec_orig+dt*(b2*ddivspecdt1+b3*ddivspecdt2)
      virtempspec=virtempspec_orig+dt*(b2*dvirtempspecdt1+b3*dvirtempspecdt2)
      lnpsspec=lnpsspec_orig+dt*(b2*dlnpsspecdt1+b3*dlnpsspecdt2)
+!$omp end workshare
   else
 !$omp parallel do private(n,rhs)
   do n=1,ndimspec
@@ -462,10 +492,16 @@ subroutine advance(t)
      call system_clock(count, count_rate, count_max)
      t2 = count*1.d0/count_rate
      if (profile) print *,'time in getphytend=',t2-t1
+!$omp workshare
      vrtspec=vrtspec+dt*dvrtspecdt1
      divspec=divspec+dt*ddivspecdt1
      virtempspec=virtempspec+dt*dvirtempspecdt1
-     if (ntrac > 0) tracerspec=tracerspec+dt*dtracerspecdt1
+!$omp end workshare
+     if (ntrac > 0) then
+!$omp workshare
+       tracerspec=tracerspec+dt*dtracerspecdt1
+!$omp end workshare
+     endif
 ! modify spectral lnps tendency to include contribution
 ! from dry mass 'fixer' (adjusts dry surface pressure to
 ! remain equal to pdryini).
