@@ -64,11 +64,13 @@ module iau_module
       print *,'reading ',trim(filename)
       call readin_sig(trim(filename),vrtspec(:,:,n),divspec(:,:,n),virtempspec(:,:,n),&
                       tracerspec(:,:,:,n),lnpsspec(:,n),topospec,sighead)
+!$omp workshare
       vrtspec(:,:,n) = vrtspec(:,:,n) - vrtspec_tmp
       divspec(:,:,n) = divspec(:,:,n) - divspec_tmp
       virtempspec(:,:,n) = virtempspec(:,:,n) - virtempspec_tmp
       tracerspec(:,:,:,n) = tracerspec(:,:,:,n) - tracerspec_tmp
       lnpsspec(:,n) = lnpsspec(:,n) - lnpsspec_tmp
+!$omp end workshare
    enddo
  end subroutine init_iau
 
@@ -89,17 +91,21 @@ module iau_module
       return
    endif
    if (t .eq. 3600.*iaufhrs(nfiles)) then
+!$omp workshare
      dvrtspecdt_iau = vrtspec(:,:,nfiles)/dt
      ddivspecdt_iau = divspec(:,:,nfiles)/dt
      dvirtempspecdt_iau = virtempspec(:,:,nfiles)/dt
      dtracerspecdt_iau = tracerspec(:,:,:,nfiles)/dt
+!$omp workshare
      dlnpsspecdt_iau = lnpsspec(:,nfiles)/dt
      return
    else if (t .eq. 3600.*iaufhrs(1)) then
+!$omp workshare
      dvrtspecdt_iau = vrtspec(:,:,1)/dt
      ddivspecdt_iau = divspec(:,:,1)/dt
      dvirtempspecdt_iau = virtempspec(:,:,1)/dt
      dtracerspecdt_iau = tracerspec(:,:,:,1)/dt
+!$omp end workshare
      dlnpsspecdt_iau = lnpsspec(:,1)/dt
      return
    endif
@@ -108,10 +114,12 @@ module iau_module
    enddo
    print *,'n,t,to',n,t/3600.,iaufhrs(n)
    delt = (iaufhrs(n)-(t/3600.))/(iaufhrs(n)-iaufhrs(n-1))
+!$omp workshare
    dvrtspecdt_iau = ((1.-delt)*vrtspec(:,:,n) + delt*vrtspec(:,:,n-1))/dt
    ddivspecdt_iau = ((1.-delt)*divspec(:,:,n) + delt*divspec(:,:,n-1))/dt
    dvirtempspecdt_iau = ((1.-delt)*virtempspec(:,:,n) + delt*virtempspec(:,:,n-1))/dt
    dtracerspecdt_iau = ((1.-delt)*tracerspec(:,:,:,n) + delt*tracerspec(:,:,:,n-1))/dt
+!$omp end workshare
    dlnpsspecdt_iau = ((1.-delt)*lnpsspec(:,n) + delt*lnpsspec(:,n-1))/dt
    print *,'getiauforcing:',t/3600.,1.-delt,n,iaufhrs(n),delt,n-1,iaufhrs(n-1)
  end subroutine getiauforcing
