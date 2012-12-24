@@ -4,16 +4,21 @@ module phy_data
 ! init_phydata: allocate and populate arrays.
 ! destroy_phydata: deallocate arrays.
  use kinds, only: r_kind,r_double
+ use params, only: nlats,nlons
  implicit none
  private
- public :: init_phydata, destroy_phydata, wrtout_flx, wrtout_sfc
+ public :: init_phydata, destroy_phydata, wrtout_flx, wrtout_sfc, pwat
+ real(r_kind), allocatable, dimension(:,:) :: pwat
 
  contains
 
  subroutine init_phydata()
+    allocate(pwat(nlons,nlats))
+    pwat = 0.
  end subroutine init_phydata
 
  subroutine destroy_phydata()
+    deallocate(pwat)
  end subroutine destroy_phydata
 
  subroutine wrtout_sfc(fhour,filename)
