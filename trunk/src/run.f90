@@ -57,10 +57,12 @@ subroutine run()
      ! compute dfi weights
      call set_dfi_wts(dfi_wts)
      ! intialize weighted time averages.
+!$omp workshare
      vrtspec_dfi = dfi_wts(0)*vrtspec
      divspec_dfi = dfi_wts(0)*divspec
      virtempspec_dfi = dfi_wts(0)*virtempspec
      tracerspec_dfi = dfi_wts(0)*tracerspec
+!$omp end workshare
      lnpsspec_dfi = dfi_wts(0)*lnpsspec
      do nt=1,2*ntdfi
         call system_clock(count, count_rate, count_max)
@@ -69,10 +71,12 @@ subroutine run()
         t = t + dt ! absolute forecast time.
         ta = ta + dt ! absolute forecast time.
         fh = t/3600.
+!$omp workshare
         vrtspec_dfi = vrtspec_dfi + dfi_wts(nt)*vrtspec
         divspec_dfi = divspec_dfi + dfi_wts(nt)*divspec
         virtempspec_dfi = virtempspec_dfi + dfi_wts(nt)*virtempspec
         tracerspec_dfi = tracerspec_dfi + dfi_wts(nt)*tracerspec
+!$omp end workshare
         lnpsspec_dfi = lnpsspec_dfi + dfi_wts(nt)*lnpsspec
         call system_clock(count, count_rate, count_max)
         t2 = count*1.d0/count_rate
@@ -290,12 +294,8 @@ subroutine advance(t)
   ! update vorticity and tracers (always explicit)
 !$omp workshare
   vrtspec=vrtspec_orig+a21*dt*dvrtspecdt2
+  tracerspec=tracerspec_orig+a21*dt*dtracerspecdt2
 !$omp end workshare
-  if (ntrac > 0) then 
-!$omp workshare
-     tracerspec=tracerspec_orig+a21*dt*dtracerspecdt2
-!$omp end workshare
-  endif
   if (explicit) then
 !$omp workshare
      divspec=divspec_orig+a21*dt*ddivspecdt2
@@ -354,12 +354,8 @@ subroutine advance(t)
   ! update vorticity and tracers (always explicit)
 !$omp workshare
   vrtspec=vrtspec_orig+dt*(a31*dvrtspecdt2+a32*dvrtspecdt1)
+  tracerspec=tracerspec_orig+dt*(a31*dtracerspecdt2+a32*dtracerspecdt1)
 !$omp end workshare
-  if (ntrac > 0) then
-!$omp workshare
-     tracerspec=tracerspec_orig+dt*(a31*dtracerspecdt2+a32*dtracerspecdt1)
-!$omp end workshare
-  endif
   if (explicit) then
 !$omp workshare
      divspec=divspec_orig+dt*(a31*ddivspecdt2+a32*ddivspecdt1)
@@ -424,12 +420,8 @@ subroutine advance(t)
   ! final update of vorticity and tracers (always explicit)
 !$omp workshare
   vrtspec=vrtspec_orig+dt*(b2*dvrtspecdt1+b3*dvrtspecdt2)
+  tracerspec=tracerspec_orig+dt*(b2*dtracerspecdt1+b3*dtracerspecdt2)
 !$omp end workshare
-  if (ntrac > 0) then
-!$omp workshare
-     tracerspec=tracerspec_orig+dt*(b2*dtracerspecdt1+b3*dtracerspecdt2)
-!$omp end workshare
-  endif
   if (explicit) then
 !$omp workshare
      divspec=divspec_orig+dt*(b2*ddivspecdt1+b3*ddivspecdt2)
@@ -496,12 +488,8 @@ subroutine advance(t)
      vrtspec=vrtspec+dt*dvrtspecdt1
      divspec=divspec+dt*ddivspecdt1
      virtempspec=virtempspec+dt*dvirtempspecdt1
+     tracerspec=tracerspec+dt*dtracerspecdt1
 !$omp end workshare
-     if (ntrac > 0) then
-!$omp workshare
-       tracerspec=tracerspec+dt*dtracerspecdt1
-!$omp end workshare
-     endif
 ! modify spectral lnps tendency to include contribution
 ! from dry mass 'fixer' (adjusts dry surface pressure to
 ! remain equal to pdryini).
