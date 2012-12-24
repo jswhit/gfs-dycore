@@ -8,7 +8,7 @@
  pdryini,fhzer,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
- massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
+ old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
  sppt,shum,clipsupersat,ngptc
  use kinds, only: r_kind,r_single,r_double
@@ -106,10 +106,9 @@
    cldcov_tmp(ngptc,nlevs),hprime_tmp(ngptc,nmtvr),slc_tmp(ngptc,lsoil),&
    smc_tmp(ngptc,lsoil),stc_tmp(ngptc,lsoil),&
    slats(ngptc),clats(ngptc),&
-   pwatg,pmean,pdry,pcorr,gu(ngptc,nlevs),gv(ngptc,nlevs)
+   gu(ngptc,nlevs),gv(ngptc,nlevs)
    integer :: icsdsw(ngptc),icsdlw(ngptc),ilons(ngptc), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
-   complex(r_kind), allocatable, dimension(:) :: workspec
    real(r_kind), allocatable, dimension(:,:,:) :: dtdt,dudt,dvdt
    real(r_kind), allocatable, dimension(:,:,:,:) :: ozplout
    real(4), allocatable, dimension(:,:,:) :: work4
@@ -148,7 +147,6 @@
    allocate(dtdt(nlons,nlats,nlevs),dudt(nlons,nlats,nlevs),dvdt(nlons,nlats,nlevs))
    allocate(dtracersdt(nlons,nlats,nlevs,ntrac))
    allocate(dpsdt(nlons,nlats))
-   allocate(workspec(ndimspec))
 
 ! is it a radiation time step (long or short wave)?
    fhour = t/3600.
@@ -660,28 +658,8 @@
    dtracerspecdt = dtracerspecdt/dtx
 
    ! print out global mean precipitable water and precip.
-   pwatg = sum(areawts*pwat)
-   print *,'global mean pwat = ',pwatg
    print *,'global mean precip = ',sum(areawts*tprcp)
 
-! global mean dry mass 'fixer'
-   if (massfix) then
-! compute global mean dry ps.
-      pmean = sum(areawts*psg)
-      pdry = pmean - grav*pwatg
-      print *,'pdry after physics update',pdry
-! implied ps correction needed to return dry mass to initial value
-      pcorr = (pdryini + grav*pwatg)/pmean
-! apply correction as a multiplication to provisional value of ps so as
-! not to change gradients of ln(ps).
-      dpsdt = psg*pcorr
-! compute implied lnps tendency in spectral space.
-      dpsdt = log(dpsdt)
-      call grdtospec(dpsdt,workspec)
-      dlnpsspecdt = (workspec - lnpsspec)/dtx
-   endif ! massfix
-
-   deallocate(workspec)
    deallocate(ozplout)
    deallocate(coszdg)
    deallocate(dtdt,dudt,dvdt)
