@@ -652,10 +652,12 @@
    enddo
 !$omp end parallel do 
    dlnpsspecdt=0 ! physics does not change surface pressure
+!$omp workshare
    dvirtempspecdt = dvirtempspecdt/dtx
    dvrtspecdt = dvrtspecdt/dtx
    ddivspecdt = ddivspecdt/dtx
    dtracerspecdt = dtracerspecdt/dtx
+!$omp end workshare
 
    ! print out global mean precipitable water and precip.
    print *,'global mean precip = ',sum(areawts*tprcp)
