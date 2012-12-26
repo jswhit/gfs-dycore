@@ -35,22 +35,22 @@ module semimp_data
  ! stable for 'slow' courant numbers < 2*c = sqrt(2)
  ! stable for all 'fast' courant numbers
  !
- real(r_kind),parameter :: const=sqrt(2.)/2.
- real(r_kind),parameter, public :: a21=1.-const
- real(r_kind),parameter, public :: a31=-const
- real(r_kind),parameter, public :: a32=1.+const
+ real(r_kind),parameter :: halfroot2=sqrt(2.)/2.
+ real(r_kind),parameter, public :: a21=1.-halfroot2
+ real(r_kind),parameter, public :: a31=-halfroot2
+ real(r_kind),parameter, public :: a32=1.+halfroot2
  ! Note: it is assumed scheme is diagonally implicit (a22=a33)
  real(r_kind),parameter, public :: aa21=0.
- real(r_kind),parameter, public :: aa22=1.-const ! must be same as aa33
+ real(r_kind),parameter, public :: aa22=1.-halfroot2 ! must be same as aa33
  real(r_kind),parameter, public :: aa31=0.
- real(r_kind),parameter, public :: aa32=const
- real(r_kind),parameter, public :: aa33=1.-const ! must be same as aa22
+ real(r_kind),parameter, public :: aa32=halfroot2
+ real(r_kind),parameter, public :: aa33=1.-halfroot2 ! must be same as aa22
  real(r_kind),parameter, public :: b1=0.  ! must be zero
- real(r_kind),parameter, public :: b2=const
- real(r_kind),parameter, public :: b3=1.-const
+ real(r_kind),parameter, public :: b2=halfroot2
+ real(r_kind),parameter, public :: b3=1.-halfroot2
  real(r_kind),parameter, public :: bb1=0. ! must be zero
- real(r_kind),parameter, public :: bb2=const
- real(r_kind),parameter, public :: bb3=1.-const
+ real(r_kind),parameter, public :: bb2=halfroot2
+ real(r_kind),parameter, public :: bb3=1.-halfroot2
  real(r_kind),parameter, public :: ref_temp = 300.
  real(r_kind),parameter, public :: ref_press = 800.e2
 
@@ -182,7 +182,7 @@ module semimp_data
    do nn=1,ntrunc+1
       n = nn-1
       rnn1 = n*(n+1)
-      yecm = rim + ((1.+const)*dt)**2*rnn1*ym
+      yecm = rim + ((1.+halfroot2)*dt)**2*rnn1*ym
       ! invert matrix using LAPACK, save in d_hyb_m
       call dgetrf(nlevs,nlevs,yecm,nlevs,ipiv,iret)
       call dgetri(nlevs,yecm,nlevs,ipiv,vecm,nlevs,iret)
