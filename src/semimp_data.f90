@@ -182,7 +182,7 @@ module semimp_data
    do nn=1,ntrunc+1
       n = nn-1
       rnn1 = n*(n+1)
-      yecm = rim + ((1.+halfroot2)*dt)**2*rnn1*ym
+      yecm = rim + ((1.-halfroot2)*dt)**2*rnn1*ym
       ! invert matrix using LAPACK, save in d_hyb_m
       call dgetrf(nlevs,nlevs,yecm,nlevs,ipiv,iret)
       call dgetri(nlevs,yecm,nlevs,ipiv,vecm,nlevs,iret)
