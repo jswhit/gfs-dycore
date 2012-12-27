@@ -21,7 +21,7 @@ module semimp_data
  ! it's a combination of schemes in sxns 2.5 and 2.6
  ! from that paper (tableaus from 2.5, value of delta from 2.6)
  !  
- ! Double tableau:  c = sqrt(2)/2 = 1./sqrt(2.)
+ ! Double tableau:  c = sqrt(2)/2 = 1/sqrt(2)
  ! *explicit part*  *implicit part* 
  !
  !   0 | 0             0 | 0
