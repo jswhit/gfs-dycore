@@ -191,11 +191,11 @@ subroutine advance(t)
 ! Double Butcher tableau looks like this:
 !  *explicit part*      *implicit part* 
 !
-!  0     | 0               0  | 0
-!  a21   | a21 0         aa22 | 0 aa22
-! a31+a32| a31 a32 0 aa32+aa33| 0 aa32 aa33
-! -------------------  --------------------
-!          b1 b2 b3             bb1 bb2 bb3
+!  0     | 0                0  | 0
+!  a21   | a21 0          aa22 | 0 aa22
+! a31+a32| a31 a32 0  aa32+aa33| 0 aa32 aa33
+! ------------------- ----------------------
+!          b1 b2  b3             bb1 bb2 bb3
 !
 ! the values of the coefficients are defined in semimp_data.f90
 ! it is assumed that aa22=aa33 and b1=bb1=0
@@ -206,8 +206,8 @@ subroutine advance(t)
 ! consistency condition:
 ! b1 + b2 + b3 = bb1 + bb2 + bb3 = 1
 ! accuracy condition (2nd order):
-! a21*b2+(a21+a32)*b3 = 1/2
-! aa21*bb2+(aa21+aa32)*bb3 = 1/2
+! a21*b2+(a31+a32)*b3 = 1/2
+! aa21*bb2+(aa32+aa33)*bb3 = 1/2
 
   use patterngenerator, only: patterngenerator_advance
   use stoch_data, only: rpattern_svc,rpattern_sppt,&
