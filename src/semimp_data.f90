@@ -81,7 +81,7 @@ module semimp_data
    if (abs(a21-aa22) > epstiny .or. abs(a31+a32-(aa32+aa33)) > epstiny) then
      print *,a21,a31+a32,abs(a21-aa22) 
      print *,aa22,aa32+aa33,abs(a31+a32-(aa32+aa33))
-     print *,'time progression different in explicit and implict parts of RK'
+     print *,'time progression different in explicit and implicit parts of RK'
      print *,'fix in semimp_data.f90!'
      stop
    endif
