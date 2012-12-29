@@ -134,7 +134,7 @@ module semimp_data
      print *,'fix in semimp_data.f90!'
      stop
    endif
-   ! check to make sure b1+b2+b3=bb1+bb2+bb3=1
+   ! check to make sure b1+b2+b3=bb1+bb2+bb3+bb4=1
    if (abs(b1+b2+b3-1.) > epstiny .or. abs(bb1+bb2+bb3+bb4-1) > epstiny) then
      print *,'b1+b2+b3 or bb1+bb2+bb3+bb4 != 1'
      print *,'fix in semimp_data.f90!'
