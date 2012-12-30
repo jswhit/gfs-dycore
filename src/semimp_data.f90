@@ -55,6 +55,10 @@ module semimp_data
 
 ! Lorenz 3-cycle scheme 1 + trapezoidal
 !
+! has weak instability for purely imaginary double
+! oscillator, but a larger stable region (cfl<sqrt(3))
+! when there is weak damping.
+!
 ! Double tableau:
 !
 !  *explicit part*                *implicit part* 
