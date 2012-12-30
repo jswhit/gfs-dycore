@@ -66,21 +66,21 @@ module semimp_data
 ! ---------------------         ----------------------
 !        1/2 -1/2 1  0                3/8  0 3/8 1/4
 
- !real(r_kind),parameter, public :: a21=1./3.
- !real(r_kind),parameter, public :: a31=1./6.
- !real(r_kind),parameter, public :: a32=1./2.
- !real(r_kind),parameter, public :: aa21=1./6.
- !real(r_kind),parameter, public :: aa22=1./6.
- !real(r_kind),parameter, public :: aa31=1./3.
- !real(r_kind),parameter, public :: aa32=0.
- !real(r_kind),parameter, public :: aa33=1./3.
- !real(r_kind),parameter, public :: b1=0.5 
- !real(r_kind),parameter, public :: b2=-0.5
- !real(r_kind),parameter, public :: b3=1.0 
- !real(r_kind),parameter, public :: bb1=3./8.
- !real(r_kind),parameter, public :: bb2=0.
- !real(r_kind),parameter, public :: bb3=3./8.
- !real(r_kind),parameter, public :: bb4=1./4.
+ real(r_kind),parameter, public :: a21=1./3.
+ real(r_kind),parameter, public :: a31=1./6.
+ real(r_kind),parameter, public :: a32=1./2.
+ real(r_kind),parameter, public :: aa21=1./6.
+ real(r_kind),parameter, public :: aa22=1./6.
+ real(r_kind),parameter, public :: aa31=1./3.
+ real(r_kind),parameter, public :: aa32=0.
+ real(r_kind),parameter, public :: aa33=1./3.
+ real(r_kind),parameter, public :: b1=0.5 
+ real(r_kind),parameter, public :: b2=-0.5
+ real(r_kind),parameter, public :: b3=1.0 
+ real(r_kind),parameter, public :: bb1=3./8.
+ real(r_kind),parameter, public :: bb2=0.
+ real(r_kind),parameter, public :: bb3=3./8.
+ real(r_kind),parameter, public :: bb4=1./4.
 
 ! Lorenz 3-cycle scheme 2 + trapezoidal
 !
@@ -95,21 +95,21 @@ module semimp_data
 ! ---------------------        ----------------------
 !         0  1/2 1/2  0               3/8  0 3/8 1/4
 
- real(r_kind),parameter, public :: a21=1./3.
- real(r_kind),parameter, public :: a31=-1./3.
- real(r_kind),parameter, public :: a32=1.
- real(r_kind),parameter, public :: aa21=1./6.
- real(r_kind),parameter, public :: aa22=1./6.
- real(r_kind),parameter, public :: aa31=1./3.
- real(r_kind),parameter, public :: aa32=0.
- real(r_kind),parameter, public :: aa33=1./3.
- real(r_kind),parameter, public :: b1=0. 
- real(r_kind),parameter, public :: b2=0.5
- real(r_kind),parameter, public :: b3=0.5
- real(r_kind),parameter, public :: bb1=3./8.
- real(r_kind),parameter, public :: bb2=0.
- real(r_kind),parameter, public :: bb3=3./8.
- real(r_kind),parameter, public :: bb4=1./4.
+ !real(r_kind),parameter, public :: a21=1./3.
+ !real(r_kind),parameter, public :: a31=-1./3.
+ !real(r_kind),parameter, public :: a32=1.
+ !real(r_kind),parameter, public :: aa21=1./6.
+ !real(r_kind),parameter, public :: aa22=1./6.
+ !real(r_kind),parameter, public :: aa31=1./3.
+ !real(r_kind),parameter, public :: aa32=0.
+ !real(r_kind),parameter, public :: aa33=1./3.
+ !real(r_kind),parameter, public :: b1=0. 
+ !real(r_kind),parameter, public :: b2=0.5
+ !real(r_kind),parameter, public :: b3=0.5
+ !real(r_kind),parameter, public :: bb1=3./8.
+ !real(r_kind),parameter, public :: bb2=0.
+ !real(r_kind),parameter, public :: bb3=3./8.
+ !real(r_kind),parameter, public :: bb4=1./4.
 
  real(r_kind),parameter, public :: ref_temp = 300.
  real(r_kind),parameter, public :: ref_press = 800.e2
