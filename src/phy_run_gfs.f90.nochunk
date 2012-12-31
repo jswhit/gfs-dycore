@@ -8,7 +8,7 @@
  pdryini,fhzer,fhlwr,fhswr,ictm,isol,ico2,iaer,ialb,iems,isubc_sw,isubc_lw,&
  ncw,iovr_sw,iovr_lw,newsas,ras,sashal,num_p3d,num_p2d,crick_proof,ccnorm,&
  norad_precip,crtrh,cdmbgwd,ccwf,dlqf,ctei_rm,prautco,evpco,wminco,flgmin,&
- massfix,old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
+ old_monin,cnvgwd,mom4ice,shal_cnv,cal_pre,trans_trac,nst_fcst,moist_adj,&
  timestepsperhr,psautco,mstrat,pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,ntoz,ntclw,&
  sppt,shum,clipsupersat
  use kinds, only: r_kind,r_single,r_double
@@ -99,7 +99,7 @@
    adq(nlevs,ntrac),dt3dt(nlevs,6),du3dt(nlevs,4),dv3dt(nlevs,4),dq3dt(nlevs,5+pl_coeff),&
    phy3d(nlevs,num_p3d),phy2d(num_p2d),hlw_tmp(nlevs),swh_tmp(nlevs),fluxr_tmp(nfxr),&
    cldcov_tmp(nlevs),hprime_tmp(nmtvr),slc_tmp(lsoil),smc_tmp(lsoil),stc_tmp(lsoil),&
-   pmean,pwatg,pdry,pcorr,gu(nlevs),gv(nlevs)
+   gu(nlevs),gv(nlevs)
    integer :: icsdsw(1),icsdlw(1),ilons(1), ipsd0
    real(r_kind), allocatable, dimension(:,:) :: coszdg,dpsdt
    complex(r_kind), allocatable, dimension(:) :: workspec
@@ -379,6 +379,7 @@
 !$omp& upd_mf,dwn_mf,det_mf,dkh,rnp,&
 !$omp& acv,acvt,acvb,rqtk,&
 !$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic)
+!!$omp& dt3dt,dq3dt,du3dt,dv3dt) schedule(dynamic) reduction(+:tsum)
    do n=1,nlons*nlats
       ! n=i+(j-1)*nlons
       j = 1+(n-1)/nlons
@@ -554,7 +555,7 @@
    print *,'min/max tracer3',minval(tracerg(:,:,:,3)),maxval(tracerg(:,:,:,3))
    call system_clock(count, count_rate, count_max)
    tend = count*1.d0/count_rate
-   print *,'time in gbphys = ',tend-tstart,tsum
+   print *,'time in gbphys = ',tend-tstart
    if (testomp) then
 !$omp parallel
       i = omp_get_num_threads()
@@ -630,32 +631,15 @@
    enddo
 !$omp end parallel do 
    dlnpsspecdt=0 ! physics does not change surface pressure
+!$omp workshare
    dvirtempspecdt = dvirtempspecdt/dtx
    dvrtspecdt = dvrtspecdt/dtx
    ddivspecdt = ddivspecdt/dtx
    dtracerspecdt = dtracerspecdt/dtx
+!$omp end workshare
 
-   ! print out global mean precipitable water and precip.
-   pwatg = sum(areawts*pwat)
-   print *,'global mean pwat = ',pwatg
+   ! print out global mean precip.
    print *,'global mean precip = ',sum(areawts*tprcp)
-
-! global mean dry mass 'fixer'
-   if (massfix) then
-! compute global mean dry ps.
-      pmean = sum(areawts*psg)
-      pdry = pmean - grav*pwatg
-      print *,'pdry after physics update',pdry
-! implied ps correction needed to return dry mass to initial value
-      pcorr = (pdryini + grav*pwatg)/pmean
-! apply correction as a multiplication to provisional value of ps so as
-! not to change gradients of ln(ps).
-      dpsdt = psg*pcorr
-! compute implied lnps tendency in spectral space.
-      dpsdt = log(dpsdt)
-      call grdtospec(dpsdt,workspec)
-      dlnpsspecdt = (workspec - lnpsspec)/dtx
-   endif ! massfix
 
    deallocate(workspec)
    deallocate(ozplout)
