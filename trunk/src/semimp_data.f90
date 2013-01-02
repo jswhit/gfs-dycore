@@ -15,7 +15,7 @@ module semimp_data
  real(r_kind), allocatable, public, dimension(:,:) :: amhyb,bmhyb
  real(r_kind), allocatable, public, dimension(:) ::  &
  tref,pkref,dpkref,alfaref,svhyb,tor_hyb
- !
+  
  ! scheme derived from Ascher, Spiteri and Ruuth 1997.
  ! Applied Numerical Mathematics DOI:10.1016/S0168-9274(97)00056-1
  ! it's a combination of schemes in sxns 2.5 and 2.6
@@ -34,30 +34,30 @@ module semimp_data
  ! this scheme is:
  ! stable for 'slow' courant numbers < 2*c = sqrt(2)
  ! stable for all 'fast' courant numbers
- !
+  
 
- !real(r_kind),parameter :: halfroot2=sqrt(2.)/2.
- !real(r_kind),parameter, public :: a21=1.-halfroot2
- !real(r_kind),parameter, public :: a31=-halfroot2
- !real(r_kind),parameter, public :: a32=1.+halfroot2
- !real(r_kind),parameter, public :: aa21=0.
- !real(r_kind),parameter, public :: aa22=1.-halfroot2 
- !real(r_kind),parameter, public :: aa31=0.
- !real(r_kind),parameter, public :: aa32=halfroot2
- !real(r_kind),parameter, public :: aa33=1.-halfroot2 
- !real(r_kind),parameter, public :: b1=0.  
- !real(r_kind),parameter, public :: b2=halfroot2
- !real(r_kind),parameter, public :: b3=1.-halfroot2
- !real(r_kind),parameter, public :: bb1=0. 
- !real(r_kind),parameter, public :: bb2=halfroot2
- !real(r_kind),parameter, public :: bb3=1.-halfroot2
- !real(r_kind),parameter, public :: bb4=0.
+ !real(r_kind),parameter :: halfroot2    = sqrt(2.)/2.
+ !real(r_kind),parameter, public :: a21  = 1.-halfroot2
+ !real(r_kind),parameter, public :: a31  = -halfroot2
+ !real(r_kind),parameter, public :: a32  = 1.+halfroot2
+ !real(r_kind),parameter, public :: aa21 = 0.
+ !real(r_kind),parameter, public :: aa22 = 1.-halfroot2 
+ !real(r_kind),parameter, public :: aa31 = 0.
+ !real(r_kind),parameter, public :: aa32 = halfroot2
+ !real(r_kind),parameter, public :: aa33 = 1.-halfroot2 
+ !real(r_kind),parameter, public :: b1   = 0.  
+ !real(r_kind),parameter, public :: b2   = halfroot2
+ !real(r_kind),parameter, public :: b3   = 1.-halfroot2
+ !real(r_kind),parameter, public :: bb1  = 0. 
+ !real(r_kind),parameter, public :: bb2  = halfroot2
+ !real(r_kind),parameter, public :: bb3  = 1.-halfroot2
+ !real(r_kind),parameter, public :: bb4  = 0.
 
 ! Lorenz 3-cycle + trapezoidal
 !
 ! has very weak instability for purely imaginary double
 ! oscillator.
-! Largest amp factor for slow cfl < sqrt(3.) ~ 1.0015,
+! Largest amp factor for 'slow' courant # < sqrt(3) ~ 1.0015,
 ! which is not a problem for models with weak damping.
 !
 ! Double tableau:
@@ -71,21 +71,21 @@ module semimp_data
 ! ---------------------         ----------------------
 !        1/2 -1/2 1  0                3/8  0 3/8 1/4
 
- real(r_kind),parameter, public :: a21=1./3.
- real(r_kind),parameter, public :: a31=1./6.
- real(r_kind),parameter, public :: a32=1./2.
- real(r_kind),parameter, public :: aa21=1./6.
- real(r_kind),parameter, public :: aa22=1./6.
- real(r_kind),parameter, public :: aa31=1./3.
- real(r_kind),parameter, public :: aa32=0.
- real(r_kind),parameter, public :: aa33=1./3.
- real(r_kind),parameter, public :: b1=0.5 
- real(r_kind),parameter, public :: b2=-0.5
- real(r_kind),parameter, public :: b3=1.0 
- real(r_kind),parameter, public :: bb1=3./8.
- real(r_kind),parameter, public :: bb2=0.
- real(r_kind),parameter, public :: bb3=3./8.
- real(r_kind),parameter, public :: bb4=1./4.
+ real(r_kind),parameter, public :: a21  = 1./3.
+ real(r_kind),parameter, public :: a31  = 1./6.
+ real(r_kind),parameter, public :: a32  = 1./2.
+ real(r_kind),parameter, public :: aa21 = 1./6.
+ real(r_kind),parameter, public :: aa22 = 1./6.
+ real(r_kind),parameter, public :: aa31 = 1./3.
+ real(r_kind),parameter, public :: aa32 = 0.
+ real(r_kind),parameter, public :: aa33 = 1./3.
+ real(r_kind),parameter, public :: b1   = 1./2.
+ real(r_kind),parameter, public :: b2   = -1./2.
+ real(r_kind),parameter, public :: b3   = 1.0 
+ real(r_kind),parameter, public :: bb1  = 3./8.
+ real(r_kind),parameter, public :: bb2  = 0.
+ real(r_kind),parameter, public :: bb3  = 3./8.  
+ real(r_kind),parameter, public :: bb4  = 1./4.
 
  real(r_kind),parameter, public :: ref_temp = 300.
  real(r_kind),parameter, public :: ref_press = 800.e2
