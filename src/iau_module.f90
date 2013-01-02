@@ -96,7 +96,7 @@ module iau_module
      ddivspecdt_iau = divspec(:,:,nfiles)/dt
      dvirtempspecdt_iau = virtempspec(:,:,nfiles)/dt
      dtracerspecdt_iau = tracerspec(:,:,:,nfiles)/dt
-!$omp workshare
+!$omp end workshare
      dlnpsspecdt_iau = lnpsspec(:,nfiles)/dt
      return
    else if (t .eq. 3600.*iaufhrs(1)) then
