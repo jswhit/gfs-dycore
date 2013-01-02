@@ -53,11 +53,12 @@ module semimp_data
  !real(r_kind),parameter, public :: bb3=1.-halfroot2
  !real(r_kind),parameter, public :: bb4=0.
 
-! Lorenz 3-cycle scheme 1 + trapezoidal
+! Lorenz 3-cycle + trapezoidal
 !
-! has weak instability for purely imaginary double
-! oscillator, but a larger stable region (cfl<sqrt(3))
-! when there is weak damping.
+! has very weak instability for purely imaginary double
+! oscillator.
+! Largest amp factor for slow cfl < sqrt(3.) ~ 1.0015,
+! which is not a problem for models with weak damping.
 !
 ! Double tableau:
 !
@@ -85,35 +86,6 @@ module semimp_data
  real(r_kind),parameter, public :: bb2=0.
  real(r_kind),parameter, public :: bb3=3./8.
  real(r_kind),parameter, public :: bb4=1./4.
-
-! Lorenz 3-cycle scheme 2 + trapezoidal
-!
-! Double tableau:
-!
-!  *explicit part*                *implicit part*  (same as above)
-!
-!   0  | 0                       0  | 0
-!  1/3 | 1/3  0                 1/3 | 1/6 1/6 0
-!  2/3 | -1/3 1   0             2/3 | 1/3  0 1/3  0
-!   1  |  0  1/2 1/2  0          1  | 3/8  0 3/8 1/4 
-! ---------------------        ----------------------
-!         0  1/2 1/2  0               3/8  0 3/8 1/4
-
- !real(r_kind),parameter, public :: a21=1./3.
- !real(r_kind),parameter, public :: a31=-1./3.
- !real(r_kind),parameter, public :: a32=1.
- !real(r_kind),parameter, public :: aa21=1./6.
- !real(r_kind),parameter, public :: aa22=1./6.
- !real(r_kind),parameter, public :: aa31=1./3.
- !real(r_kind),parameter, public :: aa32=0.
- !real(r_kind),parameter, public :: aa33=1./3.
- !real(r_kind),parameter, public :: b1=0. 
- !real(r_kind),parameter, public :: b2=0.5
- !real(r_kind),parameter, public :: b3=0.5
- !real(r_kind),parameter, public :: bb1=3./8.
- !real(r_kind),parameter, public :: bb2=0.
- !real(r_kind),parameter, public :: bb3=3./8.
- !real(r_kind),parameter, public :: bb4=1./4.
 
  real(r_kind),parameter, public :: ref_temp = 300.
  real(r_kind),parameter, public :: ref_press = 800.e2
