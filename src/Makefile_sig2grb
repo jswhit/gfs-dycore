@@ -12,7 +12,7 @@ OBJS=	 kinds.o \
 MAIN	= sig2grb.f90
 
 all: $(OBJS) 
-	$(FC) $(LDFLAGS) -o $(EXEC) $(MAIN) $(OBJS) $(LIBS)
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(LDFLAGS) -o $(EXEC) $(MAIN) $(OBJS) $(LIBS)
 
 clean:
 	rm -f $(OBJS) $(EXEC) *.mod *genmod* 
