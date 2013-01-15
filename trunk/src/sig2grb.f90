@@ -10,9 +10,9 @@ program sig2grb
 ! Jeffrey.S.Whitaker <jeffrey.s.whitaker@noaa.gov> January, 2013
 
  use kinds, only: r_kind, r_single, r_double
- use sigio_module, only: sigio_sclose,sigio_swohdc,sigio_srhead,&
-  sigio_srohdc,sigio_aldata,sigio_data,sigio_head,sigio_sropen,sigio_srdata,sigio_axdata
- use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, lap, lats, lons, getuv
+ use sigio_module, only: sigio_sclose,sigio_srhead,&
+  sigio_srohdc,sigio_data,sigio_head,sigio_sropen,sigio_axdata
+ use shtns, only: shtns_init, spectogrd, grdtospec, getgrad, getvrtdivspec, getuv
  use physcons, only: rerth => con_rerth
  implicit none
 
