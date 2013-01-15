@@ -161,6 +161,8 @@ program sig2grb
     real(r_kind) prs(nlons,nlats,nlevs),dpk(nlons,nlats,nlevs),pk(nlons,nlats,nlevs+1),&
     ak(nlevs),bk(nlevs),dlnpsdt(nlons,nlats),etadot(nlons,nlats,nlevs+1),&
     dlnpdtg(nlons,nlats,nlevs),dbk(nlevs),ck(nlevs)
+    real(8) t1,t2
+    integer(8) count, count_rate, count_max
 
     if (sighead%idvc == 2) then ! hybrid coordinate
        do k=1,nlevs+1
@@ -187,7 +189,12 @@ program sig2grb
                     ((rk+1.)*dpk(:,:,k))) ** (1./rk)
     enddo
     ! compute vertical velocity.
+    call system_clock(count, count_rate, count_max)
+    t1 = count*1.d0/count_rate
     call getomega(nlons,nlats,nlevs,ug,vg,divg,bk,ck,dbk,pk,dpk,psg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot)
+    call system_clock(count, count_rate, count_max)
+    t2 = count*1.d0/count_rate
+    print *,'time to compute vertical velocity = ',t2-t1
 
     recname(1)   = 'hgt'
     reclevtyp(1) = 'sfc'
