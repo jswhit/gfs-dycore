@@ -15,7 +15,6 @@ program sig2grb
  implicit none
 
  character(len=500) sigfile, gribfile
- character(len=4) charlons,charlats
  type(sigio_data) sigdata
  type(sigio_head) sighead
  integer lu,iret,k,nt,nlons,nlats,nlevs,ntrunc,ntrac,ndimspec
@@ -26,7 +25,7 @@ program sig2grb
  ug,vg,virtempg,divg
  real(r_kind), allocatable, dimension(:,:,:,:) :: tracerg
  real(r_kind), allocatable, dimension(:,:) :: psg,topog,dlnpsdx,dlnpsdy
- real(8) t1,t2,t0
+ real(8) t1,t2
  integer(8) count, count_rate, count_max
 
  lu = 7
@@ -88,6 +87,8 @@ program sig2grb
  call sigio_axdata(sigdata,iret)
  call sigio_sclose(lu,iret)
 
+ call system_clock(count, count_rate, count_max)
+ t1 = count*1.d0/count_rate
 !$omp parallel do private(k,nt)
  do k=1,nlevs
     call getuv(vrtspec(:,k),divspec(:,k),ug(:,:,k),vg(:,:,k),rerth)
@@ -99,6 +100,9 @@ program sig2grb
     enddo
  enddo
 !$omp end parallel do
+ call system_clock(count, count_rate, count_max)
+ t2 = count*1.d0/count_rate
+ print *,'time to do transforms = ',t2-t1
  print *,'min/max tv',minval(virtempg),maxval(virtempg)
  call spectogrd(lnpsspec,psg)
  call spectogrd(topospec,topog)
@@ -118,6 +122,8 @@ program sig2grb
  subroutine copyspecin(rspecdata,cspecdata,ndimspec)
     use kinds, only: r_single, r_kind
     use physcons, only: pi => con_pi
+    implicit none
+    integer, intent(in) :: ndimspec
     real(r_single), intent(in) :: rspecdata(2*ndimspec)
     complex(r_kind), intent(out) :: cspecdata(ndimspec)
     integer n,nn
@@ -136,7 +142,8 @@ program sig2grb
     use sigio_module, only: sigio_head
     use gfsio_module, only: gfsio_gfile, gfsio_open, gfsio_writerecvw34, &
                             gfsio_init, gfsio_close
-    use physcons, only: con_rd,con_cp,rk => con_rocp
+    use physcons, only: con_rd,con_cp,rk => con_rocp, fv => con_fvirt
+    implicit none
     type(sigio_head), intent(in) :: sighead
     integer, intent(in) :: nlons,nlats,nlevs,ntrunc,ntrac
     real(r_kind), intent(in), dimension(nlons,nlats,nlevs) :: &
@@ -147,7 +154,7 @@ program sig2grb
     ! write out gfsio grib data
     type(gfsio_gfile)    :: gfile
     character(len=500), intent(in) :: filename
-    integer k,iret,nt,reclev(2+nlevs*8)
+    integer k,iret,reclev(2+nlevs*8)
     character(len=8) recname(2+nlevs*8)
     character(len=16) reclevtyp(2+nlevs*9)
     real(4) tmpg(nlons,nlats)
@@ -180,7 +187,7 @@ program sig2grb
                     ((rk+1.)*dpk(:,:,k))) ** (1./rk)
     enddo
     ! compute vertical velocity.
-    call getomega(nlons,nlats,nlevs,ug,vg,divg,ak,bk,ck,dbk,pk,dpk,psg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot)
+    call getomega(nlons,nlats,nlevs,ug,vg,divg,bk,ck,dbk,pk,dpk,psg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot)
 
     recname(1)   = 'hgt'
     reclevtyp(1) = 'sfc'
@@ -267,20 +274,16 @@ program sig2grb
        call gfsio_writerecvw34(gfile,'spfh','layer',k,&
                                tmpg, iret)
     enddo
-    if (ntoz .gt. 0) then
-       do k=1,nlevs
-          call twodtooned(tracerg(:,:,k,ntoz),tmpg,nlons,nlats)
-          call gfsio_writerecvw34(gfile,'o3mr','layer',k,&
+    do k=1,nlevs
+       call twodtooned(tracerg(:,:,k,2),tmpg,nlons,nlats)
+       call gfsio_writerecvw34(gfile,'o3mr','layer',k,&
+                            tmpg, iret)
+    enddo
+    do k=1,nlevs
+       call twodtooned(tracerg(:,:,k,3),tmpg,nlons,nlats)
+       call gfsio_writerecvw34(gfile,'clwmr','layer',k,&
                                tmpg, iret)
-       enddo
-    endif
-    if (ntclw .gt. 0) then
-       do k=1,nlevs
-          call twodtooned(tracerg(:,:,k,ntclw),tmpg,nlons,nlats)
-          call gfsio_writerecvw34(gfile,'clwmr','layer',k,&
-                                  tmpg, iret)
-       enddo
-    endif
+    enddo
     do k=1,nlevs
        call twodtooned(dlnpdtg(:,:,k),tmpg,nlons,nlats)
        !tmpg = tmpg*prs(:,:,k)
@@ -295,6 +298,8 @@ program sig2grb
 
  subroutine twodtooned(data2,data1,nlons,nlats)
    use kinds, only: r_kind
+   implicit none
+   integer, intent(in) :: nlons,nlats
    real(r_kind), intent(in) :: data2(nlons,nlats)
    real(4), intent(out) :: data1(nlons*nlats)
    integer i,j,n
@@ -305,14 +310,16 @@ program sig2grb
    enddo
  end subroutine twodtooned
 
- subroutine getomega(nlons,nlats,nlevs,ug,vg,divg,ak,bk,ck,dbk,pk,dpk,psg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot)
+ subroutine getomega(nlons,nlats,nlevs,ug,vg,divg,bk,ck,dbk,pk,dpk,psg,dlnpsdx,dlnpsdy,dlnpsdt,dlnpdtg,etadot)
     use kinds, only: r_kind
+    implicit none
     ! compute omega, etadot, tendency of lnps 
     ! all input and output arrays oriented bottom to top (k=1 is near ground)
+    integer, intent(in) :: nlons,nlats,nlevs
     real(r_kind), intent(in), dimension(nlons,nlats,nlevs) :: ug,vg,divg,dpk      
     real(r_kind), intent(in), dimension(nlons,nlats,nlevs+1) :: pk
     real(r_kind), intent(in), dimension(nlons,nlats) :: psg,dlnpsdx,dlnpsdy
-    real(r_kind), intent(in), dimension(nlevs+1) :: ak,bk
+    real(r_kind), intent(in), dimension(nlevs+1) :: bk
     real(r_kind), intent(in), dimension(nlevs) :: ck,dbk
     ! omega (pressure vertical velocity divided by pressure) on model layers.
     real(r_kind), intent(out), dimension(nlons,nlats,nlevs) :: dlnpdtg
