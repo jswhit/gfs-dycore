@@ -32,7 +32,7 @@ module semimp_data
  !
  ! when used to discretize 'fast'/'slow' double oscillator eqn
  ! this scheme is:
- ! stable for 'slow' courant numbers < 2*c = sqrt(2)
+ ! stable for 'slow' courant numbers < 2*c = sqrt(2) ~ 1.414
  ! stable for all 'fast' courant numbers
   
 
@@ -57,7 +57,7 @@ module semimp_data
 !
 ! has very weak instability for purely imaginary double
 ! oscillator.
-! Largest amp factor for 'slow' courant # < sqrt(3) ~ 1.0015,
+! Largest amp factor for 'slow' courant # < sqrt(3) ~ 1.73,
 ! which is not a problem for models with weak damping.
 !
 ! Double tableau:
