@@ -3,11 +3,13 @@ module run_mod
 ! Public subroutines:
 ! run: main time step loop (advances model state, writes out
 ! data at specified intervals).
+
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
   fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
-  massfix,gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt
-use shtns, only: spectogrd, lats, areawts, lap, degree
+  massfix,gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt,&
+  addnoise, addnoise_vfilt,addnoise_kenorm
+use shtns, only: grdtospec, spectogrd, lats, areawts, lap, invlap, degree
 use dyn_run, only: getdyntend, dry_mass_fixer
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata, pwat
@@ -18,8 +20,12 @@ use iau_module, only: getiauforcing, init_iau, init_iauialized
 ! these arrays used to print diagnostics after each time step.
 use pressure_data, only: psg
 use grid_data, only: ug,vg,dlnpsdt
+use physcons, only: rerth => con_rerth
+
 private
+
 public :: run
+
 contains
 
 subroutine run()
@@ -212,7 +218,8 @@ subroutine advance(t)
   use patterngenerator, only: patterngenerator_advance
   use stoch_data, only: rpattern_svc,rpattern_sppt,&
      spec_svc,spec_sppt,grd_svc,grd_sppt,&
-     spec_shum,grd_shum,rpattern_shum
+     spec_shum,grd_shum,rpattern_shum,&
+     rpattern_addnoise,specpsi_addnoise,vfact_addnoise
   use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,&
                          a21,a31,a32,aa21,aa22,aa31,aa32,aa33,b1,b2,b3,bb1,bb2,bb3,bb4
   real(r_double), intent(in) :: t
@@ -225,7 +232,7 @@ subroutine advance(t)
       dvrtspecdt_orig,ddivspecdt_orig,dvirtempspecdt_orig,&
       dvrtspecdt1,ddivspecdt1,dvirtempspecdt1,&
       dvrtspecdt2,ddivspecdt2,dvirtempspecdt2,&
-      ddivdtlin_orig, dtvdtlin_orig,&
+      psiforcing,ddivdtlin_orig, dtvdtlin_orig,&
       ddivdtlin1, ddivdtlin2, dtvdtlin1, dtvdtlin2
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
       dtracerspecdt_orig,&
@@ -275,6 +282,26 @@ subroutine advance(t)
   if (shum > tiny(shum)) then
      call patterngenerator_advance(spec_shum,rpattern_shum)
      call spectogrd(spec_shum,grd_shum)
+  endif
+  ! additive noise perturbation.
+  if (addnoise > tiny(addnoise)) then
+     do k=1,nlevs
+        call patterngenerator_advance(specpsi_addnoise(:,k),rpattern_addnoise)
+     enddo
+     ! apply successive applications of 1-2-1 filter in vertical to introduce vertical correlations.
+     if (addnoise_vfilt > 0) then
+        do n=1,addnoise_vfilt
+           do k=2,nlevs-1
+              dvrtspecdt1(:,k) = specpsi_addnoise(:,k+1)+2.*specpsi_addnoise(:,k)+&
+                                 specpsi_addnoise(:,k-1)
+           enddo
+           dvrtspecdt1(:,1) = (1.+1./3.)*specpsi_addnoise(:,2)+2.*(1.+1./3.)*specpsi_addnoise(:,1)
+           dvrtspecdt1(:,nlevs) = (1.+1./3.)*specpsi_addnoise(:,nlevs-1)+2.*(1.+1./3.)*specpsi_addnoise(:,nlevs)
+           psiforcing = 0.25*dvrtspecdt1
+        enddo
+     else
+        psiforcing = specpsi_addnoise
+     end if
   endif
 
   ! stage 1
@@ -517,6 +544,20 @@ subroutine advance(t)
      endif
      lnpsspec=lnpsspec+dt*dlnpsspecdt1 ! only needed for dry mass fixer.
   end if
+! additive noise in vorticity eqn.
+! specpsi_addnoise has units of streamfunction tendency
+  if (addnoise > tiny(addnoise)) then
+!$omp parallel do private(k)
+     do k=1,nlevs
+        if (addnoise_kenorm) then
+           !vrtspec(:,k) = vrtspec(:,k) + dt*(lap/rerth**2)*sqrt(-invlap*rerth**2)*psiforcing(:,k)
+           vrtspec(:,k) = vrtspec(:,k) - dt*(sqrt(-lap)/rerth)*psiforcing(:,k)
+        else
+           vrtspec(:,k) = vrtspec(:,k) + dt*(lap/rerth**2)*psiforcing(:,k)
+        endif
+     enddo
+!$omp end parallel do 
+  endif
 
   ! free-up temporary storage.
   if (iau) then

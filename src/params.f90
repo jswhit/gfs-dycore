@@ -25,7 +25,10 @@ module params
 ! stochastic physics tendency parameters
  sppt,sppt_tau,sppt_lscale,iseed_sppt, &
 ! additive stochastic humidity perturbations
- shum,shum_tau,shum_lscale,iseed_shum,clipsupersat
+ shum,shum_tau,shum_lscale,iseed_shum,clipsupersat,&
+! additive noise perts
+ addnoise,addnoise_tau,addnoise_lscale,addnoise_vfilt,iseed_addnoise,&
+ addnoise_kenorm
  character(len=500) :: initfile ! init cond filename
  character(len=500) :: sfcinitfile ! surface init cond filename
  integer            :: fhmax ! hours to run
@@ -147,6 +150,12 @@ module params
  real(r_kind) :: shum_tau=0.  ! stochastic humidity pert time scale
  real(r_kind) :: shum_lscale=0.  ! stochastic humidity pert length scale
  integer :: iseed_shum=0 ! random seed for stochastic humid pert (0 means use system clock)
+ logical :: addnoise_kenorm=.false. ! add noise in thermo eqn only
+ real(r_kind) :: addnoise=0.  ! add noise pert amplitude
+ real(r_kind) :: addnoise_tau=0.  ! add noise pert time scale
+ real(r_kind) :: addnoise_lscale=0.  ! add noise pert length scale
+ integer :: iseed_addnoise=0 ! random seed for add noise pert (0 means use system clock)
+ integer :: addnoise_vfilt=0 ! add noise 1-2-1 vertical filter parameter
  logical :: old_monin = .false. ! flag for old Monin-Obhukov surface layer
  logical :: cnvgwd = .false. ! flag for convective gravity wave drag
  logical :: mom4ice = .false. ! flag for MOM4 sea-ice scheme
@@ -175,7 +184,9 @@ module params
  pre_rad,bkgd_vdif_m,bkgd_vdif_h,bkgd_vdif_s,timestepsperhr,gloopb_filter,&
  vcamp,svc,svc_tau,svc_lscale,iseed_svc,sppt_tau,sppt,sppt_lscale,iseed_sppt,&
  ngptc,clipsupersat,shum,shum_tau,shum_lscale,iseed_shum,&
- gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs
+ gfsio_out,sigio_out,iau,iaufiles_fg,iaufiles_anl,iaufhrs,iau_delthrs,&
+ addnoise,addnoise_tau,addnoise_lscale,addnoise_vfilt,iseed_addnoise,&
+ addnoise_kenorm
 
  contains
 
