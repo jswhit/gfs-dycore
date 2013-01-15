@@ -1,7 +1,9 @@
 program sig2grb
 
 ! convert GFS spectral file to grib1 file.
-! (can then run cnvgrib on grib1 file to convert to grib2).
+! (can run cnvgrib on grib1 file to convert to grib2).
+! grib file includes ps,zs,p,dp,u,v,tv,q,ozone,clwmr,omega
+! on model levels.
 
 ! usage:  sig2grb <spectral file> <grib file>
 
