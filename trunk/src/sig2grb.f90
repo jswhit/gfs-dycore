@@ -2,6 +2,8 @@ program sig2grb
 
 ! utility to convert GFS spectral file to grib1 file.
 
+! use cnvgrib -g12 -p40 -mastertable_ver_2 to convert to grib2.
+
 ! grib1 file includes ps,zs,p,dp,u,v,tv,q,ozone,clwmr,omega
 ! on model levels.
 
