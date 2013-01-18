@@ -550,10 +550,13 @@ subroutine advance(t)
 !$omp parallel do private(k)
      do k=1,nlevs
         if (addnoise_kenorm) then
-           !vrtspec(:,k) = vrtspec(:,k) + dt*(lap/rerth**2)*sqrt(-invlap*rerth**2)*psiforcing(:,k)
-           vrtspec(:,k) = vrtspec(:,k) - dt*(sqrt(-lap)/rerth)*psiforcing(:,k)
+           !vrtspec(:,k) = vrtspec(:,k) + &
+           !dt*(lap/rerth**2)*sqrt(-invlap*rerth**2)*vfact_addnoise(k)*psiforcing(:,k)
+           vrtspec(:,k) = vrtspec(:,k) - &
+           dt*(sqrt(-lap)/rerth)*vfact_addnoise(k)*psiforcing(:,k)
         else
-           vrtspec(:,k) = vrtspec(:,k) + dt*(lap/rerth**2)*psiforcing(:,k)
+           vrtspec(:,k) = vrtspec(:,k) + &
+           dt*(lap/rerth**2)*vfact_addnoise(k)*psiforcing(:,k)
         endif
      enddo
 !$omp end parallel do 
