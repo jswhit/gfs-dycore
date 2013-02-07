@@ -6,10 +6,11 @@ module run_mod
 
 use kinds, only: r_kind,r_double
 use params, only: ndimspec, nlevs, ntmax, tstart, dt, nlons, nlats, nlevs,&
-  fhzer,ntrac,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
+  fhzer,ntrac,ntrunc,ntout, explicit, idate_start, adiabatic, ntrac, iau,&
   massfix,gfsio_out, sigio_out, sfcinitfile, ntdfi, shum, svc, sppt,&
-  addnoise, addnoise_vfilt,addnoise_kenorm
-use shtns, only: grdtospec, spectogrd, lats, areawts, lap, invlap, degree
+  addnoise, addnoise_vfilt,addnoise_kenorm, addnoise_lscale, addnoise_dissfact,&
+  addnoise_vrtonly
+use shtns, only: grdtospec, spectogrd, lats, areawts, lap, invlap, degree, getuv
 use dyn_run, only: getdyntend, dry_mass_fixer
 use phy_run, only: getphytend
 use phy_data, only: wrtout_sfc, wrtout_flx, init_phydata, pwat
@@ -218,7 +219,7 @@ subroutine advance(t)
   use patterngenerator, only: patterngenerator_advance
   use stoch_data, only: rpattern_svc,rpattern_sppt,&
      spec_svc,spec_sppt,grd_svc,grd_sppt,&
-     spec_shum,grd_shum,rpattern_shum,&
+     spec_shum,grd_shum,rpattern_shum,getstochforcing,&
      rpattern_addnoise,specpsi_addnoise,vfact_addnoise
   use semimp_data, only: amhyb,bmhyb,svhyb,d_hyb_m,tor_hyb,&
                          a21,a31,a32,aa21,aa22,aa31,aa32,aa33,b1,b2,b3,bb1,bb2,bb3,bb4
@@ -232,7 +233,7 @@ subroutine advance(t)
       dvrtspecdt_orig,ddivspecdt_orig,dvirtempspecdt_orig,&
       dvrtspecdt1,ddivspecdt1,dvirtempspecdt1,&
       dvrtspecdt2,ddivspecdt2,dvirtempspecdt2,&
-      psiforcing,ddivdtlin_orig, dtvdtlin_orig,&
+      psiforcing,tvforcing,ddivdtlin_orig, dtvdtlin_orig,&
       ddivdtlin1, ddivdtlin2, dtvdtlin1, dtvdtlin2
   complex(r_kind), dimension(ndimspec,nlevs,ntrac) :: &
       dtracerspecdt_orig,&
@@ -288,20 +289,6 @@ subroutine advance(t)
      do k=1,nlevs
         call patterngenerator_advance(specpsi_addnoise(:,k),rpattern_addnoise)
      enddo
-     ! apply successive applications of 1-2-1 filter in vertical to introduce vertical correlations.
-     if (addnoise_vfilt > 0) then
-        do n=1,addnoise_vfilt
-           do k=2,nlevs-1
-              dvrtspecdt1(:,k) = specpsi_addnoise(:,k+1)+2.*specpsi_addnoise(:,k)+&
-                                 specpsi_addnoise(:,k-1)
-           enddo
-           dvrtspecdt1(:,1) = (1.+1./3.)*specpsi_addnoise(:,2)+2.*(1.+1./3.)*specpsi_addnoise(:,1)
-           dvrtspecdt1(:,nlevs) = (1.+1./3.)*specpsi_addnoise(:,nlevs-1)+2.*(1.+1./3.)*specpsi_addnoise(:,nlevs)
-           psiforcing = 0.25*dvrtspecdt1
-        enddo
-     else
-        psiforcing = specpsi_addnoise
-     end if
   endif
 
   ! stage 1
@@ -523,6 +510,12 @@ subroutine advance(t)
      ! update variables on grid.
      call getdyntend(dvrtspecdt1,ddivspecdt1,dvirtempspecdt1,&
           dtracerspecdt1,dlnpsspecdt1,3,.true.) ! <- .true. for spectogrd only
+     ! compute stochastic backscatter forcing, if needed
+     ! if addnoise_dissfact is true,
+     ! streamfunctione noise forcing by smoothed estimate of ke dissipation
+     ! rate.
+     if (addnoise > tiny(addnoise)) &
+     call getstochforcing(specpsi_addnoise, psiforcing, tvforcing)
      ! compute physics tendencies, apply as an adjustment to updated state
      call system_clock(count, count_rate, count_max)
      t1 = count*1.d0/count_rate
@@ -543,24 +536,22 @@ subroutine advance(t)
         call dry_mass_fixer(psg,pwat,dlnpsspecdt1,dt)
      endif
      lnpsspec=lnpsspec+dt*dlnpsspecdt1 ! only needed for dry mass fixer.
+     ! add stochastic backsscatter forcing in vorticity eqn.
+     ! psiforcing has units of streamfunction tendency
+     if (addnoise > tiny(addnoise)) then
+         !$omp parallel do private(k)
+         do k=1,nlevs
+            if (addnoise_kenorm .and. addnoise_vrtonly) then
+               !vrtspec(:,k) = vrtspec(:,k) + dt*(lap/rerth**2)*sqrt(-invlap*rerth**2)*psiforcing(:,k)
+               vrtspec(:,k) = vrtspec(:,k) - dt*(sqrt(-lap)/rerth)*psiforcing(:,k)
+            else
+               vrtspec(:,k) = vrtspec(:,k) + dt*(lap/rerth**2)*psiforcing(:,k)
+            endif
+            virtempspec(:,k) = virtempspec(:,k) + dt*tvforcing(:,k)
+         enddo
+         !$omp end parallel do 
+     end if
   end if
-! additive noise in vorticity eqn.
-! specpsi_addnoise has units of streamfunction tendency
-  if (addnoise > tiny(addnoise)) then
-!$omp parallel do private(k)
-     do k=1,nlevs
-        if (addnoise_kenorm) then
-           !vrtspec(:,k) = vrtspec(:,k) + &
-           !dt*(lap/rerth**2)*sqrt(-invlap*rerth**2)*vfact_addnoise(k)*psiforcing(:,k)
-           vrtspec(:,k) = vrtspec(:,k) - &
-           dt*(sqrt(-lap)/rerth)*vfact_addnoise(k)*psiforcing(:,k)
-        else
-           vrtspec(:,k) = vrtspec(:,k) + &
-           dt*(lap/rerth**2)*vfact_addnoise(k)*psiforcing(:,k)
-        endif
-     enddo
-!$omp end parallel do 
-  endif
 
   ! free-up temporary storage.
   if (iau) then
