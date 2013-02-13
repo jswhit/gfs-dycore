@@ -42,10 +42,11 @@ module stoch_data
     real(r_kind), allocatable, dimension(:) :: akin,bkin,siin,rlsigo,rlsig,&
       coef1,coef2
     integer,allocatable, dimension(:) :: lsig
-    integer n,nspinup,k,nlatsin,nlevsin,i,j,l,l1,m,m1
+    integer n,nspinup,k,nlatsin,nlevsin,i,j,l,l1,m,m1,spinup_efolds
 
     real(r_kind) delt,sigtop,sigbot
     delt = dt
+    spinup_efolds = 5
     if (svc > tiny(svc)) then
 ! vorticity confinement.
        allocate(spec_svc(ndimspec))
@@ -53,9 +54,9 @@ module stoch_data
        allocate(vfact_svc(nlevs))
        call patterngenerator_init(svc_lscale,delt,svc_tau,svc,iseed_svc,rpattern_svc,&
                                   nlons,nlats,ntrunc,2.*pi)
-       nspinup = 5.*svc_tau/delt
+       nspinup = spinup_efolds*svc_tau/delt
        call getnoise(rpattern_svc,spec_svc)
-       spec_svc = spec_svc*rpattern_svc%varspectrum
+       spec_svc = rpattern_svc%stdev*spec_svc*rpattern_svc%varspectrum
        do n=1,nspinup
           call patterngenerator_advance(spec_svc,rpattern_svc)
        enddo
@@ -76,9 +77,9 @@ module stoch_data
        allocate(vfact_sppt(nlevs))
        call patterngenerator_init(sppt_lscale,delt,sppt_tau,sppt,iseed_sppt,rpattern_sppt,&
                                   nlons,nlats,ntrunc,2.*pi)
-       nspinup = 5.*sppt_tau/delt
+       nspinup = spinup_efolds*sppt_tau/delt
        call getnoise(rpattern_sppt,spec_sppt)
-       spec_sppt = spec_sppt*rpattern_sppt%varspectrum
+       spec_sppt = rpattern_sppt%stdev*spec_sppt*rpattern_sppt%varspectrum
        do n=1,nspinup
           call patterngenerator_advance(spec_sppt,rpattern_sppt)
        enddo
@@ -99,9 +100,9 @@ module stoch_data
        allocate(vfact_shum(nlevs))
        call patterngenerator_init(shum_lscale,delt,shum_tau,shum,iseed_shum,rpattern_shum,&
                                   nlons,nlats,ntrunc,2.*pi)
-       nspinup = 5.*shum_tau/delt
+       nspinup = spinup_efolds*shum_tau/delt
        call getnoise(rpattern_shum,spec_shum)
-       spec_shum = spec_shum*rpattern_shum%varspectrum
+       spec_shum = rpattern_shum%stdev*spec_shum*rpattern_shum%varspectrum
        sigbot = 0.2
        ! humidity pert decays exponentially away from sfc
        do k=1,nlevs
@@ -119,11 +120,11 @@ module stoch_data
        call patterngenerator_init(addnoise_lscale,delt,addnoise_tau,&
                                   addnoise,iseed_addnoise,rpattern_addnoise,&
                                   nlons,nlats,ntrunc,2.*pi)
-       nspinup = 5.*addnoise_tau/delt
+       nspinup = spinup_efolds*addnoise_tau/delt
        do k=1,nlevs
           call getnoise(rpattern_addnoise,specpsi_addnoise(:,k))
           specpsi_addnoise(:,k) = &
-          specpsi_addnoise(:,k)*rpattern_addnoise%varspectrum(:)
+          rpattern_addnoise%stdev*specpsi_addnoise(:,k)*rpattern_addnoise%varspectrum(:)
        enddo
        sigbot = 0.10; sigtop = 0.05
        do k=1,nlevs
