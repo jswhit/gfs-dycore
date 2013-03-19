@@ -3,11 +3,14 @@ program sig2grb
 ! utility to convert GFS spectral file to grib1 file.
 
 ! grib1 file includes ps,zs,p,dp,u,v,tv,q,ozone,clwmr,omega
-! on model levels.
+! on model levels. Can be used as input to unipost. Much
+! faster than global_chgres.
 
 ! usage:  sig2grb <spectral file> <grib file>
 
-! Jeffrey.S.Whitaker <jeffrey.s.whitaker@noaa.gov> January, 2013
+! Requires shtns spectral transform lib.
+
+! Jeffrey.S.Whitaker <jeffrey.s.whitaker@noaa.gov> March, 2013
 
  use kinds, only: r_kind, r_single, r_double
  use sigio_module, only: sigio_sclose,sigio_srhead,&
@@ -108,7 +111,7 @@ program sig2grb
  print *,'min/max tv',minval(virtempg),maxval(virtempg)
  call spectogrd(lnpsspec,psg)
  call spectogrd(topospec,topog)
- psg = 10.*exp(psg) ! convert to Pa.
+ psg = 1000.*exp(psg) ! convert to Pa.
  print *,'min/max ps',minval(psg),maxval(psg)
  call getgrad(lnpsspec, dlnpsdx, dlnpsdy, rerth)
  print *,'writing.... ',trim(gribfile)
@@ -156,29 +159,29 @@ program sig2grb
     ! write out gfsio grib data
     type(gfsio_gfile)    :: gfile
     character(len=500), intent(in) :: filename
-    integer k,iret,reclev(2+nlevs*8)
-    character(len=8) recname(2+nlevs*8)
+    integer k,iret,reclev(2+nlevs*9)
+    character(len=8) recname(2+nlevs*9)
     character(len=16) reclevtyp(2+nlevs*9)
     real(4) tmpg(nlons,nlats)
     real(r_kind) prs(nlons,nlats,nlevs),dpk(nlons,nlats,nlevs),pk(nlons,nlats,nlevs+1),&
-    ak(nlevs),bk(nlevs),dlnpsdt(nlons,nlats),etadot(nlons,nlats,nlevs+1),&
+    ak(nlevs+1),bk(nlevs+1),dlnpsdt(nlons,nlats),etadot(nlons,nlats,nlevs+1),&
     dlnpdtg(nlons,nlats,nlevs),dbk(nlevs),ck(nlevs)
     real(8) t1,t2
     integer(8) count, count_rate, count_max
 
-    if (sighead%idvc == 2) then ! hybrid coordinate
+    !if (sighead%idvc == 2) then ! hybrid coordinate
        do k=1,nlevs+1
-          ak(k) = sighead%vcoord(nlevs+2-k,1)
-          bk(k) = sighead%vcoord(nlevs+2-k,2)
+          ak(k) = sighead%vcoord(nlevs-k+2,1)
+          bk(k) = sighead%vcoord(nlevs-k+2,2)
        enddo
        do k=1,nlevs
           dbk(k) = bk(k+1)-bk(k)
           ck(k)  = ak(k+1)*bk(k)-ak(k)*bk(k+1)
        enddo
-    else
-       print *,'unknown vertical coordinate type',sighead%idvc
-       stop
-    end if
+    !else
+    !   print *,'unknown vertical coordinate type',sighead%idvc
+    !   stop
+    !end if
     do k=1,nlevs+1
        pk(:,:,k)=ak(k) + bk(k)*psg(:,:)
     enddo
@@ -186,7 +189,7 @@ program sig2grb
        ! layer pressure thickness
        dpk(:,:,k)=    pk(:,:,k+1) - pk(:,:,k)
        ! sela's layer pressure from hyb2press.f
-       ! (goes from bottom to top, unlike pk)
+       ! (goes from bottom to top, unlike pk and dpk, which are top to bottom)
        prs(:,:,nlevs-k+1) = ((pk(:,:,k+1)**rk*pk(:,:,k+1) - pk(:,:,k)**rk*pk(:,:,k))/&
                     ((rk+1.)*dpk(:,:,k))) ** (1./rk)
     enddo
@@ -237,16 +240,31 @@ program sig2grb
     !print *,' calling gfsio_open idate=',idate_start,' fhour=',fhour4
  
     call gfsio_init(iret)
-    call gfsio_open(gfile,trim(filename),'write',iret,&
-         version=sighead%ivs,fhour=sighead%fhour,idate=sighead%idate,nrec=2+nlevs*9,&
-         latb=nlats,lonb=nlons,levs=nlevs,jcap=ntrunc,itrun=sighead%itrun,&
-         iorder=sighead%iorder,irealf=sighead%irealf,igen=sighead%igen,latf=nlats,lonf=nlons,&
-         latr=nlats,lonr=nlons,ntrac=ntrac,icen2=sighead%icen2,iens=sighead%iens,&
-         idpp=sighead%idpp,idsl=sighead%idsl,idvc=sighead%idvc,idvm=sighead%idvm,&
-         idvt=sighead%idvt,idrun=sighead%idrun,&
-         idusr=sighead%idusr,pdryini=sighead%pdryini,ncldt=sighead%ncldt,nvcoord=sighead%nvcoord,&
-         vcoord=sighead%vcoord,recname=recname,reclevtyp=reclevtyp,&
-         reclev=reclev,Cpi=sighead%cpi,Ri=sighead%ri)
+    if (mod(sighead%idvm/10,10) == 3)then
+       call gfsio_open(gfile,trim(filename),'write',iret,&
+            version=sighead%ivs,&
+            fhour=sighead%fhour,idate=sighead%idate,nrec=2+nlevs*9,&
+            latb=nlats,lonb=nlons,levs=nlevs,jcap=ntrunc,itrun=sighead%itrun,&
+            iorder=sighead%iorder,irealf=sighead%irealf,igen=sighead%igen,latf=nlats,lonf=nlons,&
+            latr=nlats,lonr=nlons,ntrac=ntrac,icen2=sighead%icen2,iens=sighead%iens,&
+            idpp=sighead%idpp,idsl=sighead%idsl,idvc=sighead%idvc,idvm=sighead%idvm,&
+            idvt=sighead%idvt,idrun=sighead%idrun,&
+            idusr=sighead%idusr,pdryini=sighead%pdryini,ncldt=sighead%ncldt,nvcoord=sighead%nvcoord,&
+            vcoord=sighead%vcoord,recname=recname,reclevtyp=reclevtyp,&
+            reclev=reclev,Cpi=sighead%cpi,Ri=sighead%ri)
+    else
+       call gfsio_open(gfile,trim(filename),'write',iret,&
+            version=sighead%ivs,&
+            fhour=sighead%fhour,idate=sighead%idate,nrec=2+nlevs*9,&
+            latb=nlats,lonb=nlons,levs=nlevs,jcap=ntrunc,itrun=sighead%itrun,&
+            iorder=sighead%iorder,irealf=sighead%irealf,igen=sighead%igen,latf=nlats,lonf=nlons,&
+            latr=nlats,lonr=nlons,ntrac=ntrac,icen2=sighead%icen2,iens=sighead%iens,&
+            idpp=sighead%idpp,idsl=sighead%idsl,idvc=sighead%idvc,idvm=sighead%idvm,&
+            idvt=sighead%idvt,idrun=sighead%idrun,&
+            idusr=sighead%idusr,pdryini=sighead%pdryini,ncldt=sighead%ncldt,nvcoord=sighead%nvcoord,&
+            vcoord=sighead%vcoord,recname=recname,reclevtyp=reclevtyp,&
+            reclev=reclev)
+     endif
 
     call twodtooned(topog,tmpg,nlons,nlats)
     call gfsio_writerecvw34(gfile,'hgt','sfc',1,tmpg,iret)
@@ -295,10 +313,9 @@ program sig2grb
     enddo
     do k=1,nlevs
        call twodtooned(dlnpdtg(:,:,k),tmpg,nlons,nlats)
-       !tmpg = tmpg*prs(:,:,k)
-       tmpg = tmpg*0.5*(pk(:,:,nlevs-k+2)+pk(:,:,nlevs-k+1))
+       tmpg = tmpg*prs(:,:,k)
        call gfsio_writerecvw34(gfile,'vvel','layer',k,&
-                               tmpg, iret, precision=6)
+                               tmpg, iret,  precision=6)
     enddo
 
     call gfsio_close(gfile,iret)
