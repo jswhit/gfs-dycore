@@ -5,10 +5,11 @@ module patterngenerator
 
  use kinds, only: r_kind,r_double,r_single
  use physcons, only:  pi => con_pi, rerth => con_rerth
+ use mersenne_twister, only: random_setseed,random_gauss,random_stat
  implicit none
  private
 
- public :: computevarspec, computevargrid, gaussian_spect, rnorm, set_random_seed, &
+ public :: computevarspec, computevargrid, gaussian_spect, &
   patterngenerator_init, patterngenerator_destroy, getnoise, &
   patterngenerator_advance, getvarspectrum, random_pattern
 
@@ -21,6 +22,7 @@ module patterngenerator
     real(r_kind), allocatable, dimension(:), public :: varspectrum, varspectrum1d, lap
     integer, allocatable, dimension(:), public :: degree,order
     integer, public :: seed
+    type(random_stat), public :: rstate
  end type random_pattern
 
  real(r_kind) :: normfact
@@ -35,6 +37,7 @@ module patterngenerator
    type(random_pattern), intent(out) :: rpattern
    integer, intent(in) :: iseed
    integer m,n
+   integer count, count_rate, count_max
    nlons = nlon; nlats = nlat; ntrunc = jcap
    ndimspec = (ntrunc+1)*(ntrunc+2)/2   
    normfact = normalization
@@ -48,7 +51,16 @@ module patterngenerator
    rpattern%stdev = stdev
    allocate(rpattern%varspectrum(ndimspec))
    allocate(rpattern%varspectrum1d(0:ntrunc))
-   call set_random_seed(rpattern%seed)
+   if (iseed == 0) then
+     ! generate a random seed from system clock and ens member number
+     call system_clock(count, count_rate, count_max)
+     print *,'using seed',count
+   else
+     count = iseed
+     print *,'using seed',count
+   endif
+   rpattern%seed = count
+   call random_setseed(rpattern%seed,rpattern%rstate)
    call gaussian_spect(rpattern)
  end subroutine patterngenerator_init
 
@@ -102,17 +114,19 @@ module patterngenerator
 
  subroutine getnoise(rpattern,noise)
    ! generate white noise with unit variance in spectral space
-   type(random_pattern), intent(in) :: rpattern
+   type(random_pattern), intent(inout) :: rpattern
    complex(r_kind), intent(inout) :: noise(ndimspec)
+   real(r_kind) :: noiser(2*ndimspec)
    integer n
+   call random_gauss(noiser,rpattern%rstate)
+   noiser(1) = 0.; noiser(ndimspec+1) = 0.
    do n=1,ndimspec
       if (rpattern%order(n) .ne. 0.) then
-        noise(n) = cmplx(rnorm(), rnorm())/sqrt(2.*rpattern%degree(n)+1)
+        noise(n) = cmplx(noiser(n),noiser(n+ndimspec))/sqrt(2.*rpattern%degree(n)+1)
       else
-        noise(n) = sqrt(2.)*rnorm()/sqrt(2.*rpattern%degree(n)+1.)
+        noise(n) = sqrt(2.)*noiser(n)/sqrt(2.*rpattern%degree(n)+1.)
       endif
    enddo
-   noise(1) = 0 ! no global mean.
    ! normalize so global mean variance is 1.
    noise = noise*sqrt(normfact/ntrunc)
  end subroutine getnoise
@@ -122,7 +136,7 @@ module patterngenerator
     ! specified autocorrelation (phi) and variance spectrum (spectrum)
     complex(r_kind), intent(inout) :: dataspec(ndimspec)
     complex(r_kind) :: noise(ndimspec)
-    type(random_pattern), intent(in) :: rpattern
+    type(random_pattern), intent(inout) :: rpattern
     call getnoise(rpattern,noise)
     dataspec =  rpattern%phi*dataspec + &
     rpattern%stdev*sqrt(1.-rpattern%phi**2)*rpattern%varspectrum*noise
@@ -161,100 +175,5 @@ module patterngenerator
   rpattern%varspectrum1d = rpattern%varspectrum1d/var
 
  end subroutine gaussian_spect
-
- ! random number stuff
-
- FUNCTION rnorm() RESULT( fn_val )
-  !   Generate a random normal deviate using the polar method.
-  !   Reference: Marsaglia,G. & Bray,T.A. 'A convenient method for generating
-  !              normal variables', Siam Rev., vol.6, 260-264, 1964.
-  IMPLICIT NONE
-  REAL(r_kind)  :: fn_val
-  ! Local variables
-  REAL(r_kind)            :: u, v, sum, sln
-  REAL(r_kind), PARAMETER :: one = 1.0, vsmall = TINY( one )
-  DO
-    CALL RANDOM_NUMBER( u )
-    CALL RANDOM_NUMBER( v )
-    u = SCALE( u, 1 ) - one
-    v = SCALE( v, 1 ) - one
-    sum = u*u + v*v + vsmall         ! vsmall added to prevent LOG(zero) / zero
-    IF(sum < one) EXIT
-  END DO
-  sln = SQRT(- SCALE( LOG(sum), 1 ) / sum)
-  fn_val = u*sln
- END FUNCTION rnorm
-
- subroutine set_random_seed ( iseed )
- !
- !*******************************************************************************
- !
- !! SET_RANDOM_SEED initializes the FORTRAN 90 random number generator.
- !
- !
- !  Discussion:
- !
- !    If ISEED is nonzero, then that value is used to construct a seed.
- !
- !    If ISEED is zero, then the seed is determined by calling the date 
- !    and time routine.  Thus, if the code is run at different times, 
- !    different seed values will be set.
- !
- !  Parameters:
- !
- !    Input, integer ISEED, is nonzero for a user seed, or 0 if the
- !    seed should be determined by this routine.
- !
-   implicit none
- !
-   integer date_time(8),i,j,k,iseed
-   integer, allocatable :: seed(:)
- !
- !  Initialize the random seed routine.
- !
-   call random_seed
- !
- !  Request the size of a typical seed.
- !
-   call random_seed ( size = k )
- 
- !
- !  Set up space for a seed vector.
- !
-   allocate ( seed(k) )
- 
-   if ( iseed /= 0 ) then
- 
-     seed(1:k) = iseed
- 
-   else
- !
- !  Make up a "random" value based on date and time information.
- !
-     call date_and_time ( values = date_time )
- 
-     do i = 1, k
- 
-       seed(i) = 0
- 
-       do j = 1, 8
-         seed(i) = seed(i) + ( j + i ) * date_time(j) 
-         seed(i) = ishftc ( seed(i), 4 * ( j - 1 ) )
-       end do
- 
-     end do
- 
-   end if
- 
- !
- !  Send this random value back to the RANDOM_SEED routine, to be
- !  used as the seed of the random number generator.
- !
-   print *,'random seed = ',seed
-   call random_seed ( put = seed(1:k) )
- 
-   deallocate ( seed )
- 
- end subroutine set_random_seed
 
 end module patterngenerator
