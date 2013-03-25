@@ -132,7 +132,8 @@ dcmip_initial_conditions_test_5_v1.o: dcmip_initial_conditions_test_5_v1.f90
 
 simple_physics_v5_1.o: simple_physics_v5_1.f90 
 
-pattergenerator.o:   	patterngenerator.f90 kinds.o shtns.o physcons.o
+patterngenerator.o:   	patterngenerator.f90 kinds.o shtns.o physcons.o
+		$(FC) $(FFLAGS) $(OMPFLAG) -Ilibgfs -c patterngenerator.f90
 
 stoch_data.o  : stoch_data.f90 kinds.o params.o patterngenerator.o
 
