@@ -2298,7 +2298,7 @@
         if (num_p3d == 3) then    ! call brad ferrier's microphysics
 
           do i = 1, im
-            xncw(i) = ncw(2) * work1(i) + ncw(1) * work2(i)
+            xncw(i) = ncw(1) * work1(i) + ncw(2) * work2(i)
           enddo
 
           if (kdt == 1 .and. abs(xlon(1)) < 0.0001) then
