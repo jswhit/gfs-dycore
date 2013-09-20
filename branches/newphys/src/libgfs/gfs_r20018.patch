@@ -1,0 +1,2977 @@
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/calpreciptype.f	2012-06-18 10:37:05.000000000 -0600
++++ calpreciptype.f	2012-06-26 14:00:24.000000000 -0600
+@@ -24,6 +24,7 @@
+ !      use params_mod
+ !      use ctlblk_mod
+ !      use rqstfld_mod
++      use machine, only: kind_phys
+       USE FUNCPHYS, ONLY : fpvs,FTDP,fpkap,ftlcl,stma,fthe
+       USE PHYSCONS
+ !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+@@ -38,7 +39,7 @@
+ !     THEIR PACKING CODES."  THE THRESHOLD VALUE IS 0.01 INCH
+ !     OR 2.54E-4 METER.  PRECIPITATION VALUES LESS THAN THIS
+ !     THRESHOLD ARE SET TO MINUS ONE TIMES THIS THRESHOLD.
+-      real,PARAMETER :: PTHRESH = 0.0
++      real(kind_phys),PARAMETER :: PTHRESH = 0.0
+ !     
+ !     SET CELCIUS TO KELVIN AND SECOND TO HOUR CONVERSION.
+       integer,PARAMETER :: NALG    = 5
+@@ -46,9 +47,9 @@
+ !     DECLARE VARIABLES.
+ !     
+       integer,intent(in) :: kdt,nrcm,im,ix,lm,lp1,num_p3d
+-      real,intent(in) :: xlat(im),xlon(im) 
++      real(kind_phys),intent(in) :: xlat(im),xlon(im) 
+       real(kind=kind_phys),dimension(im),intent(in) :: PREC,SR,TSKIN
+-      real,intent(in) :: randomno(ix,nrcm)
++      real(kind_phys),intent(in) :: randomno(ix,nrcm)
+       real(kind=kind_phys),dimension(ix,LM),intent(in) :: gt0,gq0,prsl,phy_f3d
+       real(kind=kind_phys),dimension(ix,lp1),intent(in) :: prsi,phii
+       
+@@ -57,9 +58,9 @@
+       real(kind=kind_phys),dimension(im),intent(out) :: DOMR,DOMZR,DOMIP,DOMS
+       
+       INTEGER IWX1,IWX4,IWX5
+-      REAL IWX2,IWX3
++      REAL(kind_phys) IWX2,IWX3
+       REAL(kind=kind_phys) ES,QC,PV
+-      REAL SLEET(NALG),RAIN(NALG),FREEZR(NALG),SNOW(NALG)
++      REAL(kind_phys) SLEET(NALG),RAIN(NALG),FREEZR(NALG),SNOW(NALG)
+       real(kind=kind_phys),dimension(LM) :: T,Q,PMID,F_RimeF
+       real(kind=kind_phys),dimension(lp1) :: pint,zint
+       REAL(kind=kind_phys), ALLOCATABLE :: TWET(:),RH(:),TD(:)
+@@ -313,18 +314,19 @@
+ !      use params_mod
+ !      use ctlblk_mod
+ !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
++      use machine, only: kind_phys
+       implicit none
+ !
+ !    INPUT:
+ !      T,Q,PMID,HTM,LMH,PREC,ZINT
+ !
+       integer,intent(in):: lm,lp1
+-!      real,intent(in):: pthresh
+-      real,dimension(LM),intent(in) :: T,Q,PMID,TWET
+-      real,dimension(LP1),intent(in) :: ZINT,PINT
++!      real(kind_phys),intent(in):: pthresh
++      real(kind_phys),dimension(LM),intent(in) :: T,Q,PMID,TWET
++      real(kind_phys),dimension(LP1),intent(in) :: ZINT,PINT
+       integer,intent(out)  :: IWX
+-      real,intent(in) :: PREC,PTHRESH,D608,ROG,EPSQ
+-!      real,intent(out)  :: ZWET
++      real(kind_phys),intent(in) :: PREC,PTHRESH,D608,ROG,EPSQ
++!      real(kind_phys),intent(out)  :: ZWET
+ 
+ 
+ !    OUTPUT:
+@@ -338,10 +340,10 @@
+ !
+ !    INTERNAL:
+ !
+-!      REAL, ALLOCATABLE :: TWET(:)
+-      real, parameter :: D00=0.0 
++!      REAL(kind_phys), ALLOCATABLE :: TWET(:)
++      real(kind_phys), parameter :: D00=0.0 
+       integer KARR,LICEE
+-      real TCOLD,TWARM
++      real(kind_phys) TCOLD,TWARM
+ 
+ !    SUBROUTINES CALLED:
+ !     WETBULB
+@@ -356,7 +358,7 @@
+ !
+ 
+       integer I,J,L,LMHK,LICE,IFREL,IWRML,IFRZL
+-      real PSFCK,TDCHK,A,TDKL,TDPRE,TLMHK,TWRMK,AREAS8,AREAP4,   &
++      real(kind_phys) PSFCK,TDCHK,A,TDKL,TDPRE,TLMHK,TWRMK,AREAS8,AREAP4,   &
+            SURFW,SURFC,DZKL,AREA1,PINTK1,PINTK2,PM150,PKL,TKL,QKL
+ 
+ !      ALLOCATE ( TWET(LM) )
+@@ -387,7 +389,7 @@
+ !
+       DO 775 L=1,LM
+         QKL=Q(L)
+-        QKL=AMAX1(EPSQ,QKL)
++        QKL=MAX1(EPSQ,QKL)
+         TKL=T(L)
+         PKL=PMID(L)
+ !
+@@ -395,7 +397,7 @@
+ !       AND 500 MB
+ !
+         IF (PKL.LT.50000.0.OR.PKL.GT.PSFCK-7000.0) GOTO 775
+-        A=ALOG(QKL*PKL/(6.1078*(0.378*QKL+0.622)))
++        A=LOG(QKL*PKL/(6.1078*(0.378*QKL+0.622)))
+         TDKL=(237.3*A)/(17.269-A)+273.15
+         TDPRE=TKL-TDKL
+         IF (TDPRE.LT.TDCHK.AND.TKL.LT.TCOLD) TCOLD=TKL
+@@ -505,7 +507,7 @@
+ !    SUM PARTIAL LAYER IF IN 150 MB AGL LAYER
+ !
+         IF(PINTK2.LT.PM150)                                      &
+-          DZKL=T(L)*(Q(L)*D608+1.0)*ROG*ALOG(PINTK1/PM150)
++          DZKL=T(L)*(Q(L)*D608+1.0)*ROG*LOG(PINTK1/PM150)
+         AREA1=(TWET(L)-273.15)*DZKL
+         AREAS8=AREAS8+AREA1
+  1950   PINTK1=PINTK2
+@@ -592,30 +594,33 @@
+ !      use params_mod
+ !      use CTLBLK_mod 
+ !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
++      use machine, only: kind_phys
+       implicit none
+ !
+-      real,PARAMETER :: LECP=1572.5
+-      real,PARAMETER :: twice=266.55,rhprcp=0.80,deltag=1.02,prcpmin=0.3, &
++      real(kind_phys),parameter :: zero=0
++      real(kind_phys),parameter :: one=1
++      real(kind_phys),PARAMETER :: LECP=1572.5
++      real(kind_phys),PARAMETER :: twice=266.55,rhprcp=0.80,deltag=1.02,prcpmin=0.3, &
+      &             emelt=0.045,rlim=0.04,slim=0.85
+-      real,PARAMETER :: twmelt=273.15,tz=273.15,efac=1.0 ! specify in params now 
++      real(kind_phys),PARAMETER :: twmelt=273.15,tz=273.15,efac=1.0 ! specify in params now 
+ !
+       INTEGER*4 i, k1, lll, k2, toodry
+ !
+-      REAL xxx ,mye, icefrac,flg
++      REAL(kind_phys) xxx ,mye, icefrac,flg
+       integer,intent(in) :: lm,lp1
+-      real,DIMENSION(LM),intent(in) :: T,Q,PMID,RH,TD
+-      real,DIMENSION(LP1),intent(in) :: PINT
+-      real,intent(in) :: PREC,PTHRESH
+-      real,intent(out) :: PTYP
+-!
+-      real,DIMENSION(LM) :: P,TQ,QQ,PQ,RHQ
+-      real,DIMENSION(LM) :: tqtmp,pqtmp,rhqtmp
+-      real,DIMENSION(LM) :: TWQ
++      real(kind_phys),DIMENSION(LM),intent(in) :: T,Q,PMID,RH,TD
++      real(kind_phys),DIMENSION(LP1),intent(in) :: PINT
++      real(kind_phys),intent(in) :: PREC,PTHRESH
++      real(kind_phys),intent(out) :: PTYP
++!
++      real(kind_phys),DIMENSION(LM) :: P,TQ,QQ,PQ,RHQ
++      real(kind_phys),DIMENSION(LM) :: tqtmp,pqtmp,rhqtmp
++      real(kind_phys),DIMENSION(LM) :: TWQ
+ !
+       integer J,L,LEV,LNQ,ii
+-      real RHMAX,TWMAX,PTOP,dpdrh,twtop,rhtop,wgt1,wgt2,    &
++      real(kind_phys) RHMAX,TWMAX,PTOP,dpdrh,twtop,rhtop,wgt1,wgt2,&
+            rhavg,dtavg,dpk,ptw,rate,pbot,qc, b,qtmp
+-      real,external :: xmytw
++      real(kind_phys),external :: xmytw
+ !
+ !  Initialize.
+       icefrac = -9999.
+@@ -628,7 +633,7 @@
+ !        QC=PQ0/P(L) * EXP(A2*(T(L)-A3)/(T(L)-A4))
+ !GSM forcing Q (QTMP) to be positive to deal with negative Q values
+ !       causing problems later in this subroutine
+-!        QTMP=AMAX1(H1M12,Q(L))	
++!        QTMP=MAX1(H1M12,Q(L))	
+ !        RHQTMP(LEV)=QTMP/QC
+ 	RHQ(LEV)=RH(L)
+         PQ(LEV)=PMID(L)/100.
+@@ -672,7 +677,7 @@
+ 	  xxx = td(l) !HC: use TD consistent with GFS ice physics
+ 	  if (xxx .lt. -500.) goto 800
+           twq(L) = xmytw(tq(L),xxx,pq(L))
+-          twmax = amax1(twq(L),twmax)
++          twmax = max(twq(L),twmax)
+           IF (pq(L).ge.400.0) THEN
+               IF (rhq(L).gt.rhmax) THEN
+                   rhmax = rhq(L)
+@@ -682,9 +687,9 @@
+               IF (L.ne.1) THEN
+                  IF (rhq(L).ge.rhprcp.or.toodry.eq.0) THEN
+                   IF (toodry.ne.0) THEN
+-                    dpdrh = alog(pq(L)/pq(L-1)) /              &
++                    dpdrh = log(pq(L)/pq(L-1)) /              &
+                            (rhq(L)-RHQ(L-1))
+-                    pbot = exp(alog(pq(L))+(rhprcp-rhq(L))*dpdrh)
++                    pbot = exp(log(pq(L))+(rhprcp-rhq(L))*dpdrh)
+ !
+                     ptw = pq(L)
+                     toodry = 0
+@@ -692,9 +697,9 @@
+                       ptw = pq(L)
+                     ELSE
+                       toodry = 1
+-                      dpdrh = alog(pq(L)/pq(L-1)) /                 &
++                      dpdrh = log(pq(L)/pq(L-1)) /                 &
+                           (rhq(L)-rhq(L-1))
+-                      ptw = exp(alog(pq(L))+(rhprcp-rhq(L))*dpdrh)
++                      ptw = exp(log(pq(L))+(rhprcp-rhq(L))*dpdrh)
+ !lin                dpdrh=(Pq(i)-Pq(i-1))/(Rhq(i)-Rhq(i-1))
+ !lin                ptw=Pq(i)+(rhprcp-Rhq(i))*dpdrh
+ !
+@@ -738,7 +743,7 @@
+       ELSE
+           k2 = k1
+           k1 = k1 - 1
+-          wgt1 = alog(ptop/pq(k2)) / alog(pq(k1)/pq(k2))
++          wgt1 = log(ptop/pq(k2)) / log(pq(k1)/pq(k2))
+           wgt2 = 1.0 - wgt1
+           twtop = twq(k1) * wgt1 + twq(k2) * wgt2
+           rhtop = rhq(k1) * wgt1 + rhq(k2) * wgt2
+@@ -747,7 +752,7 @@
+ 
+ !     Calculate temp and wet-bulb ranges below precip generating level.
+       DO 20 L = 1, k1
+-          twmax = amax1(twq(l),twmax)
++          twmax = max(twq(l),twmax)
+    20 CONTINUE
+ !
+ !     Gross check for solid precip, initialize ice fraction.
+@@ -773,7 +778,7 @@
+           wgt1 = (twmelt-twq(k1)) / (twtop-twq(k1))
+           rhavg = rhq(k1) + wgt1 * (rhtop-rhq(k1)) / 2
+           dtavg = (twmelt-twq(k1)) / 2
+-          dpk = wgt1 * alog(pq(k1)/ptop)        !lin   dpk=wgt1*(Pq(k1)-Ptop)
++          dpk = wgt1 * log(pq(k1)/ptop)        !lin   dpk=wgt1*(Pq(k1)-Ptop)
+ !         mye=emelt*(1.0-(1.0-Rhavg)*efac)
+           mye = emelt * rhavg ** efac
+           icefrac = icefrac + dpk * dtavg / mye
+@@ -788,29 +793,29 @@
+           END IF
+           rhavg = rhq(k1) + wgt1 * (rhtop-rhq(k1)) / 2
+           dtavg = twmelt - (twq(k1)+twice) / 2
+-          dpk = wgt1 * alog(pq(k1)/ptop)      !lin  dpk=wgt1*(Pq(k1)-Ptop)
++          dpk = wgt1 * log(pq(k1)/ptop)      !lin  dpk=wgt1*(Pq(k1)-Ptop)
+ !         mye=emelt*(1.0-(1.0-Rhavg)*efac)
+           mye = emelt * rhavg ** efac
+           icefrac = icefrac + dpk * dtavg / mye
+       ELSE IF ((twq(k1).le.twmelt).and.(twq(k1).lt.twmelt)) THEN ! mix
+           rhavg = (rhq(k1)+rhtop) / 2
+           dtavg = twmelt - (twq(k1)+twtop) / 2
+-          dpk = alog(pq(k1)/ptop)       !lin   dpk=Pq(k1)-Ptop
++          dpk = log(pq(k1)/ptop)       !lin   dpk=Pq(k1)-Ptop
+ !         mye=emelt*(1.0-(1.0-Rhavg)*efac)
+           mye = emelt * rhavg ** efac
+           icefrac = icefrac + dpk * dtavg / mye           
+       ELSE      ! mix where Tw curve crosses twmelt in layer
+           IF (twq(k1).eq.twtop) GO TO 40   ! both equal twmelt, nothing h
+           wgt1 = (twmelt-twq(k1)) / (twtop-twq(k1))
+-          wgt2 = 1.0 - wgt1
++          wgt2 = one - wgt1
+           rhavg = rhtop + wgt2 * (rhq(k1)-rhtop) / 2
+           dtavg = (twmelt-twtop) / 2
+-          dpk = wgt2 * alog(pq(k1)/ptop)     !lin   dpk=wgt2*(Pq(k1)-Ptop)
++          dpk = wgt2 * log(pq(k1)/ptop)     !lin   dpk=wgt2*(Pq(k1)-Ptop)
+ !         mye=emelt*(1.0-(1.0-Rhavg)*efac)
+           mye = emelt * rhavg ** efac
+           icefrac = icefrac + dpk * dtavg / mye
+-          icefrac = amin1(1.0,amax1(icefrac,0.0))   
+-          IF (icefrac.le.0.0) THEN
++          icefrac = min(one,max(icefrac,zero))   
++          IF (icefrac.le.zero) THEN
+ !             Goto 1020
+               IF (twq(k1).gt.twice) GO TO 40    ! cannot commence freezin
+               wgt1 = (twice-twq(k1)) / (twtop-twq(k1))
+@@ -819,13 +824,13 @@
+               dtavg = (twmelt-twq(k1)) / 2
+           END IF
+           rhavg = rhq(k1) + wgt1 * (rhtop-rhq(k1)) / 2
+-          dpk = wgt1 * alog(pq(k1)/ptop)     !lin  dpk=wgt1*(Pq(k1)-Ptop)
++          dpk = wgt1 * log(pq(k1)/ptop)     !lin  dpk=wgt1*(Pq(k1)-Ptop)
+ !         mye=emelt*(1.0-(1.0-Rhavg)*efac)
+           mye = emelt * rhavg ** efac
+           icefrac = icefrac + dpk * dtavg / mye
+       END IF
+ !
+-      icefrac = amin1(1.0,amax1(icefrac,0.0))
++      icefrac = min(one,max(icefrac,zero))
+       IF (i.eq.1.and.j.eq.1) WRITE (*,*) 'NEW ICEFRAC:', icefrac, icefrac
+ !
+ !     Get next level down if there is one, loop back.
+@@ -880,11 +885,12 @@
+ !      REAL*4 FUNCTION mytw(t,td,p)
+       FUNCTION xmytw(t,td,p)
+ !
++      use machine, only: kind_phys
+       IMPLICIT NONE
+ !
+       INTEGER*4 cflag, l
+ !     REAL*4 f, c0, c1, c2, k, kd, kw, ew, t, td, p, ed, fp, s,        &
+-      REAL   f, c0, c1, c2, k, kd, kw, ew, t, td, p, ed, fp, s,        &
++      REAL(kind_phys) f, c0, c1, c2, k, kd, kw, ew, t, td, p, ed, fp, s,        &
+      &          de, xmytw
+       DATA f, c0, c1, c2 /0.0006355, 26.66082, 0.0091379024, 6106.3960/
+ !
+@@ -1005,25 +1011,26 @@
+       subroutine calwxt_bourg(lm,lp1,rn,g,pthresh,      &
+      &                        t,q,pmid,pint,prec,zint,ptype)
+ !      use mersenne_twister
++      use machine, only: kind_phys
+       implicit none
+ !
+ !    input:
+       integer,intent(in):: lm,lp1
+ !      integer,intent(in):: iseed
+-      real,intent(in):: g,pthresh,rn(2)
+-      real,intent(in):: t(lm)
+-      real,intent(in):: q(lm)
+-      real,intent(in):: pmid(lm)
+-      real,intent(in):: pint(lp1)
+-      real,intent(in):: prec
+-      real,intent(in):: zint(lp1)
++      real(kind_phys),intent(in):: g,pthresh,rn(2)
++      real(kind_phys),intent(in):: t(lm)
++      real(kind_phys),intent(in):: q(lm)
++      real(kind_phys),intent(in):: pmid(lm)
++      real(kind_phys),intent(in):: pint(lp1)
++      real(kind_phys),intent(in):: prec
++      real(kind_phys),intent(in):: zint(lp1)
+ !
+ !    output:
+-      real,intent(out):: ptype
++      real(kind_phys),intent(out):: ptype
+ !
+       integer ifrzl,iwrml,l,lhiwrm,lmhk
+-      real pintk1,areane,tlmhk,areape,pintk2,surfw,area1,dzkl,psfck
+-      real r1,r2
++      real(kind_phys) pintk1,areane,tlmhk,areape,pintk2,surfw,area1,dzkl,psfck
++      real(kind_phys) r1,r2
+ !
+ !     initialize weather type array to zero (ie, off).
+ !     we do this since we want ptype to represent the
+@@ -1096,7 +1103,7 @@
+           if (ifrzl.eq.0.and.t(l).le.273.15) ifrzl = 1
+           pintk2=pint(l)
+           dzkl=zint(l)-zint(l+1)
+-          area1 = alog(t(l)/273.15) * g * dzkl
++          area1 = log(t(l)/273.15) * g * dzkl
+           if (t(l).ge.273.15.and. pmid(l).gt.25000.) then
+               if (l.lt.iwrml) areape = areape + area1
+               if (l.ge.iwrml) surfw = surfw + area1
+@@ -1245,6 +1252,7 @@
+ !     use params_mod
+ !     use ctlblk_mod
+ !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
++      use machine, only: kind_phys
+       implicit none
+ !
+ !  LIST OF VARIABLES NEEDED
+@@ -1255,9 +1263,9 @@
+ !    INPUT:
+ !      T,Q,PMID,HTM,LMH,PREC,ZINT
+       integer,intent(in):: lm,lp1
+-      REAL,dimension(LM),intent(in) ::  T,Q,PMID,TWET
+-      REAL,dimension(LP1),intent(in) ::  PINT,ZINT 
+-      REAL,intent(in) ::  PREC,PTHRESH,D608,ROG,EPSQ
++      REAL(kind_phys),dimension(LM),intent(in) ::  T,Q,PMID,TWET
++      REAL(kind_phys),dimension(LP1),intent(in) ::  PINT,ZINT 
++      REAL(kind_phys),intent(in) ::  PREC,PTHRESH,D608,ROG,EPSQ
+ !    OUTPUT:
+ !      IWX - INSTANTANEOUS WEATHER TYPE.
+ !        ACTS LIKE A 4 BIT BINARY
+@@ -1269,12 +1277,12 @@
+       integer, intent(out) ::  IWX
+ !    INTERNAL:
+ !
+-      real, parameter :: D00=0.0  
++      real(kind_phys), parameter :: D00=0.0  
+       integer KARR,LICEE
+-      real TCOLD,TWARM
++      real(kind_phys) TCOLD,TWARM
+ !
+       integer I,J,L,LMHK,LICE,IFREL,IWRML,IFRZL
+-      real PSFCK,TDCHK,A,TDKL,TDPRE,TLMHK,TWRMK,AREAS8,AREAP4,AREA1,  &
++      real(kind_phys) PSFCK,TDCHK,A,TDKL,TDPRE,TLMHK,TWRMK,AREAS8,AREAP4,AREA1, &
+            SURFW,SURFC,DZKL,PINTK1,PINTK2,PM150,QKL,TKL,PKL,AREA0,    &
+            AREAP0
+ 
+@@ -1316,7 +1324,7 @@
+ !
+       DO 775 L=1,LMHK
+       QKL=Q(L)
+-      QKL=AMAX1(EPSQ,QKL)
++      QKL=MAX1(EPSQ,QKL)
+       TKL=T(L)
+       PKL=PMID(L)
+ !
+@@ -1324,7 +1332,7 @@
+ !       AND 500 MB
+ !
+       IF (PKL.LT.50000.0.OR.PKL.GT.PSFCK-7000.0) GOTO 775
+-      A=ALOG(QKL*PKL/(6.1078*(0.378*QKL+0.622)))
++      A=LOG(QKL*PKL/(6.1078*(0.378*QKL+0.622)))
+       TDKL=(237.3*A)/(17.269-A)+273.15
+       TDPRE=TKL-TDKL
+       IF (TDPRE.LT.TDCHK.AND.TKL.LT.TCOLD) TCOLD=TKL
+@@ -1443,7 +1451,7 @@
+ !
+         IF(PINTK2.LT.PM150)                                   &
+           DZKL=T(L)*(Q(L)*D608+1.0)*ROG*               &
+-               ALOG(PINTK1/PM150)
++               LOG(PINTK1/PM150)
+         AREA1=(TWET(L)-273.15)*DZKL
+         AREAS8=AREAS8+AREA1
+  1950   PINTK1=PINTK2
+@@ -1514,6 +1522,7 @@
+ !      use params_mod
+ !      use ctlblk_mod
+ !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
++      use machine, only: kind_phys
+       implicit none
+ !
+ !  LIST OF VARIABLES NEEDED
+@@ -1521,11 +1530,11 @@
+ !
+ !    INPUT:
+       integer, intent(in):: lm
+-      real,intent(in)::  TSKIN, PREC, SR,PTHRESH
+-      REAL,intent(in):: F_RimeF(LM)
++      real(kind_phys),intent(in)::  TSKIN, PREC, SR,PTHRESH
++      REAL(kind_phys),intent(in):: F_RimeF(LM)
+       integer,intent(out) :: IWX
+       integer I,J,LMHK
+-      real PSFC,SNOW
++      real(kind_phys) PSFC,SNOW
+ !
+ !     ALLOCATE LOCAL STORAGE
+ !
+@@ -1588,15 +1597,16 @@
+ !      use params_mod
+ !      use ctlblk_mod
+ !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
++      use machine, only: kind_phys
+       implicit none
+ !
+ !    INPUT:
+       integer,intent(in) :: NALG
+-      REAL, intent(in) :: PREC,PTHRESH
+-      real,intent(out) ::  DOMS,DOMR,DOMZR,DOMIP
+-      real,DIMENSION(NALG),intent(in) ::  RAIN,SNOW,SLEET,FREEZR
++      REAL(kind_phys), intent(in) :: PREC,PTHRESH
++      real(kind_phys),intent(out) ::  DOMS,DOMR,DOMZR,DOMIP
++      real(kind_phys),DIMENSION(NALG),intent(in) ::  RAIN,SNOW,SLEET,FREEZR
+       integer I,J,L
+-      real TOTSN,TOTIP,TOTR,TOTZR
++      real(kind_phys) TOTSN,TOTIP,TOTR,TOTZR
+ !--------------------------------------------------------------------------
+ !      print* , 'into dominant'
+ !!$omp  parallel do
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/funcphys.f	2012-06-18 10:37:00.000000000 -0600
++++ funcphys.f	2012-06-26 14:00:22.000000000 -0600
+@@ -30,7 +30,7 @@
+ !   2001-02-26  Mark Iredell  Ice phase changes of Hong and Moorthi
+ !
+ ! Public Variables:
+-!   krealfp         Integer parameter kind or length of reals (=kind_phys)
++!   krealfp         Integer parameter kind or length of reals (=r_kind)
+ !
+ ! Public Subprograms:
+ !   gpvsl            Compute saturation vapor pressure over liquid table
+@@ -236,14 +236,14 @@
+ !   Language: Fortran 90
+ !
+ !$$$
+-  use machine,only:kind_phys
++  use kinds, only: r_kind
+   use physcons
+   implicit none
+   private
+ ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ ! Public Variables
+ ! integer,public,parameter:: krealfp=selected_real_kind(15,45)
+-  integer,public,parameter:: krealfp=kind_phys
++  integer,public,parameter:: krealfp=r_kind
+ ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ ! Private Variables
+   real(krealfp),parameter:: psatb=con_psat*1.e-5
+@@ -1849,7 +1849,7 @@
+     implicit none
+     real(krealfp) fthex
+     real(krealfp),intent(in):: t,pk
+-    real(krealfp) p,tr,pv,pd,el,expo,expmax
++    real(krealfp) p,tr,pv,pd,el,expo
+ ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     p=pk**con_cpor
+     tr=con_ttp/t
+@@ -2827,7 +2827,7 @@
+     real(krealfp) ftlclx
+     real(krealfp),intent(in):: t,tdpd
+     real(krealfp),parameter:: terrm=1.e-4,tlmin=180.,tlminx=tlmin-5.
+-    real(krealfp) tr,pvdew,tlcl,ta,pvlcl,el,dpvlcl,terr,terrp
++    real(krealfp) tr,pvdew,tlcl,ta,pvlcl,el,dpvlcl,terr
+     integer i
+ ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+     tr=con_ttp/(t-tdpd)
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/gbphys.f	2012-06-18 10:37:05.000000000 -0600
++++ gbphys.f	2012-06-26 14:00:58.000000000 -0600
+@@ -1045,21 +1045,21 @@
+ !    &,     ' tgrs=',tgrs(ipr,1),' prsl=',prsl(ipr,1)
+ !    &,     ' work3=',work3(ipr),' kdt=',kdt
+ 
+-          call sfc_nst                                                  &
+-     &       ( im,lsoil,pgr,ugrs,vgrs,tgrs,qgrs,tref,cd,cdq,            &
+-     &         prsl(1,1),work3,slmsk,xlon,sinlat,stress,                &
+-     &         sfcemis,gsfcdlw,adjsfcnsw,tprcp,dtf,kdt,                 &
+-     &         phy_f2d(1,num_p2d),flag_iter,flag_guess,nst_fcst,        &
+-     &         lprnt,ipr,                                               &
++!         call sfc_nst                                                  &
++!    &       ( im,lsoil,pgr,ugrs,vgrs,tgrs,qgrs,tref,cd,cdq,            &
++!    &         prsl(1,1),work3,slmsk,xlon,sinlat,stress,                &
++!    &         sfcemis,gsfcdlw,adjsfcnsw,tprcp,dtf,kdt,                 &
++!    &         phy_f2d(1,num_p2d),flag_iter,flag_guess,nst_fcst,        &
++!    &         lprnt,ipr,                                               &
+ !  --- Input/output
+-     &         tseal,tsurf,xt,xs,xu,xv,xz,zm,xtts,xzts,dt_cool,         &
+-     &         z_c,c_0,c_d,w_0,w_d,d_conv,ifd,Qrain,                    &
++!    &         tseal,tsurf,xt,xs,xu,xv,xz,zm,xtts,xzts,dt_cool,         &
++!    &         z_c,c_0,c_d,w_0,w_d,d_conv,ifd,Qrain,                    &
+ 
+ !    &         tseal, ifd, time_old, time_ins, i_sw, i_q,               &
+ !    &         i_qrain, i_m, i_tau, i_sw_zw, i_q_ts, i_m_ts, dt_cool,   &
+ !    &         dt_warm, z_c, z_w, c_0, c_d, w_0, w_d,                   &
+ !  ---  outputs:
+-     &         qss, gflx, cmm, chh, evap, hflx, ep1d)
++!    &         qss, gflx, cmm, chh, evap, hflx, ep1d)
+ 
+ !         if (lprnt) print *,' tseaz2=',tseal(ipr),' tref=',tref(ipr),  &
+ !    &     ' dt_cool=',dt_cool(ipr),' dt_warm=',2.0*xt(ipr)/xz(ipr),    &
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/gribit.f	2012-06-18 10:37:05.000000000 -0600
++++ gribit.f	2012-06-26 14:00:53.000000000 -0600
+@@ -83,7 +83,6 @@
+ C
+ C$$$
+       use machine
+-      use namelist_def, only : climate
+       implicit none
+ !!
+       integer itr,ip2,inm,ina,ihr,idy,ip1,iftu,ids,icen2,ilpds,icen,
+@@ -91,16 +90,17 @@
+      &        icy,iyc,nbit,nbm,jp2,jp1,ipx,jtr,kclust,nfo,kmembr,
+      &        kprob,ilast,iresfl,igrid,iscan,i,ierr,nf,igds11,igds09,
+      &        igds10,loni,lon1,lati,igds12,jftu,lat1,lgrib
+-      real (kind=KIND_IO8) pi,xprob,fmax,fmin
+-      real (kind=KIND_IO8) proj,xlon1,xlat1,colat1,
++      real (kind=KIND_IO4) pi,xprob,fmax,fmin
++      real (kind=KIND_IO4) proj,xlon1,xlat1,colat1,
+      &                     orient,dely,delx
+       INTEGER IENS(5)
++      logical :: climate=.false.
+       real (kind=kind_io4) gribi(im*jm)
+-      REAL (KIND=KIND_IO8) F(IM*JM)
++      REAL (KIND=KIND_IO4) F(IM*JM)
+       LOGICAL(1) LBM(IM*JM)
+       CHARACTER GRIB(*)
+       INTEGER IBM(IM*JM*IBMS+1-IBMS),IPDS(100),IGDS(100),IBDS(100)
+-      REAL (KIND=KIND_IO8) FR(IM*JM)
++      REAL (KIND=KIND_IO4) FR(IM*JM)
+       CHARACTER PDS(ILPDS)
+ C - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ C  DETERMINE GRID PARAMETERS
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/gsmddrive.f	2012-06-18 10:37:05.000000000 -0600
++++ gsmddrive.f	2012-06-26 14:00:48.000000000 -0600
+@@ -150,16 +150,16 @@
+ !      total condensate, and is consistent throughout the Eta code.
+ !
+ !     REAL, PARAMETER :: EPSQ=1.E-12,  RHOL=1000., T0C=273.15, 
+-      REAL, PARAMETER :: EPSQ=1.0E-20,  RHOL=1000., T0C=273.15,         &
++      REAL(kind_phys), PARAMETER :: EPSQ=1.0E-20, RHOL=1000.,T0C=273.15,         
+      & T_ICE=-40., T_ICEK=T0C+T_ICE, RRHOL=1./RHOL, EPSQ1=1.001*EPSQ
+ !    & T_ICE=-10., T_ICEK=T0C+T_ICE, RRHOL=1./RHOL, EPSQ1=1.001*EPSQ
+ !
+-      REAL ARAIN, ASNOW, P_col(LM), QI_col(LM), QR_col(LM),             &
+-     & QV_col(LM), QW_col(LM), RimeF_col(LM), T_col(LM), THICK_col(LM), &
++      REAL(kind_phys) ARAIN, ASNOW, P_col(LM), QI_col(LM), QR_col(LM),              
++     & QV_col(LM), QW_col(LM), RimeF_col(LM), T_col(LM), THICK_col(LM),  
+      & WC_col(LM), NCW(LM)
+ !
+ !
+-      real  Ps_Pa, QAUT0, tc, wc, qi, qr, qw, psfc
++      real(kind_phys)  Ps_Pa, QAUT0, tc, wc, qi, qr, qw, psfc
+       integer L, LL, i
+ !
+ !------------------------------------------------------------------------
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/machine.f	2011-02-04 11:25:35.000000000 -0700
++++ machine.f	2012-06-26 14:00:45.000000000 -0600
+@@ -1,12 +1,19 @@
+       MODULE MACHINE
+ 
++      use kinds, only: r_double, r_single, r_kind
+       IMPLICIT NONE
+-      SAVE
++!     SAVE
+ !  Machine dependant constants
+-      integer, parameter :: kind_io4  = 4, kind_io8  = 8 , kind_ior = 8
+-     &,                     kind_evod = 8, kind_dbl_prec = 8
+-     &,                     kind_rad  = selected_real_kind(13,60) ! the '60' maps to 64-bit real
+-     &,                     kind_phys = selected_real_kind(13,60) ! the '60' maps to 64-bit real
++!     integer, parameter :: kind_io4  = 4, kind_io8  = 8 , kind_ior = 8
++!    &,                     kind_evod = 8, kind_dbl_prec = 8
++!    &,                     kind_rad  = selected_real_kind(13,60) ! the '60' maps to 64-bit real
++!    &,                     kind_phys = selected_real_kind(13,60) ! the '60' maps to 64-bit real
++!    &,                     kind_REAL = 8                         ! used in cmp_comm
++!    &,                     kind_INTEGER = 4                      ! -,,-
++      integer, parameter :: kind_io4=4, kind_io8=8, kind_ior=8
++     &,                     kind_evod = r_kind, kind_dbl_prec = r_double
++     &,                     kind_rad  = r_double
++     &,                     kind_phys = r_kind
+      &,                     kind_REAL = 8                         ! used in cmp_comm
+      &,                     kind_INTEGER = 4                      ! -,,-
+ !
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/module_bfmicrophysics.f	2012-06-18 10:37:00.000000000 -0600
++++ module_bfmicrophysics.f	2012-06-26 14:00:35.000000000 -0600
+@@ -10,7 +10,7 @@
+ !
+ !--- Common block of constants used in column microphysics
+ !
+-      real,private ::  ABFR, CBFR, CIACW, CIACR, C_N0r0,                &
++      real(kind_phys),private ::  ABFR, CBFR, CIACW, CIACR, C_N0r0,                &
+      &CN0r0, CN0r_DMRmin, CN0r_DMRmax, CRACW, CRAUT, ESW0,              &
+      &QAUTx, RFmax, RQR_DR1, RQR_DR2, RQR_DR3, RQR_DRmin,               &
+      &RQR_DRmax, RR_DRmin, RR_DR1, RR_DR2, RR_DR3, RR_DRmax
+@@ -25,28 +25,28 @@
+ !     are multiplied by physics time step in GSMCONST.
+ !
+       INTEGER, PRIVATE,PARAMETER :: MY_T1=1, MY_T2=35
+-      REAL,PRIVATE,DIMENSION(MY_T1:MY_T2) :: MY_GROWTH
++      REAL(kind_phys),PRIVATE,DIMENSION(MY_T1:MY_T2) :: MY_GROWTH
+ !
+ !--- Parameters for ice lookup tables, which establish the range of mean ice
+ !    particle diameters; from a minimum mean diameter of 0.05 mm (DMImin) to a
+ !    maximum mean diameter of 1.00 mm (DMImax).  The tables store solutions
+ !    at 1 micron intervals (DelDMI) of mean ice particle diameter.
+ !
+-      REAL, PRIVATE,PARAMETER :: DMImin=.05e-3,      DMImax=1.e-3,      &
+-     &                           XMImin=1.e6*DMImin, XMImax=1.e6*DMImax,&
++      REAL(kind_phys), PRIVATE,PARAMETER :: DMImin=.05e-3,DMImax=1.e-3,      
++     &                           XMImin=1.e6*DMImin, XMImax=1.e6*DMImax,
+      &                           DelDMI=1.e-6
+       INTEGER, PRIVATE,PARAMETER :: MDImin=XMImin, MDImax=XMImax
+ !
+ !--- Various ice lookup tables
+ !
+-      REAL, PRIVATE,DIMENSION(MDImin:MDImax) ::                         &
++      REAL(kind_phys), PRIVATE,DIMENSION(MDImin:MDImax) ::                         
+      &      ACCRI,MASSI,SDENS,VSNOWI,VENTI1,VENTI2
+ !
+ !--- Mean rain drop diameters varying from 50 microns (0.05 mm) to 450 microns
+ !      (0.45 mm), assuming an exponential size distribution.
+ !
+-      REAL, PRIVATE,PARAMETER :: DMRmin=.05e-3,      DMRmax=.45e-3,     &
+-     &                           XMRmin=1.e6*DMRmin, XMRmax=1.e6*DMRmax,&
++      REAL(kind_phys), PRIVATE,PARAMETER :: DMRmin=.05e-3,DMRmax=.45e-3,     
++     &                           XMRmin=1.e6*DMRmin, XMRmax=1.e6*DMRmax,
+      &                           DelDMR=1.e-6,       NLImin=100.
+ !    &,                          NLImin=100., NLImax=20.E3
+       INTEGER, PRIVATE,PARAMETER :: MDRmin=XMRmin, MDRmax=XMRmax
+@@ -58,7 +58,7 @@
+ !     INTEGER, PRIVATE, PARAMETER :: INDEXSmin=300
+ !!    INTEGER, PRIVATE, PARAMETER :: INDEXSmin=200
+       INTEGER, PRIVATE, PARAMETER :: INDEXSmin=100
+-      REAL, PRIVATE, PARAMETER :: RERAINmin=1.5*XMRmin                  &
++      REAL(kind_phys), PRIVATE, PARAMETER :: RERAINmin=1.5*XMRmin                  
+ !    &, RECImin=1.5*XMImin, RESNOWmin=1.5*INDEXSmin, RECWmin=8.0
+ !    &, RECImin=1.5*XMImin, RESNOWmin=1.5*INDEXSmin, RECWmin=7.5
+      &, RECImin=1.5*XMImin, RESNOWmin=1.5*INDEXSmin, RECWmin=10.
+@@ -70,7 +70,7 @@
+ !--- Rain lookup tables for mean rain drop diameters from DMRmin to DMRmax,
+ !      assuming exponential size distributions for the rain drops
+ !
+-      REAL, PRIVATE,DIMENSION(MDRmin:MDRmax)::                          &
++      REAL(kind_phys), PRIVATE,DIMENSION(MDRmin:MDRmax)::                          
+      &      ACCRR,MASSR,RRATE,VRAIN,VENTR1,VENTR2
+ !
+ !--- Common block for riming tables
+@@ -80,15 +80,15 @@
+ !      where N=0 to Nrime).
+ !
+       INTEGER, PRIVATE,PARAMETER :: Nrime=40
+-      REAL, DIMENSION(2:9,0:Nrime),PRIVATE :: VEL_RF
++      REAL(kind_phys), DIMENSION(2:9,0:Nrime),PRIVATE :: VEL_RF
+ !
+ !--- The following variables are for microphysical statistics
+ !
+       INTEGER, PARAMETER :: ITLO=-60, ITHI=40
+       INTEGER  NSTATS(ITLO:ITHI,4)
+-      REAL     QMAX(ITLO:ITHI,5),  QTOT(ITLO:ITHI,22)
++      REAL(kind_phys)     QMAX(ITLO:ITHI,5),  QTOT(ITLO:ITHI,22)
+ !
+-      REAL, PRIVATE,  PARAMETER ::                                      &
++      REAL(kind_phys), PRIVATE,  PARAMETER ::                                      
+ !    &  T_ICE=-10., T_ICE_init=-5.      !- Ver1
+ !!!  &, T_ICE=-20.                      !- Ver2
+      &  T_ICE=-40., T_ICE_init=-15.     !- Ver2
+@@ -96,14 +96,14 @@
+ !
+ !     Some other miscellaneous parameters
+ !
+-      REAL, PRIVATE, PARAMETER :: Thom=T_ICE, TNW=50., TOLER=1.0E-20    &
+-!     REAL, PRIVATE, PARAMETER :: Thom=T_ICE, TNW=50., TOLER=5.E-7
+-!     REAL, PRIVATE, PARAMETER :: Thom=-35., TNW=50., TOLER=5.E-7
++      REAL(kind_phys),PRIVATE,PARAMETER :: Thom=T_ICE, TNW=50.,TOLER=1.0E-20    
++!     REAL(kind_phys), PRIVATE, PARAMETER :: Thom=T_ICE, TNW=50., TOLER=5.E-7
++!     REAL(kind_phys), PRIVATE, PARAMETER :: Thom=-35., TNW=50., TOLER=5.E-7
+ 
+ ! Assume fixed cloud ice effective radius
+-     &, RECICE=RECImin                                                  &
+-     &, EPSQ=1.0E-20                                                    &
+-!    &, EPSQ=1.E-12                                                     &
++     &, RECICE=RECImin                                                  
++     &, EPSQ=1.0E-20                                                    
++!    &, EPSQ=1.E-12                                                     
+      &, FLG0P1=0.1, FLG0P2=0.2, FLG1P0=1.0
+ !
+ !
+@@ -151,17 +151,18 @@
+ !   MACHINE : IBM SP
+ !
+       integer mype
+-      real    dtpg
++      real(kind_phys)    dtpg
+       logical first
+ !
+ !--- Parameters & data statement for local calculations
+ !
+-      REAL, PARAMETER :: C1=1./3., DMR1=.1E-3, DMR2=.2E-3, DMR3=.32E-3, &
+-     & N0r0=8.E6, N0s0=4.E6, RHOL=1000., RHOS=100.,                     &
++      REAL(kind_phys), PARAMETER :: C1=1./3., DMR1=.1E-3, DMR2=.2E-3, 
++     & DMR3=.32E-3, 
++     & N0r0=8.E6, N0s0=4.E6, RHOL=1000., RHOS=100.,                     
+      & XMR1=1.e6*DMR1, XMR2=1.e6*DMR2, XMR3=1.e6*DMR3
+       INTEGER, PARAMETER :: MDR1=XMR1, MDR2=XMR2, MDR3=XMR3
+ !
+-      real dtph, etime1, etime2, timef, bbfr
++      real(kind_phys) dtph, etime1, etime2, bbfr
+       integer i
+ !
+ !--- Added on 5/16/01 for Moorthi
+@@ -228,14 +229,14 @@
+ !       read(1) my_growth    ! Applicable only for DTPH=180 s for offline testing
+         CLOSE (1)
+       else
+-        etime1=timef()
++        call cpu_time(etime1)
+         CALL ICE_LOOKUP                   ! Lookup tables for ice
+-        etime2=timef()
+-        if (mype == 0)                                                  &
++        call cpu_time(etime2)
++        if (mype == 0)                                                  
+      &  print *,'CPU time (sec) in ICE_LOOKUP = ',(etime2-etime1)*0.001
+         CALL RAIN_LOOKUP                  ! Lookup tables for rain
+-        etime1=timef()
+-        if (mype == 0)                                                  &
++        call cpu_time(etime1)
++        if (mype == 0)                                                  
+      &  print *,'CPU time (sec) in RAIN_LOOKUP = ',(etime1-etime2)*0.001
+         if (write_lookup) then
+           open(unit=1,file='micro_lookup.dat',form='unformatted')
+@@ -312,7 +313,7 @@
+       mic_step = max(1, int(dtpg/600.0+0.5))
+ !     mic_step = max(1, int(dtpg/300.0+0.5))
+       dtph     = dtpg / mic_step
+-      if (mype == 0) print *,' DTPG=',DTPG,' mic_step=',mic_step        &
++      if (mype == 0) print *,' DTPG=',DTPG,' mic_step=',mic_step        
+      &,                ' dtph=',dtph
+ !
+ !--- Calculates coefficients for growth rates of ice nucleated in water
+@@ -408,8 +409,8 @@
+ !    over large time steps using their tabulated values at 600 s.
+ !    Assumes 3D growth with time**1.5 following eq. (6.3) in Young (1993).
+ !
+-      real dtph, dt_ice
+-      REAL MY_600(MY_T1:MY_T2)
++      real(kind_phys) dtph, dt_ice
++      REAL(kind_phys) MY_600(MY_T1:MY_T2)
+ !
+ !-- 20090714: These values are in g and need to be converted to kg below
+       DATA MY_600 /                                                     &
+@@ -465,8 +466,8 @@
+ !       - DmaxI - maximum diameter for integration (2 cm)
+ !       - DdelI - interval for integration (1 micron)
+ !
+-      real, parameter :: DminI=.02e-3, DmaxI=20.e-3, DdelI=1.e-6,       &
+-     &  XImin=1.e6*DminI, XImax=1.e6*DmaxI
++      real(kind_phys),parameter :: DminI=.02e-3,DmaxI=20.e-3,
++     &  DdelI=1.e-6,XImin=1.e6*DminI, XImax=1.e6*DmaxI
+       integer, parameter :: IDImin=XImin, IDImax=XImax
+ !
+ !---- Meaning of the following arrays:
+@@ -476,7 +477,8 @@
+ !        - vent1 - 1st term in ice particle ventilation factor
+ !        - vent2 - 2nd term in ice particle ventilation factor
+ !
+-      real diam(IDImin:IDImax),mass(IDImin:IDImax),vel(IDImin:IDImax),  &
++      real(kind_phys) diam(IDImin:IDImax),
++     & mass(IDImin:IDImax),vel(IDImin:IDImax),  
+      & vent1(IDImin:IDImax),vent2(IDImin:IDImax)
+ !
+ !-----------------------------------------------------------------------------------
+@@ -486,14 +488,14 @@
+ !       diameter sizes of 1.5 mm.  Thus, ice crystal relationships are used for
+ !       sizes smaller than 1.5 mm and aggregate relationships for larger sizes.
+ !
+-      real, parameter :: d_crystal_max=1.5
++      real(kind_phys), parameter :: d_crystal_max=1.5
+ !
+ !---- The quantity xmax represents the maximum value of "x" in which the
+ !       integrated values are calculated.  For xmax=20., this means that
+ !       integrated ventilation, accretion, mass, and precipitation rates are
+ !       calculated for ice particle sizes less than 20.*mdiam, the mean particle diameter.
+ !
+-      real, parameter :: xmax=20.
++      real(kind_phys), parameter :: xmax=20.
+ !
+ !-----------------------------------------------------------------------------------
+ !
+@@ -510,7 +512,7 @@
+ !--- Mean ice-particle diameters varying from 50 microns to 1000 microns (1 mm), 
+ !      assuming an exponential size distribution.  
+ !
+-      real mdiam
++      real(kind_phys) mdiam
+ !
+ !-----------------------------------------------------------------------------------
+ !------------- Constants & parameters for ventilation factors of ice ---------------
+@@ -524,19 +526,19 @@
+ !       1.1 at 200 microns (0.2 mm), rather than using the more complex function of
+ !       1.0 + .14*(Sc**.33*Re**.5)**2 recommended by Hall & Pruppacher.
+ !
+-      real, parameter :: cvent1i=.86, cvent2i=.28
++      real(kind_phys), parameter :: cvent1i=.86, cvent2i=.28
+ !
+ !---- These parameters are used for calculating the ventilation factors for larger
+ !       aggregates, where D>=1.5 mm (see Rutledge and Hobbs, JAS, 1983; 
+ !       Thorpe and Mason, 1966).
+ !
+-      real, parameter :: cvent1a=.65, cvent2a=.44
++      real(kind_phys), parameter :: cvent1a=.65, cvent2a=.44
+ !
+-      real m_agg,m_bullet,m_column,m_ice,m_plate
++      real(kind_phys) m_agg,m_bullet,m_column,m_ice,m_plate
+ !
+ !---- Various constants
+ !
+-      real, parameter :: c1=2./3., cexp=1./3.
++      real(kind_phys), parameter :: c1=2./3., cexp=1./3.
+ !
+       logical :: iprint
+       logical, parameter :: print_diag=.false.
+@@ -550,7 +552,8 @@
+ !
+ !-------------------- Standard atmosphere conditions at 1000 mb --------------------
+ !
+-      real, parameter :: t_std=288., dens_std=1000.e2/(287.04*288.)
++      real(kind_phys), parameter :: t_std=288.,
++     &  dens_std=1000.e2/(287.04*288.)
+ !
+ !---- These "bulk densities" are the actual ice densities in the ice portion of the 
+ !     lattice.  They are based on text associated w/ (12) on p. 2425 of Bohm (JAS, 
+@@ -559,7 +562,7 @@
+ !     of 600 kg/m**3 compared with dendrites (i.e., the least dense, most "lacy" & 
+ !     tenous ice crystal, which was assumed to be ~500 kg/m**3 in Bohm).  
+ !
+-      real, parameter :: dens_crystal=850., dens_agg=600.
++      real(kind_phys), parameter :: dens_crystal=850., dens_agg=600.
+ !
+ !--- A value of Nrime=40 for a logarithmic ratio of 1.1 yields a maximum rime factor
+ !      of 1.1**40 = 45.26 that is resolved in these tables.  This allows the largest
+@@ -567,12 +570,12 @@
+ !      densities of 900 kg/m**3 for rimed ice.  
+ !
+ !     integer, parameter :: Nrime=40
+-      real m_rime,                                                      &
++      real(kind_phys) m_rime,                                                      &
+      &     rime_factor(0:Nrime), rime_vel(0:Nrime),                     &
+      &     vel_rime(IDImin:IDImax,Nrime), ivel_rime(MDImin:MDImax,Nrime)
+ !
+       integer i, j, jj, k, icount
+-      real c2,      cbulk, cbulk_ice, px, dynvis_std, crime1            &
++      real(kind_phys) c2,      cbulk, cbulk_ice, px, dynvis_std, crime1            &
+      &,    crime2,  crime3, crime4, crime5, d, c_avg, c_agg             &
+      &,    c_bullet, c_column, c_plate, cl_agg, cl_bullet               &
+      &,    cl_column, cl_plate, v_agg, v_bullet, v_column               &
+@@ -979,21 +982,22 @@
+ !      drop sizes of .05 mm (50 microns, DminR) to maximum drop sizes of 10 mm 
+ !      (DmaxR). 
+ !
+-      real, parameter :: DminR=.05e-3, DmaxR=10.e-3, DdelR=1.e-6,       &
++      real(kind_phys), parameter :: DminR=.05e-3, 
++     & DmaxR=10.e-3, DdelR=1.e-6,       
+      & XRmin=1.e6*DminR, XRmax=1.e6*DmaxR
+       integer, parameter :: IDRmin=XRmin, IDRmax=XRmax
+-      real diam(IDRmin:IDRmax), vel(IDRmin:IDRmax)
++      real(kind_phys) diam(IDRmin:IDRmax), vel(IDRmin:IDRmax)
+ !
+ !--- Parameters rain lookup tables, which establish the range of mean drop
+ !      diameters; from a minimum mean diameter of 0.05 mm (DMRmin) to a 
+ !      maximum mean diameter of 0.45 mm (DMRmax).  The tables store solutions
+ !      at 1 micron intervals (DelDMR) of mean drop diameter.  
+ !
+-      real mdiam, mass
++      real(kind_phys) mdiam, mass
+ !
+       logical, parameter :: print_diag=.false.
+ !
+-      real d, cmass, pi2, expf
++      real(kind_phys) d, cmass, pi2, expf
+       integer i, j, i1, i2
+ !
+ !-----------------------------------------------------------------------
+@@ -1212,10 +1216,10 @@
+ !------------------------------------------------------------------------- 
+ !
+       integer lm
+-      REAL ARAING, ASNOWG, P_col(LM), QI_col(LM), QR_col(LM), QV_col(LM)&
+-     &,    QW_col(LM), RimeF_col(LM), T_col(LM), THICK_col(LM),         &
+-     &     WC_col(LM), RHC_col(LM), XNCW(LM), ARAIN, ASNOW, dtpg, psfc
+-      real flgmin
++      REAL(kind_phys) ARAING, ASNOWG, P_col(LM), QI_col(LM), QR_col(LM),
++     &  QV_col(LM), QW_col(LM), RimeF_col(LM), T_col(LM), THICK_col(LM),
++     &  WC_col(LM), RHC_col(LM), XNCW(LM), ARAIN, ASNOW, dtpg, psfc
++      real(kind_phys) flgmin
+ !
+       INTEGER I_index, J_index, LSFC
+ !
+@@ -1236,7 +1240,7 @@
+ !        - VSNOWI - mass-weighted fall speed of snow (large ice), used to calculate 
+ !                   precipitation rates
+ !
+-      REAL,    PARAMETER :: DMImin=.05e-3, DMImax=1.e-3, DelDMI=1.e-6,  &
++      REAL(kind_phys),    PARAMETER :: DMImin=.05e-3, DMImax=1.e-3, DelDMI=1.e-6,  &
+      &                      XMImin=1.e6*DMImin, XMImax=1.e6*DMImax
+       INTEGER, PARAMETER :: MDImin=XMImin, MDImax=XMImax
+ !
+@@ -1257,7 +1261,7 @@
+ !-- NLImax - maximum number concentration of large ice crystals (20,000 /m**3, 20 per liter)
+ !-- NLImin - minimum number concentration of large ice crystals (100 /m**3, 0.1 per liter)
+ !
+-      REAL, PARAMETER ::   RHOL=1000.,  XLS=HVAP+HFUS                   &
++      REAL(kind_phys), PARAMETER ::   RHOL=1000.,  XLS=HVAP+HFUS                   &
+ 
+ !    &, T_ICE=-10.          !- Ver1
+ !    &, T_ICE_init=-5.      !- Ver1
+@@ -1286,7 +1290,7 @@
+ !
+ !--- Extended to include sedimentation of rain on 2/5/01 
+ !
+-      REAL, PARAMETER :: BLEND=1.
++      REAL(kind_phys), PARAMETER :: BLEND=1.
+ !
+ !--- This variable is for debugging purposes (if .true.)
+ !
+@@ -1294,39 +1298,39 @@
+ !
+ !--- Local variables
+ !
+-      REAL    EMAIRI, N0r,         NLICE,       NSmICE, NLImax, pfac
++      REAL(kind_phys) EMAIRI, N0r,NLICE, NSmICE, NLImax, pfac
+       LOGICAL CLEAR,  ICE_logical, DBG_logical, RAIN_logical
+  
+-      integer lbef, ipass, ixrf, ixs, itdx, idr                         &
+-     &,       index_my, indexr, indexr1, indexs                         &
++      integer lbef, ipass, ixrf, ixs, itdx, idr                         
++     &,       index_my, indexr, indexr1, indexs                         
+      &,       i, j, k, l, ntimes, item
+ !    &,       i, j, k, my_600, i1, i2, l, ntimes
+ 
+-      real flimass,  xlimass, vsnow,   qi_min, dum,    piloss           &
+-     &,    tot_ice,  xsimass, vel_inc, vrimef, rimef1, dum1             &
+-     &,    dum2,     fws,     denomi,  dwv                              &
+-     &,    xrf,      qw0,     dli,     xli,    fsmall                   &
+-     &,    prevp,    tk2,     dtph                                      &
+-     &,    pievp,    picnd,   piacr,   pracw                            &
+-     &,    praut,    pimlt,   qtice,   qlice                            &
+-     &,    gammar,   flarge,  wvqw,    dynvis                           &
+-     &,    tfactor,  denom,   gammas,  diffus, therm_cond               &
+-     &,    wvnew,    delv,    tnew,    tot_icenew, rimef                &
+-     &,    deli,     fwr,     crevp,   ventr,      delt                 &
+-     &,    delw,     fir,     delr,    qsinew,     qswnew               &
+-     &,    budget,   wsnew,   vrain2,  tot_rainnew                      &
+-     &,    qtnew,    qt,      wcnew,   abw                              &
+-     &,    aievp,    tcc,     denomf,  abi                              &
+-     &,    sfactor,  pidep_max,        didep,      ventis, ventil       &
+-     &,    dievp,    rqr,     rfactor, dwvr,       rr,     tot_rain     &
+-     &,    dwv0,     qsw0,    prloss,  qtrain,     vrain1               &
+-     &,    qsw,      ws,      esi,     esw, wv, wc, rhgrd, rho          &
+-     &,    rrho,     dtrho,   wsgrd,   qsi, qswgrd, qsigrd              &
+-     &,    tk,       tc,      pp,      bldtrh                           &
+-     &,    xlv,      xlv1,    xlf,     xlf1,  xlv2, denomw, denomwi     &
+-     &,    qwnew,    pcond,   pidep,   qrnew, qi,   qr,     qw          &
+-     &,    piacw,    piacwi,  piacwr,  qv,    dwvi                      &
+-     &,    arainnew, thick,   asnownew                                  &
++      real(kind_phys) flimass,  xlimass, vsnow,qi_min, dum, piloss
++     &,    tot_ice,  xsimass, vel_inc, vrimef, rimef1, dum1             
++     &,    dum2,     fws,     denomi,  dwv                              
++     &,    xrf,      qw0,     dli,     xli,    fsmall                   
++     &,    prevp,    tk2,     dtph                                      
++     &,    pievp,    picnd,   piacr,   pracw                            
++     &,    praut,    pimlt,   qtice,   qlice                            
++     &,    gammar,   flarge,  wvqw,    dynvis                           
++     &,    tfactor,  denom,   gammas,  diffus, therm_cond               
++     &,    wvnew,    delv,    tnew,    tot_icenew, rimef                
++     &,    deli,     fwr,     crevp,   ventr,      delt                 
++     &,    delw,     fir,     delr,    qsinew,     qswnew               
++     &,    budget,   wsnew,   vrain2,  tot_rainnew                      
++     &,    qtnew,    qt,      wcnew,   abw                              
++     &,    aievp,    tcc,     denomf,  abi                              
++     &,    sfactor,  pidep_max,        didep,      ventis, ventil       
++     &,    dievp,    rqr,     rfactor, dwvr,       rr,     tot_rain     
++     &,    dwv0,     qsw0,    prloss,  qtrain,     vrain1               
++     &,    qsw,      ws,      esi,     esw, wv, wc, rhgrd, rho          
++     &,    rrho,     dtrho,   wsgrd,   qsi, qswgrd, qsigrd              
++     &,    tk,       tc,      pp,      bldtrh                           
++     &,    xlv,      xlv1,    xlf,     xlf1,  xlv2, denomw, denomwi     
++     &,    qwnew,    pcond,   pidep,   qrnew, qi,   qr,     qw          
++     &,    piacw,    piacwi,  piacwr,  qv,    dwvi                      
++     &,    arainnew, thick,   asnownew                                  
+      &,    qinew,    qi_min_0c, QSW_l, QSI_l, QSW0_l, SCHMIT_FAC
+     
+ !
+@@ -2520,7 +2524,7 @@
+ !--------- Produces accurate calculation of cloud condensation ---------
+ !#######################################################################
+ !
+-      REAL FUNCTION CONDENSE (PP, QW, RHgrd, TK, WV)
++      REAL(kind_phys) FUNCTION CONDENSE (PP, QW, RHgrd, TK, WV)
+ !
+       implicit none
+ !
+@@ -2530,14 +2534,14 @@
+ !------ saturation mixing ratio (following the Clausius-Clapeyron eqn.).  ------
+ !---------------------------------------------------------------------------------
+ !
+-      real pp, qw, rhgrd, tk, wv
++      real(kind_phys) pp, qw, rhgrd, tk, wv
+       INTEGER, PARAMETER :: HIGH_PRES=kind_phys
+ !     INTEGER, PARAMETER :: HIGH_PRES=Selected_Real_Kind(15)
+-      REAL (KIND=HIGH_PRES), PARAMETER ::                               &
++      REAL(KIND=HIGH_PRES), PARAMETER ::                               
+      & RHLIMIT=.001, RHLIMIT1=-RHLIMIT
+-      REAL, PARAMETER :: RCP=1./CP, RCPRV=RCP/RV
++      REAL(kind_phys), PARAMETER :: RCP=1./CP, RCPRV=RCP/RV
+       REAL (KIND=HIGH_PRES) :: COND, SSAT, WCdum, tsq
+-      real wvdum, tdum, xlv, xlv1, xlv2, ws, dwv, esw, rfac
++      real(kind_phys) wvdum, tdum, xlv, xlv1, xlv2, ws, dwv, esw, rfac
+ !
+ !-----------------------------------------------------------------------
+ !
+@@ -2587,22 +2591,22 @@
+ !---------------- Calculate ice deposition at T<T_ICE ------------------
+ !#######################################################################
+ !
+-      REAL FUNCTION DEPOSIT (PP, RHgrd, Tdum, WVdum)
++      REAL(kind_phys) FUNCTION DEPOSIT (PP, RHgrd, Tdum, WVdum)
+ !
+       implicit none
+ !
+ !--- Also uses the Asai (1965) algorithm, but uses a different target
+ !      vapor pressure for the adjustment
+ !
+-      REAL PP, RHgrd, Tdum, WVdum
++      REAL(kind_phys) PP, RHgrd, Tdum, WVdum
+       INTEGER, PARAMETER :: HIGH_PRES=kind_phys
+ !     INTEGER, PARAMETER :: HIGH_PRES=Selected_Real_Kind(15)
+-      REAL (KIND=HIGH_PRES), PARAMETER :: RHLIMIT=.001,                 & 
++      REAL (KIND=HIGH_PRES), PARAMETER :: RHLIMIT=.001,                 
+      & RHLIMIT1=-RHLIMIT
+-      REAL, PARAMETER :: RCP=1./CP, RCPRV=RCP/RV, XLS=HVAP+HFUS         &
+-     &,                  XLS1=XLS*RCP, XLS2=XLS*XLS*RCPRV
+-      REAL (KIND=HIGH_PRES) :: DEP, SSAT
+-      real esi, ws, dwv
++      REAL(kind_phys), PARAMETER :: RCP=1./CP, RCPRV=RCP/RV,
++     &   XLS=HVAP+HFUS,XLS1=XLS*RCP, XLS2=XLS*XLS*RCPRV
++      REAL(KIND=HIGH_PRES) :: DEP, SSAT
++      real(kind_phys) esi, ws, dwv
+ !
+ !-----------------------------------------------------------------------
+ !
+@@ -2642,19 +2646,21 @@
+ !
+ !--------------------CLOUD----------------------------------------------
+       integer im, ix, ix2, levs, ipr
+-      real    prsl(ix,levs), prsi(ix,levs+1), t(ix,levs), q(ix,levs)    &
+-     &,       clw(ix2,levs), f_ice(ix2,levs), f_rain(ix2,levs)          &
+-     &,       f_rime(ix2,levs)                                          &
+-     &,       cwatp(ix,levs), rainp(ix,levs),  cicep(ix,levs)           &
+-     &,       snowp(ix,levs), recwat(ix,levs), resnow(ix,levs)          &
++      real(kind_phys)    prsl(ix,levs), prsi(ix,levs+1), t(ix,levs), 
++     & q(ix,levs)    
++     &,       clw(ix2,levs), f_ice(ix2,levs), f_rain(ix2,levs)          
++     &,       f_rime(ix2,levs)                                         
++     &,       cwatp(ix,levs), rainp(ix,levs),  cicep(ix,levs)          
++     &,       snowp(ix,levs), recwat(ix,levs), resnow(ix,levs)          
+      &,       rerain(ix,levs)
+-      real    flgmin
+-      real    frice, frrain, qcice, qcwat,  qrain, qsnow,   qtot, sden  &
+-     &,       cpath, rho,    dsnow, flarge, rimef, xsimass, nlice       &
+-     &,       tc,    recw1,  drain, xli,    dum,   NLImax, pfac, pp     &
++      real(kind_phys)    flgmin
++      real(kind_phys)    frice, frrain, qcice, qcwat,  qrain, qsnow,
++     &        qtot, sden  
++     &,       cpath, rho,    dsnow, flarge, rimef, xsimass, nlice       
++     &,       tc,    recw1,  drain, xli,    dum,   NLImax, pfac, pp     
+      &,       snofac, tem
+ !
+-      real, parameter :: cexp=1./3.
++      real(kind_phys), parameter :: cexp=1./3.
+       integer i, l, indexs
+       logical lprnt
+ !
+@@ -2963,25 +2969,26 @@
+       implicit none
+ 
+ !  ---  constant parameter:
+-      real, parameter :: CEXP= 1.0/3.0
++      real(kind_phys), parameter :: CEXP= 1.0/3.0
+ 
+ !  ---  inputs:
+-      real, dimension(:,:), intent(in) ::                               &
++      real(kind_phys), dimension(:,:), intent(in) ::                               &
+      &       plyr, plvl, tlyr, qlyr, qcwat, qcice, qrain, rrime
+ 
+       integer, intent(in) :: IM, LEVS, iflip
+-      real, dimension(:),   intent(in) :: flgmin
++      real(kind_phys), dimension(:),   intent(in) :: flgmin
+ !     logical, intent(in) :: lprnt
+ 
+ !  ---  output:
+-      real, dimension(:,:), intent(out) ::                              &
++      real(kind_phys), dimension(:,:), intent(out) ::                  
+      &       cwatp, cicep, rainp, snowp, recwat, rerain, resnow, snden
+ 
+ !  ---  locals:
+-!     real,    dimension(IM,LEVS) :: delp, pp1, pp2
++!     real(kind_phys),    dimension(IM,LEVS) :: delp, pp1, pp2
+ 
+-      real    :: recw1, dsnow, qsnow, qqcice, flarge, xsimass, pfac,    &
+-     &           nlice, xli, nlimax, dum, tem,                          &
++      real(kind_phys)    :: recw1, dsnow, qsnow, qqcice, flarge,
++     &  xsimass, pfac,    
++     &           nlice, xli, nlimax, dum, tem,                          
+      &           rho, cpath, rc, totcnd, tc
+ 
+       integer :: i, k, indexs, ksfc, k1
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radiation_astronomy.f	2012-06-18 10:37:00.000000000 -0600
++++ radiation_astronomy.f	2012-06-26 14:00:53.000000000 -0600
+@@ -15,8 +15,10 @@
+ !                                                                      !
+ !      'astronomy'  -- get astronomy related quantities                !
+ !         input:                                                       !
+-!           ( sinlat,coslat,xlon,fhswr,jdate,                          !
+-!             LON2,LATD,nlnsp,lsswr, me)                               !
++!           ( lons_lar,glb_lats_r,sinlat,coslat,xlon,                  !
++!!            fhswr,jdate,deltim,                                      !
++!             fhswr,jdate,                                             !
++!             LON2,LATD,LATR,IPT_LATR, lsswr, me)                      !
+ !         output:                                                      !
+ !           ( solcon,slag,sdec,cdec,coszen,coszdg)                     !
+ !                                                                      !
+@@ -249,8 +251,8 @@
+ !...................................
+ 
+ !  ---  inputs:
+-     &     ( sinlat,coslat,xlon,fhswr,jdate,                            &
+-     &       LON2,LATD,nlnsp,lsswr, me,                                 &
++     &     ( nlons, nlats, lons, lats,                                  &
++     &       fhswr,jdate,lsswr,                                         &
+ !  ---  outputs:
+      &       solcon,slag,sdec,cdec,coszen,coszdg                        &
+      &      )
+@@ -260,13 +262,16 @@
+ !  astronomy computes solar parameters at forecast time                 !
+ !                                                                       !
+ !  inputs:                                                   dimension  !
+-!    sinlat,coslat - sin and cos of latitude                 (LON2*LATD)!
++!    lons_lar      - num of grid pts on a given lat circle        (LATR)!
++!    glb_lats_r    - index for global latitudes                   (LATR)!
++!    sinlat,coslat - sin and cos of latitude                      (LATR)!
+ !    xlon          - longitude in radians                    (LON2*LATD)!
+ !    fhswr         - sw radiation calling interval in hour              !
+ !    jdate         - current forecast date and time               (8)   !
+ !                    (yr, mon, day, t-zone, hr, min, sec, mil-sec)      !
+-!    LON2,LATD     - dimensions for longitude/latitude directions       !
+-!    nlnsp         - num of grid pts on corresponding lat          LATD !
++!!   deltim        - duration of model integration time step in seconds !
++!    LON2,LATD,LATR- dimensions for longitude/latitude directions       !
++!    IPT_LATR      - latitude index location indecator                  !
+ !    lsswr         - logical control flag for sw radiation call         !
+ !    me            - integer control flag for diagnostic print out      !
+ !                                                                       !
+@@ -285,16 +290,18 @@
+       implicit none
+       
+ !  ---  input:
+-      integer,  intent(in) :: LON2, LATD, jdate(:), nlnsp(:), me
++      integer,  intent(in) :: nlons, nlats
++      integer,  intent(in) :: jdate(:)
+ 
+       logical, intent(in) :: lsswr
+ 
+-      real (kind=kind_phys), intent(in) :: sinlat(:,:), coslat(:,:),    &
+-     &       xlon(:,:), fhswr
++      real (kind=kind_phys), intent(in) :: lats(nlons,nlats),
++     &       lons(nlons,nlats),fhswr
++!    &       xlon(:,:), fhswr, deltim
+ 
+ !  ---  output:
+       real (kind=kind_phys), intent(out) :: solcon, slag, sdec, cdec,   &
+-     &       coszen(:,:), coszdg(:,:)
++     &       coszen(nlons,nlats), coszdg(nlons,nlats)
+ 
+ !  ---  locals:
+       real (kind=kind_phys), parameter :: f24   = 24.0     ! hours/day
+@@ -351,8 +358,9 @@
+ 
+         call coszmn                                                     &
+ !  ---  inputs:
+-     &     ( xlon,sinlat,coslat,fhswr,solhr,sdec,cdec,slag,             &
+-     &       LON2,LATD,nlnsp,                                           &
++     &     ( nlons,nlats,lons,lats,                                     &
++!    &       fhswr,deltim,solhr,sdec,cdec,slag,                         &
++     &       fhswr,solhr,sdec,cdec,slag,                                &
+ !  ---  outputs:
+      &       coszen,coszdg                                              &
+      &     )
+@@ -367,7 +375,7 @@
+ 
+ !  --- ...  diagnostic print out
+ 
+-      if (me == 0) then
++!     if (me == 0) then
+ 
+         call prtime                                                     &
+ !  ---  inputs:
+@@ -375,7 +383,7 @@
+ !  ---  outputs: ( none )
+      &     )
+ 
+-      endif
++!     endif
+ 
+ !
+       return
+@@ -558,8 +566,9 @@
+ !...................................
+ 
+ !  ---  inputs:
+-     &     ( xlon,sinlat,coslat,dtswav,solhr,sdec,cdec,slag,            &
+-     &       NLON2,LATD,nlnsp,                                          &
++     &     ( nlons,nlats,lons,lats,                                     &
++!    &       dtswav,deltim,solhr,sdec,cdec,slag,                        &
++     &       dtswav,solhr,sdec,cdec,slag,                               &
+ !  ---  outputs:
+      &       coszen,coszdg                                              &
+      &     )
+@@ -569,14 +578,17 @@
+ !  coszmn computes mean cos solar zenith angle over 'dtswav' hours.     !
+ !                                                                       !
+ !  inputs:                                                              !
++!    lons_lar      - num of grid pts on a given lat circle              !
++!    glb_lats_r    - index for global latitude                          !
+ !    xlon          - longitude in radians                               !
+ !    sinlat,coslat - sin and cos of latitude                            !
+ !    dtswav        - sw radiation calling interval in hour              !
++!!   deltim        - duration of model integration time step in second  !
+ !    solhr         - time after 00z in hours                            !
+ !    sdec, cdec    - sin and cos of the solar declination angle         !
+ !    slag          - equation of time                                   !
+ !    NLON2,LATD    - dimensions for longitude/latitude directions       !
+-!    nlnsp         - num of grid pts on the corresponding lat           !
++!    IPT_LATR      - latitude index location indecator                  !
+ !                                                                       !
+ !  outputs:                                                             !
+ !    coszen        - average of cosz for daytime only in sw call interval
+@@ -594,21 +606,25 @@
+       implicit none
+ 
+ !  ---  inputs:
+-      integer, intent(in) :: NLON2, LATD, nlnsp(:)
++      integer, intent(in) :: nlons,nlats
+ 
+-      real (kind=kind_phys), intent(in) :: sinlat(:,:), coslat(:,:),    &
+-     &       xlon(:,:), dtswav, solhr, sdec, cdec, slag
++      real (kind=kind_phys), intent(in) :: lats(nlons,nlats),           &
++     &       lons(nlons,nlats), dtswav, solhr, sdec, cdec, slag
++!    &       xlon(:,:), dtswav, deltim, solhr, sdec, cdec, slag
+ 
+ !  ---  outputs:
+-      real (kind=kind_phys), intent(out) :: coszen(:,:), coszdg(:,:)
++      real (kind=kind_phys), intent(out),dimension(nlons,nlats) :: 
++     & coszen, coszdg
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: coszn, pid12, cns, ss, cc
++      real (kind=kind_phys) :: coszn(nlons), pid12, cns, ss, cc, lat
+ 
+-      integer :: istsun(NLON2), nstp, istp, nn, i, it, j, lat
++      integer :: istsun(nlons), nstp, istp, nlon, nlnsp, i, it, j
+ 
+ !===>  ...  begin here
+ 
++!     nlon = NLON2 / 2
++
+       nstp = 6                               ! number of cosz calc per fcst hour
+ !     nstp = max(6, min(10, nint(3600.0/deltim) ))  ! for better time step sync
+       istp = nint( dtswav*nstp )             ! total num of calc in dtswav interval
+@@ -616,30 +632,29 @@
+ !     pid12 = con_pi / 12.0                  ! angle per hour
+       pid12 = (2.0 * asin(1.0)) / 12.0
+ 
+-      do j = 1, LATD
+-        nn = nlnsp(j)
++      do j = 1, nlats
++        lat   = lats(1,j)
+ 
+-        do i = 1, NLON2
++        do i = 1, nlons   
+           coszen(i,j) = 0.0
+-          coszdg(i,j) = 0.0
+           istsun(i) = 0
+         enddo
+ 
+         do it = 1, istp
+           cns = pid12 * (solhr - 12.0 + float(it-1)/float(nstp)) + slag
++          ss  = sin(lat) * sdec
++          cc  = cos(lat) * cdec
+ 
+-          do i = 1, nn
+-            ss  = sinlat(i,j) * sdec
+-            cc  = coslat(i,j) * cdec
+-            coszn = ss + cc * cos(cns + xlon(i,j))
+-            coszen(i,j) = coszen(i,j) + max(0.0, coszn)
+-            if (coszn > 0.0001) istsun(i) = istsun(i) + 1
++          do i = 1, nlons
++            coszn(i) = ss + cc * cos(cns + lons(i,j))
++            coszen(i,j) = coszen(i,j) + max(0.0, coszn(i))
++            if (coszn(i) > 0.0001) istsun(i) = istsun(i) + 1
+           enddo
+         enddo
+ 
+ !  --- ...  compute time averages
+ 
+-        do i = 1, nn
++        do i = 1, nlons  
+           coszdg(i,j) = coszen(i,j) / float(istp)
+           if (istsun(i) > 0) coszen(i,j) = coszen(i,j) / istsun(i)
+         enddo
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radiation_gases.f	2012-06-18 10:37:00.000000000 -0600
++++ radiation_gases.f	2012-06-26 14:00:17.000000000 -0600
+@@ -82,7 +82,7 @@
+       use machine ,                only : kind_phys, kind_io4
+       use funcphys,                only : fpkap
+       use physcons,                only : con_pi
+-      use ozne_def,                only : jmr => latsozc, loz => levozc &
++      use phy_data,                only : jmr => latsozc, loz => levozc &
+      &,                                   blte => blatc, dlte=> dphiozc &
+      &,                                   timeozc => timeozc
+       use module_iounitdef,        only : NIO3CLM, NICO2CN
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radlw_datatb.f	2012-06-18 10:37:05.000000000 -0600
++++ radlw_datatb.f	2012-06-26 14:00:55.000000000 -0600
+@@ -57,14 +57,14 @@
+       module module_radlw_avplank        !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radlw_parameters, only : NPLNK, NBANDS
+ !
+       implicit none
+ !
+       private
+ 
+-      real (kind=kind_phys), public :: totplnk(NPLNK,NBANDS)
++      real (kind=kind_rad ), public :: totplnk(NPLNK,NBANDS)
+ 
+       data totplnk(  1: 50, 1) /                                        &
+      &1.13735E-06,1.15150E-06,1.16569E-06,1.17992E-06,1.19419E-06,      &
+@@ -733,16 +733,16 @@
+       module module_radlw_cldprlw        !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NBANDS
+ !
+       implicit none
+ !
+       private
+ 
+-      real (kind=kind_phys), public ::                                  &
+-     &       absice0(2), absice1(2,5), absice2(40,16), abscoice(NBANDS),&
+-     &       absliq1, absliq2, absliq3(58,16), abscoliq(NBANDS),        &
++      real (kind=kind_rad ), public ::                                  &
++     &       absice0(2), absice1(2,5), absice2(40,16),                  &
++     &       absliq1, absliq2, absliq3(58,16),                          &
+      &       absrain, abssnow0, abssnow1
+ 
+       integer, public :: ipat(NBANDS)
+@@ -1167,7 +1167,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG01
+ !
+       implicit none
+@@ -1177,7 +1177,7 @@
+       integer, public :: MSA01, MSB01, MSF01
+       parameter (MSA01=65, MSB01=235, MSF01=10)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA01,NG01), absb(MSB01,NG01), selfref(MSF01,NG01),   &
+      &       forref(NG01), fracrefa(NG01), fracrefb(NG01)
+  
+@@ -1753,7 +1753,7 @@
+       module module_radlw_kgb02          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG02
+ !
+       implicit none
+@@ -1763,7 +1763,7 @@
+       integer, public :: MSA02, MSB02, MSF02, MAF02
+       parameter (MSA02=65, MSB02=235, MSF02=10, MAF02=13)
+ 
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA02,NG02), absb(MSB02,NG02), selfref(MSF02,NG02),   &
+      &       forref(NG02), fracrefa(NG02,MAF02), fracrefb(NG02),        &
+      &       refparam(MAF02)
+@@ -2783,7 +2783,7 @@
+       module module_radlw_kgb03          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG03
+ !
+       implicit none
+@@ -2794,7 +2794,7 @@
+       parameter (MSA03=650, MSB03=1175, MSF03=10)
+       parameter (MAF03=10, MBF03=5, MEF03=10, MOF03=59)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA03,NG03), absb(MSB03,NG03), selfref(MSF03,NG03),   &
+      &       forref(NG03),  fracrefa(NG03,MAF03), fracrefb(NG03,MBF03), &
+      &       absn2oa(NG03), absn2ob(NG03), h2oref(MOF03), n2oref(MOF03),&
+@@ -8941,7 +8941,7 @@
+       module module_radlw_kgb04          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG04
+ !
+       implicit none
+@@ -8951,7 +8951,7 @@
+       integer, public :: MSA04, MSB04, MSF04, MAF04, MBF04
+       parameter (MSA04=585, MSB04=1410, MSF04=10, MAF04=9, MBF04=6)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA04,NG04), absb(MSB04,NG04), selfref(MSF04,NG04),   &
+      &       fracrefa(NG04,MAF04), fracrefb(NG04,MBF04)
+  
+@@ -14766,7 +14766,7 @@
+       module module_radlw_kgb05          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG05
+ !
+       implicit none
+@@ -14776,7 +14776,7 @@
+       integer, public :: MSA05, MSB05, MSF05, MAF05, MBF05
+       parameter (MSA05=585, MSB05=1175, MSF05=10, MAF05=9, MBF05=5)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA05,NG05), absb(MSB05,NG05), selfref(MSF05,NG05),   &
+      &       ccl4(NG05),  fracrefa(NG05,MAF05), fracrefb(NG05,MBF05)
+  
+@@ -20663,7 +20663,7 @@
+       module module_radlw_kgb06          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG06
+ !
+       implicit none
+@@ -20673,7 +20673,7 @@
+       integer, public :: MSA06, MSF06
+       parameter (MSA06=65, MSF06=10)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA06,NG06), selfref(MSF06,NG06), absco2(NG06),       &
+      &       cfc11adj(NG06),  cfc12(NG06), fracrefa(NG06)
+  
+@@ -20859,7 +20859,7 @@
+       module module_radlw_kgb07          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG07
+ !
+       implicit none
+@@ -20869,7 +20869,7 @@
+       integer, public :: MSA07, MSB07, MSF07, MAF07
+       parameter (MSA07=585, MSB07=235, MSF07=10, MAF07=9)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA07,NG07), absb(MSB07,NG07), selfref(MSF07,NG07),   &
+      &       absco2(NG07),  fracrefa(NG07,MAF07), fracrefb(NG07)
+  
+@@ -22997,7 +22997,7 @@
+       module module_radlw_kgb08          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG08
+ !
+       implicit none
+@@ -23007,7 +23007,7 @@
+       integer, public :: MSA08, MSB08, MSF08, MOF08
+       parameter (MSA08=35, MSB08=265, MSF08=10, MOF08=59)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA08,NG08), absb(MSB08,NG08), selfref(MSF08,NG08),   &
+      &       absco2a(NG08), absco2b(NG08), absn2oa(NG08),               &
+      &       absn2ob(NG08), cfc12(NG08), cfc22adj(NG08),                &
+@@ -23644,7 +23644,7 @@
+       module module_radlw_kgb09          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG09
+ !
+       implicit none
+@@ -23655,7 +23655,7 @@
+       parameter (MSA09=715, MSB09=235, MSF09=10)
+       parameter (MAF09=9, MEF09=11, MOF09=13)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA09,NG09), absb(MSB09,NG09), selfref(MSF09,NG09),   &
+      &       absn2o(3*NG09), fracrefa(NG09,MAF09), fracrefb(NG09),      &
+      &       h2oref(MOF09), ch4ref(MOF09), n2oref(MOF09), etaref(MEF09)
+@@ -26123,7 +26123,7 @@
+       module module_radlw_kgb10          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG10
+ !
+       implicit none
+@@ -26133,7 +26133,7 @@
+       integer, public :: MSA10, MSB10
+       parameter (MSA10=65, MSB10=235)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA10,NG10),absb(MSB10,NG10), fracrefa(NG10),         &
+      &       fracrefb(NG10)
+  
+@@ -26550,7 +26550,7 @@
+       module module_radlw_kgb11          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG11
+ !
+       implicit none
+@@ -26560,7 +26560,7 @@
+       integer, public :: MSA11, MSB11, MSF11
+       parameter (MSA11=65, MSB11=235, MSF11=10)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &       absa(MSA11,NG11), absb(MSB11,NG11), selfref(MSF11,NG11),   &
+      &       fracrefa(NG11), fracrefb(NG11)
+  
+@@ -27132,7 +27132,7 @@
+       module module_radlw_kgb12          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG12
+ !
+       implicit none
+@@ -27142,7 +27142,7 @@
+       integer, public :: MSA12, MSF12, MAF12
+       parameter (MSA12=585, MSF12=10, MAF12=9)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &      absa(MSA12,NG12), selfref(MSF12,NG12), fracrefa(NG12,MAF12)
+  
+ !     the array absa(585,NG12) = ka(9,5,13,NG12) contains absorption coefs
+@@ -28175,7 +28175,7 @@
+       module module_radlw_kgb13          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG13
+ !
+       implicit none
+@@ -28185,7 +28185,7 @@
+       integer, public :: MSA13, MSF13, MAF13
+       parameter (MSA13=585, MSF13=10, MAF13=9)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &      absa(MSA13,NG13), selfref(MSF13,NG13), fracrefa(NG13,MAF13)
+  
+ !     the array absa(585,NG13) = ka(9,5,13,NG13) contains absorption coefs
+@@ -28721,7 +28721,7 @@
+       module module_radlw_kgb14          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG14
+ !
+       implicit none
+@@ -28731,7 +28731,7 @@
+       integer, public :: MSA14, MSB14, MSF14
+       parameter (MSA14=65, MSB14=235, MSF14=10)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &      absa(MSA14,NG14), absb(MSB14,NG14), selfref(MSF14,NG14),    &
+      &      fracrefa(NG14), fracrefb(NG14)
+  
+@@ -28909,7 +28909,7 @@
+       module module_radlw_kgb15          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG15
+ !
+       implicit none
+@@ -28919,7 +28919,7 @@
+       integer, public :: MSA15, MSF15, MAF15
+       parameter (MSA15=585, MSF15=10, MAF15=9)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &      absa(MSA15,NG15), selfref(MSF15,NG15), fracrefa(NG15,MAF15)
+  
+ !     the array absa(585,NG15) = ka(9,5,13,NG15) contains absorption coefs
+@@ -29207,7 +29207,7 @@
+       module module_radlw_kgb16          !
+ !........................................!
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+       use module_radlw_parameters, only : NG16
+ !
+       implicit none
+@@ -29217,7 +29217,7 @@
+       integer, public :: MSA16, MSF16, MAF16
+       parameter (MSA16=585, MSF16=10, MAF16=9)
+  
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad ), public ::                                  &
+      &      absa(MSA16,NG16), selfref(MSF16,NG16), fracrefa(NG16,MAF16)
+  
+ !     the array absa(585,NG16) = ka(9,5,13,NG16) contains absorption coefs
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radlw_main.f	2012-06-18 10:37:05.000000000 -0600
++++ radlw_main.f	2012-06-26 14:00:15.000000000 -0600
+@@ -164,7 +164,7 @@
+       module module_radlw_main           !
+ !........................................!
+ !
+-      use machine,           only : kind_phys
++      use machine,           only : kind_phys, kind_rad
+       use physcons,          only : con_g, con_cp, con_avgd, con_amd,   &
+      &                              con_amw, con_amo3
+ 
+@@ -181,7 +181,7 @@
+       character(24), parameter :: VTAGLW='RRTM-LW v2.3g   Apr 2007'
+ 
+ !  ---  constant values
+-      real (kind=kind_phys) :: eps, oneminus, bpade, stpfac, wtnum      &
++      real (kind=kind_rad ) :: eps, oneminus, bpade, stpfac, wtnum      &
+      &,     co2fac, f_zero
+ 
+       parameter (eps=1.0e-6,  oneminus=1.0-eps)
+@@ -194,7 +194,7 @@
+       parameter (f_zero=0.0)
+ 
+ !  ...  atomic weights for conversion from mass to volume mixing ratios
+-      real (kind=kind_phys) :: amdw, amdo3
++      real (kind=kind_rad ) :: amdw, amdo3
+ 
+       parameter (amdw =con_amd/con_amw)
+       parameter (amdo3=con_amd/con_amo3)
+@@ -208,19 +208,19 @@
+      &            12*9, 6*10, 8*11, 8*12, 4*13, 2*14, 2*15, 2*16 /
+ 
+ !  ...  band wavenumber intervals
+-!     real (kind=kind_phys) :: wavenum1(NBANDS), wavenum2(NBANDS)
++!     real (kind=kind_rad ) :: wavenum1(NBANDS), wavenum2(NBANDS)
+ !     data wavenum1/                                                    &
+ !    &         10.,  250.,  500.,  630.,  700.,  820.,  980., 1080.,    &
+ !    &       1180., 1390., 1480., 1800., 2080., 2250., 2380., 2600. /
+ !     data wavenum2/                                                    &
+ !    &        250.,  500.,  630.,  700.,  820.,  980., 1080., 1180.,    &
+ !    &       1390., 1480., 1800., 2080., 2250., 2380., 2600., 3000. /
+-      real (kind=kind_phys) :: delwave(NBANDS)
++      real (kind=kind_rad ) :: delwave(NBANDS)
+       data delwave / 240., 250., 130.,  70., 120., 160., 100., 100.,    &
+      &               210.,  90., 320., 280., 170., 130., 220., 400. /
+ 
+ !mji ... coefficients for variable diffusivity angle
+-      real (kind=kind_phys), dimension(NBANDS) :: a0, a1, a2
++      real (kind=kind_rad ), dimension(NBANDS) :: a0, a1, a2
+       data a0 /  1.66, 1.55, 1.58, 1.66, 1.54,1.454, 1.89, 1.33,        &
+      &          1.668, 1.66, 1.66, 1.66, 1.66, 1.66, 1.66, 1.66  /
+       data a1 /  0.00, 0.25, 0.22, 0.00, 0.13,0.446,-0.10, 0.40,        &
+@@ -229,7 +229,7 @@
+      &          0.414, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00  /
+ 
+ !  ---  reference pressure and temperature
+-      real (kind=kind_phys), dimension(59) :: pref, preflog, tref
++      real (kind=kind_rad ), dimension(59) :: pref, preflog, tref
+ 
+ !  ...  these pressures are chosen such that the ln of the first one
+ !       has only a few non-zero digits (i.e. ln(pref(1)) = 6.96000) and
+@@ -288,10 +288,10 @@
+ !       rates (in k/day, or k/sec set by subroutine 'rlwinit')
+ !       semiss0 are default surface emissivity for each bands
+ 
+-      real (kind=kind_phys) :: fluxfac, heatfac, semiss0(NBANDS)
++      real (kind=kind_rad ) :: fluxfac, heatfac, semiss0(NBANDS)
+ 
+-      real (kind=kind_phys), dimension(0:N5000) :: tau, tf, trans
+-      real (kind=kind_phys), dimension(0:N200 ) :: corr1, corr2
++      real (kind=kind_rad ), dimension(0:N5000) :: tau, tf, trans
++      real (kind=kind_rad ), dimension(0:N200 ) :: corr1, corr2
+ 
+ !  ...  iovrlw  is the clouds overlapping control flag
+ !            =0: random overlapping clouds
+@@ -514,23 +514,23 @@
+       type (proflw_type),   dimension(:,:),optional,intent(out):: flxprf
+ 
+ !  ---  locals:
+-      real (kind=kind_phys), dimension(0:NLP1) :: cldfrac
++      real (kind=kind_rad ), dimension(0:NLP1) :: cldfrac
+ 
+-      real (kind=kind_phys), dimension(0:NLAY) :: totuflux, totdflux,   &
++      real (kind=kind_rad ), dimension(0:NLAY) :: totuflux, totdflux,   &
+      &       totuclfl, totdclfl, tz
+ 
+-      real (kind=kind_phys), dimension(NLAY)   :: htr, htrcl
++      real (kind=kind_rad ), dimension(NLAY)   :: htr, htrcl
+ 
+-      real (kind=kind_phys), dimension(NLAY)   :: pavel, tavel, delp,   &
++      real (kind=kind_rad ), dimension(NLAY)   :: pavel, tavel, delp,   &
+      &       taucl, cwp1, cip1, rew1, rei1, cda1, cda2, cda3, cda4,     &
+      &       coldry, co2mult, h2ovmr, o3vmr, fac00, fac01, fac10,       &
+      &       fac11, forfac, plog, selffac, selffrac, temcol
+ 
+-      real (kind=kind_phys) :: colamt(NLAY,MAXGAS), wx(NLAY,MAXXSEC),   &
++      real (kind=kind_rad ) :: colamt(NLAY,MAXGAS), wx(NLAY,MAXXSEC),   &
+      &       taucloud(NBANDS,NLAY), pfrac(NGPTLW,NLAY), semiss(NBANDS), &
+      &       secdiff(NBANDS), tauaer(NBANDS,NLAY), htrb(NLAY,NBANDS)
+ 
+-      real (kind=kind_phys) :: fp, ft, ft1, tem0, tem1, tem2, pwvcm,    &
++      real (kind=kind_rad ) :: fp, ft, ft1, tem0, tem1, tem2, pwvcm,    &
+      &       stemp
+ 
+       integer, dimension(NLAY) :: jp, jt, jt1, indself
+@@ -1166,7 +1166,7 @@
+ !  ---  outputs: none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: tfn, fp, rtfp, pival, explimit
++      real (kind=kind_rad ) :: tfn, fp, rtfp, pival, explimit
+       integer               :: i
+ !
+ !===> ... begin here
+@@ -1261,7 +1261,7 @@
+       explimit = aint( -log(tiny(trans(0))) )
+ 
+       do i = 1, N5000-1
+-         tfn = real(i, kind_phys) / real(N5000-i, kind_phys)
++         tfn = real(i, kind_rad ) / real(N5000-i, kind_rad )
+          tau  (i) = bpade * tfn
+          if (tau(i) >= explimit) then
+            trans(i) = f_zero
+@@ -1403,18 +1403,19 @@
+ !  ---  inputs:
+       integer, intent(in) :: NLAY, NLP1
+ 
+-      real (kind=kind_phys), dimension(0:), intent(in) :: cldfrac
++      real (kind=kind_rad ), dimension(0:), intent(in) :: cldfrac
+ 
+-      real (kind=kind_phys), dimension(:),  intent(in) :: cliqp, cicep, &
++      real (kind=kind_rad ), dimension(:),  intent(in) :: cliqp, cicep, &
+      &       reliq, reice, cdat1, cdat2, cdat3, cdat4
+ 
+ !  ---  outputs:
+-      real (kind=kind_phys), dimension(:,:), intent(out) :: taucloud
++      real (kind=kind_rad ), dimension(:,:), intent(out) :: taucloud
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: cliq, cice, radliq, radice, factor, fint
+-      real (kind=kind_phys) :: taurain, tausnow
++      real (kind=kind_rad ) :: cliq, cice, radliq, radice, factor, fint
++      real (kind=kind_rad ) :: taurain, tausnow
+       integer               :: j, k, index
++      real (kind=kind_rad ) :: abscoliq(NBANDS),abscoice(NBANDS)
+ 
+ !
+ !===> ... begin here
+@@ -1570,38 +1571,38 @@
+ 
+       integer, intent(in)  ::  itr(:,:)
+ 
+-      real (kind=kind_phys), dimension(0:), intent(in) :: tz, cldfrac
++      real (kind=kind_rad ), dimension(0:), intent(in) :: tz, cldfrac
+ 
+-      real (kind=kind_phys), dimension(:),  intent(in) :: tavel, delp,  &
++      real (kind=kind_rad ), dimension(:),  intent(in) :: tavel, delp,  &
+      &       semiss, secdiff
+ 
+-      real (kind=kind_phys), dimension(:,:),intent(in) :: taucloud,     &
++      real (kind=kind_rad ), dimension(:,:),intent(in) :: taucloud,     &
+      &       pfrac
+ 
+-      real (kind=kind_phys), intent(in) :: stemp
++      real (kind=kind_rad ), intent(in) :: stemp
+ 
+ !  ---  outputs:
+-      real (kind=kind_phys), dimension(:),  intent(out) :: htr, htrcl
+-      real (kind=kind_phys), dimension(:,:),intent(out) :: htrb
++      real (kind=kind_rad ), dimension(:),  intent(out) :: htr, htrcl
++      real (kind=kind_rad ), dimension(:,:),intent(out) :: htrb
+ 
+-      real (kind=kind_phys), dimension(0:), intent(out) ::              &
++      real (kind=kind_rad ), dimension(0:), intent(out) ::              &
+      &       totuflux, totdflux, totuclfl, totdclfl
+ 
+ !  ---  locals:
+-      real (kind=kind_phys), dimension(NGPTLW,NLAY)   :: gassrcu,       &
++      real (kind=kind_rad ), dimension(NGPTLW,NLAY)   :: gassrcu,       &
+      &       cldsrcu, trans0
+-      real (kind=kind_phys), dimension(NGPTLW,0:NLAY) :: bglev
+-      real (kind=kind_phys), dimension(NGPTLW)        :: radclru,       &
++      real (kind=kind_rad ), dimension(NGPTLW,0:NLAY) :: bglev
++      real (kind=kind_rad ), dimension(NGPTLW)        :: radclru,       &
+      &       radclrd, radtotu, radtotd, bgsfc
+-      real (kind=kind_phys), dimension(NBANDS,0:NLAY) :: plvl,          &
++      real (kind=kind_rad ), dimension(NBANDS,0:NLAY) :: plvl,          &
+      &       totufxsb, totdfxsb
+-      real (kind=kind_phys), dimension(NBANDS,NLAY)   :: play, odcld,   &
++      real (kind=kind_rad ), dimension(NBANDS,NLAY)   :: play, odcld,   &
+      &       trncld, efcfr1
+-      real (kind=kind_phys), dimension(NBANDS)        :: plksfc
+-      real (kind=kind_phys), dimension(0:NLAY)        :: fnet, fnetc
++      real (kind=kind_rad ), dimension(NBANDS)        :: plksfc
++      real (kind=kind_rad ), dimension(0:NLAY)        :: fnet, fnetc
+ 
+-      real (kind=kind_phys) :: totdrad, clrdrad, toturad, clrurad
+-      real (kind=kind_phys) :: delbgup, delbgdn, bglay, tau0, tauc,     &
++      real (kind=kind_rad ) :: totdrad, clrdrad, toturad, clrurad
++      real (kind=kind_rad ) :: delbgup, delbgdn, bglay, tau0, tauc,     &
+      &       transc, cldsrcd, gassrcd, factot, odsm, tem1, tem2
+ 
+       integer :: j, k, ind, inb, itm1, itm2, jtm1, jtm2
+@@ -2039,51 +2040,51 @@
+ 
+       integer, intent(in)  ::  itr(:,:)
+ 
+-      real (kind=kind_phys), dimension(0:), intent(in) :: tz, cldfrac
++      real (kind=kind_rad ), dimension(0:), intent(in) :: tz, cldfrac
+ 
+-      real (kind=kind_phys), dimension(:),  intent(in) :: tavel, delp,  &
++      real (kind=kind_rad ), dimension(:),  intent(in) :: tavel, delp,  &
+      &       semiss, secdiff
+ 
+-      real (kind=kind_phys), dimension(:,:),intent(in) :: taucloud,     &
++      real (kind=kind_rad ), dimension(:,:),intent(in) :: taucloud,     &
+      &       pfrac
+ 
+-      real (kind=kind_phys), intent(in) :: stemp
++      real (kind=kind_rad ), intent(in) :: stemp
+ 
+ !  ---  outputs:
+-      real (kind=kind_phys), dimension(:),  intent(out) :: htr, htrcl
+-      real (kind=kind_phys), dimension(:,:),intent(out) :: htrb
++      real (kind=kind_rad ), dimension(:),  intent(out) :: htr, htrcl
++      real (kind=kind_rad ), dimension(:,:),intent(out) :: htrb
+ 
+-      real (kind=kind_phys), dimension(0:), intent(out) ::              &
++      real (kind=kind_rad ), dimension(0:), intent(out) ::              &
+      &       totuflux, totdflux, totuclfl, totdclfl
+ 
+ !  ---  locals:
+ !  dimensions for radiative transfer
+-      real (kind=kind_phys), dimension(NGPTLW,NLAY)   :: gassrcu,       &
++      real (kind=kind_rad ), dimension(NGPTLW,NLAY)   :: gassrcu,       &
+      &       cldsrcu, trans0, transc
+-      real (kind=kind_phys), dimension(NGPTLW,0:NLAY) :: bglev
+-      real (kind=kind_phys), dimension(NGPTLW)        :: radclru,       &
++      real (kind=kind_rad ), dimension(NGPTLW,0:NLAY) :: bglev
++      real (kind=kind_rad ), dimension(NGPTLW)        :: radclru,       &
+      &       radclrd, radtotu, radtotd, bgsfc
+-      real (kind=kind_phys), dimension(NBANDS,0:NLAY) :: plvl,          &
++      real (kind=kind_rad ), dimension(NBANDS,0:NLAY) :: plvl,          &
+      &       totufxsb, totdfxsb
+-      real (kind=kind_phys), dimension(NBANDS,NLAY)   :: play,          &
++      real (kind=kind_rad ), dimension(NBANDS,NLAY)   :: play,          &
+      &       odcld, trncld
+-      real (kind=kind_phys), dimension(NBANDS)        :: plksfc
+-      real (kind=kind_phys), dimension(0:NLAY)        :: fnet, fnetc
++      real (kind=kind_rad ), dimension(NBANDS)        :: plksfc
++      real (kind=kind_rad ), dimension(0:NLAY)        :: fnet, fnetc
+ 
+-      real (kind=kind_phys) :: totdrad, clrdrad, toturad, clrurad
+-      real (kind=kind_phys) :: delbgup, delbgdn, bglay, tau0, tauc,     &
++      real (kind=kind_rad ) :: totdrad, clrdrad, toturad, clrurad
++      real (kind=kind_rad ) :: delbgup, delbgdn, bglay, tau0, tauc,     &
+      &       cldsrcd, gassrcd, factot, odsm, tem1, tem2
+ 
+       integer :: j, k, ind, inb, itm1, itm2, jtm1, jtm2
+ 
+ !  dimensions for cloud overlap adjustment
+-      real (kind=kind_phys), dimension(NGPTLW) ::  clrradu, cldradu,    &
++      real (kind=kind_rad ), dimension(NGPTLW) ::  clrradu, cldradu,    &
+      &       clrradd, cldradd, rad
+-      real (kind=kind_phys), dimension(1:NLP1) ::  faccld1u, faccld2u,  &
++      real (kind=kind_rad ), dimension(1:NLP1) ::  faccld1u, faccld2u,  &
+      &       facclr1u, facclr2u, faccmb1u, faccmb2u
+-      real (kind=kind_phys), dimension(0:NLAY) ::  faccld1d, faccld2d,  &
++      real (kind=kind_rad ), dimension(0:NLAY) ::  faccld1d, faccld2d,  &
+      &       facclr1d, facclr2d, faccmb1d, faccmb2d
+-      real (kind=kind_phys) :: fmax, fmin, rat1, rat2, radmod, cldsrc
++      real (kind=kind_rad ) :: fmax, fmin, rat1, rat2, radmod, cldsrc
+ 
+       logical :: istcldu(NLAY), istcldd(NLAY)
+ 
+@@ -2793,20 +2794,20 @@
+ 
+       integer, dimension(:), intent(in) :: jp, jt, jt1, indself
+ 
+-      real (kind=kind_phys), dimension(:),  intent(in) :: h2ovmr,       &
++      real (kind=kind_rad ), dimension(:),  intent(in) :: h2ovmr,       &
+      &       co2mult, fac00, fac01, fac10, fac11, selffac, selffrac,    &
+      &       forfac, secdiff
+ 
+-      real (kind=kind_phys), dimension(:,:),intent(in) :: colamt, wx,   &
++      real (kind=kind_rad ), dimension(:,:),intent(in) :: colamt, wx,   &
+      &       tauaer
+ 
+ !  ---  outputs:
+-      real (kind=kind_phys), dimension(:,:), intent(out) :: pfrac
++      real (kind=kind_rad ), dimension(:,:), intent(out) :: pfrac
+ 
+       integer,               dimension(:,:), intent(out) :: itr
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: taug(NGPTLW,NLAY), tem1, tem2
++      real (kind=kind_rad ) :: taug(NGPTLW,NLAY), tem1, tem2
+       integer :: j, k, ja, jb, kk, id0(NLAY,NBANDS), id1(NLAY,NBANDS),  &
+      &           inb
+ !
+@@ -2947,7 +2948,7 @@
+ !
+       integer :: i, j, k, ind01, ind02, ind11, ind12, inds, ifrac, ifp
+ !
+-      real (kind=kind_phys) :: fc00, fc01, fc10, fc11, h2oparam,        &
++      real (kind=kind_rad ) :: fc00, fc01, fc10, fc11, h2oparam,        &
+      &      fracint, one
+       data  one / 1.0 /
+ 
+@@ -3036,7 +3037,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js, ns, jp0, jp1
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat, speccomb, specmult,         &
+      &      fs, fs1, fp, ratio, n2omult, tem0, tem1, tem2
+ 
+@@ -3184,7 +3185,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js, ns
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat1, strrat2, speccomb,         &
+      &      specmult, fs, fs1
+ 
+@@ -3315,7 +3316,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js, ns
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat1, strrat2, speccomb,         &
+      &      specmult, fs, fs1
+ 
+@@ -3477,7 +3478,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat, speccomb, specmult, fs, fs1
+ 
+       strrat = 8.21104e4
+@@ -3575,7 +3576,7 @@
+ !
+       integer :: j, k, ind01, ind02, ind11, ind12, inds, jp0, jp1
+ !
+-      real (kind=kind_phys) :: ratio, n2omult, tem1, tem2
++      real (kind=kind_rad ) :: ratio, n2omult, tem1, tem2
+ 
+ !     compute the optical depth by interpolating in ln(pressure) and 
+ !     temperature.  
+@@ -3650,7 +3651,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js, ns, jfrac, ioff, jp0, jp1
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat, speccomb, specmult, fs, fs1,&
+      &      ffrac, ratio, n2omult, tem0, tem1, tem2
+ 
+@@ -3879,7 +3880,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat, speccomb, specmult, fs, fs1
+ 
+       strrat = 0.009736757
+@@ -3955,7 +3956,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat, speccomb, specmult, fs, fs1
+ 
+       strrat = 16658.87
+@@ -4087,7 +4088,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat, speccomb, specmult, fs, fs1
+ 
+       strrat = 0.2883201
+@@ -4163,7 +4164,7 @@
+       integer :: j, k, ind01, ind02, ind03, ind04, ind11, ind12, ind13, &
+      &           ind14, inds, js
+ !
+-      real (kind=kind_phys) :: fac000, fac010, fac100, fac110, fac001,  &
++      real (kind=kind_rad ) :: fac000, fac010, fac100, fac110, fac001,  &
+      &      fac011, fac101, fac111, strrat, speccomb, specmult, fs, fs1
+ 
+       strrat = 830.411
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radlw_param.f	2012-06-18 10:37:05.000000000 -0600
++++ radlw_param.f	2012-06-26 14:00:49.000000000 -0600
+@@ -104,7 +104,7 @@
+       module module_radlw_parameters     !
+ !........................................!
+ 
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+ 
+       implicit none
+ !
+@@ -113,26 +113,26 @@
+ !  ---  define type construct for radiation fluxes at toa
+ !
+       type :: topflw_type
+-        real (kind=kind_phys) :: upfxc         ! total sky upward flux at toa
+-        real (kind=kind_phys) :: upfx0         ! clear sky upward flux at toa
++        real (kind=kind_rad ) :: upfxc         ! total sky upward flux at toa
++        real (kind=kind_rad ) :: upfx0         ! clear sky upward flux at toa
+       end type
+ !
+ !  ---  define type construct for radiation fluxes at surface
+ !
+       type :: sfcflw_type
+-        real (kind=kind_phys) :: upfxc         ! total sky upward flux at sfc
+-        real (kind=kind_phys) :: upfx0         ! clear sky upward flux at sfc
+-        real (kind=kind_phys) :: dnfxc         ! total sky downward flux at sfc
+-        real (kind=kind_phys) :: dnfx0         ! clear sky downward flux at sfc
++        real (kind=kind_rad ) :: upfxc         ! total sky upward flux at sfc
++        real (kind=kind_rad ) :: upfx0         ! clear sky upward flux at sfc
++        real (kind=kind_rad ) :: dnfxc         ! total sky downward flux at sfc
++        real (kind=kind_rad ) :: dnfx0         ! clear sky downward flux at sfc
+       end type
+ !
+ !  ---  define type construct for optional radiation flux profiles
+ !
+       type :: proflw_type
+-        real (kind=kind_phys) :: upfxc         ! level up flux for total sky
+-        real (kind=kind_phys) :: dnfxc         ! level dn flux for total sky
+-        real (kind=kind_phys) :: upfx0         ! level up flux for clear sky
+-        real (kind=kind_phys) :: dnfx0         ! level dn flux for clear sky
++        real (kind=kind_rad ) :: upfxc         ! level up flux for total sky
++        real (kind=kind_rad ) :: dnfxc         ! level dn flux for total sky
++        real (kind=kind_rad ) :: upfx0         ! level up flux for clear sky
++        real (kind=kind_rad ) :: dnfx0         ! level dn flux for clear sky
+       end type
+ !
+ !  ---  parameter constants for lw band structures
+@@ -162,7 +162,7 @@
+      &           NS12=122, NS13=130, NS14=134, NS15=136, NS16=138)
+ 
+ !  ---  band spectrum structures (wavenumber in cm**-1)
+-      real (kind=kind_phys) :: wvnlw1(NBANDS), wvnlw2(NBANDS)
++      real (kind=kind_rad ) :: wvnlw1(NBANDS), wvnlw2(NBANDS)
+       data wvnlw1  /                                                    &
+      &         10.,  251.,  501.,  631.,  701.,  821.,  981., 1081.,    &
+      &       1181., 1391., 1481., 1801., 2081., 2251., 2381., 2601. /
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radsw_datatb.f	2011-02-04 11:25:35.000000000 -0700
++++ radsw_datatb.f	2012-06-26 14:00:42.000000000 -0600
+@@ -80,7 +80,7 @@
+ !                                                                      !
+ ! *********    *********     end description    *********    ********* !
+ 
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NBLOW, NBHGH
+ !
+       implicit none
+@@ -89,13 +89,13 @@
+ 
+ !     absdatliqn is the liquid water absorption coefficient (m^2/g).
+ ! === for iflagliq = 0,
+-      real (kind=kind_phys), parameter, public :: absdatliq1=0.0602410
++      real (kind=kind_rad), parameter, public :: absdatliq1=0.0602410
+ 
+ ! === everything below is for iflagliq >= 1.
+ 
+-      real (kind=kind_phys), dimension(58,NBLOW:NBHGH), public ::       &
++      real (kind=kind_rad), dimension(58,NBLOW:NBHGH), public ::        &
+      &       extdatliq1, ssadatliq1, asydatliq1
+-      real (kind=kind_phys), dimension(27,NBLOW:NBHGH), public ::       &
++      real (kind=kind_rad), dimension(27,NBLOW:NBHGH), public ::        &
+      &       extdatice3, ssadatice3, asydatice3, fdldatice3 
+ 
+       data  extdatliq1(:, 16)   /                                       &
+@@ -1047,10 +1047,10 @@
+ 
+ !  ---  ... coefficients to compute tau, ssa, asy for rain drop and
+ !           (chou 1999), and snowflake (fu 2001 private communication)
+-      real (kind=kind_phys), public  :: a0r, a1r, a0s, a1s
++      real (kind=kind_rad), public  :: a0r, a1r, a0s, a1s
+       data a0r,a1r / 3.07e-3, 0.0 /,    a0s,a1s / 0.0,     1.5 /  ! fu's coeff
+ 
+-      real (kind=kind_phys), dimension(NBLOW:NBHGH), public ::          &
++      real (kind=kind_rad), dimension(NBLOW:NBHGH), public ::           &
+      &       b0r, b0s, b1s, c0r, c0s
+       data b0r  / 0.466, 0.437, 0.416, 0.391, 0.374, 0.352, 0.183,      &
+      &            0.048, 0.012, 0.000, 0.000, 0.000, 0.000, 0.496 /
+@@ -1084,7 +1084,7 @@
+ !                                                                      !
+ ! *********    *********     end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NGMAX, NG16, NG17, NG18, NG19,&
+      &                                    NG20, NG21, NG22, NG23, NG24, &
+      &                                    NG25, NG26, NG27, NG28, NG29, &
+@@ -1097,7 +1097,7 @@
+       integer,  public :: MFS01, MFS02, MFS03, MFB01, MFB02, MFB03
+       parameter (MFS01=1, MFS02=5, MFS03=9, MFB01=7, MFB02=2, MFB03=5)
+ !
+-      real (kind=kind_phys), dimension(NBLOW:NBHGH), public ::          &
++      real (kind=kind_rad), dimension(NBLOW:NBHGH), public ::           &
+      &       strrat, specwt
+ 
+ !  ---  original strrat
+@@ -1118,9 +1118,9 @@
+       data  ix2     /  5, 2, 5, 2, 0, 2, 6, 0, 6, 0, 0, 0, 6, 0 /
+       data  ibx     /  1, 1, 1, 2, 2, 3, 4, 3, 5, 4, 5, 6, 2, 7 /
+ 
+-      real (kind=kind_phys), parameter, public :: scalekur=50.15/48.37
++      real (kind=kind_rad), parameter, public :: scalekur=50.15/48.37
+ !
+-      real (kind=kind_phys), target, public ::                          &
++      real (kind=kind_rad), target, public ::                           &
+      &       sfluxref01(NGMAX,MFS01,MFB01),                             &
+      &       sfluxref02(NGMAX,MFS02,MFB02),                             &
+      &       sfluxref03(NGMAX,MFS03,MFB03)
+@@ -1396,7 +1396,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG16
+ 
+ !
+@@ -1407,11 +1407,11 @@
+       integer,  public :: MSA16, MSB16, MSF16, MFR16
+       parameter (MSA16=585, MSB16=235, MSF16=10, MFR16=3)
+ 
+-      real (kind=kind_phys), public ::           selfref(MSF16,NG16),   &
++      real (kind=kind_rad), public ::           selfref(MSF16,NG16),    &
+      &       absa(MSA16,NG16), absb(MSB16,NG16), forref(MFR16,NG16)
+ 
+ !  ---  rayleigh extinction coefficient at v = 2925 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 2.91e-10
++      real (kind=kind_rad), parameter, public :: rayl = 2.91e-10
+ 
+ !     the array absa(585,NG16) (ka(9,5,13,NG16)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -2545,7 +2545,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG17
+ 
+ !
+@@ -2556,11 +2556,11 @@
+       integer,  public :: MSA17, MSB17, MSF17, MFR17
+       parameter (MSA17=585, MSB17=1175, MSF17=10, MFR17=4)
+ 
+-      real (kind=kind_phys), public ::           selfref(MSF17,NG17),   &
++      real (kind=kind_rad), public ::           selfref(MSF17,NG17),    &
+      &       absa(MSA17,NG17), absb(MSB17,NG17), forref(MFR17,NG17)
+ 
+ !  ---  rayleigh extinction coefficient at v = 3625 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 6.86e-10
++      real (kind=kind_rad), parameter, public :: rayl = 6.86e-10
+ 
+ !     the array absa(585,NG17) (ka((9,5,13,NG17)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -7145,7 +7145,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG18
+ 
+ !
+@@ -7156,11 +7156,11 @@
+       integer,  public :: MSA18, MSB18, MSF18, MFR18
+       parameter (MSA18=585, MSB18=235, MSF18=10, MFR18=3)
+ 
+-      real (kind=kind_phys), public ::           selfref(MSF18,NG18),   &
++      real (kind=kind_rad), public ::           selfref(MSF18,NG18),    &
+      &       absa(MSA18,NG18), absb(MSB18,NG18), forref(MFR18,NG18)
+ 
+ !  ---  rayleigh extinction coefficient at v = 4325 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 1.39e-09
++      real (kind=kind_rad), parameter, public :: rayl = 1.39e-09
+ 
+ !     the array absa(585,NG18) (ka(9,5,13,NG18)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -8651,7 +8651,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG19
+ 
+ !
+@@ -8662,11 +8662,11 @@
+       integer,  public :: MSA19, MSB19, MSF19, MFR19
+       parameter (MSA19=585, MSB19=235, MSF19=10, MFR19=3)
+ 
+-      real (kind=kind_phys), public ::           selfref(MSF19,NG19),   &
++      real (kind=kind_rad), public ::           selfref(MSF19,NG19),    &
+      &       absa(MSA19,NG19), absb(MSB19,NG19), forref(MFR19,NG19)
+ 
+ !  ---  rayleigh extinction coefficient at v = 4900 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 2.29e-09
++      real (kind=kind_rad), parameter, public :: rayl = 2.29e-09
+ 
+ !     the array absa(585,NG19) (ka(9,5,13,NG19)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -10158,7 +10158,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG20
+ 
+ !
+@@ -10169,11 +10169,11 @@
+       integer,  public :: MSA20, MSB20, MSF20, MFR20
+       parameter (MSA20=65, MSB20=235, MSF20=10, MFR20=4)
+ 
+-      real (kind=kind_phys), public :: forref(MFR20,NG20), absch4(NG20),&
++      real (kind=kind_rad), public :: forref(MFR20,NG20), absch4(NG20), &
+      &       absa(MSA20,NG20), absb(MSB20,NG20), selfref(MSF20,NG20)
+ 
+ !  ---  rayleigh extinction coefficient at v = 5670 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 4.12e-09
++      real (kind=kind_rad), parameter, public :: rayl = 4.12e-09
+ 
+ !     the array absa(65,NG20) (ka(5,13,NG20)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -10927,7 +10927,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG21
+ 
+ !
+@@ -10938,11 +10938,11 @@
+       integer,  public :: MSA21, MSB21, MSF21, MFR21
+       parameter (MSA21=585, MSB21=1175, MSF21=10, MFR21=4)
+ 
+-      real (kind=kind_phys), public ::           forref(MFR21,NG21),    &
++      real (kind=kind_rad), public ::           forref(MFR21,NG21),     &
+      &       absa(MSA21,NG21), absb(MSB21,NG21), selfref(MSF21,NG21)
+ 
+ !  ---  rayleigh extinction coefficient at v = 6925 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 9.41e-09
++      real (kind=kind_rad), parameter, public :: rayl = 9.41e-09
+ 
+ !     the array absa(585,NG21) (ka((9,5,13,NG21)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -14772,7 +14772,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG22
+ 
+ !
+@@ -14783,12 +14783,12 @@
+       integer,  public :: MSA22, MSB22, MSF22, MFR22
+       parameter (MSA22=585, MSB22=235, MSF22=10, MFR22=3)
+ 
+-      real (kind=kind_phys), public ::           forref(MFR22,NG22),    &
++      real (kind=kind_rad), public ::           forref(MFR22,NG22),     &
+      &       absa(MSA22,NG22), absb(MSB22,NG22), selfref(MSF22,NG22),   &
+      &       sfluxref(NG22,9)
+ 
+ !  ---  rayleigh extinction coefficient at v = 8000 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 1.54e-08
++      real (kind=kind_rad), parameter, public :: rayl = 1.54e-08
+ 
+ !     the array absa(585,NG22) (ka(9,5,13,NG22)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -15207,7 +15207,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG23
+ 
+ !
+@@ -15218,11 +15218,11 @@
+       integer,  public :: MSA23, MSF23, MFR23
+       parameter (MSA23=65, MSF23=10, MFR23=3)
+ 
+-      real (kind=kind_phys), public ::              forref(MFR23,NG23), &
++      real (kind=kind_rad), public ::              forref(MFR23,NG23),  &
+      &       absa(MSA23,NG23), selfref(MSF23,NG23), rayl(NG23)
+ 
+ !  ---  average giver et al. correction factor for this band.
+-      real (kind=kind_phys), parameter, public :: givfac = 1.029
++      real (kind=kind_rad), parameter, public :: givfac = 1.029
+ 
+ !  ---  rayleigh extinction coefficient at all v
+       data   rayl (1:10)         /                                      &
+@@ -15453,7 +15453,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG24
+ 
+ !
+@@ -15464,7 +15464,7 @@
+       integer,  public :: MSA24, MSB24, MSF24, MFR24, MFX24
+       parameter (MSA24=585, MSB24=235, MSF24=10, MFR24=3, MFX24=9)
+ 
+-      real (kind=kind_phys), public ::           forref(MFR24,NG24),    &
++      real (kind=kind_rad), public ::           forref(MFR24,NG24),     &
+      &       absa(MSA24,NG24), absb(MSB24,NG24), selfref(MSF24,NG24),   &
+      &       abso3a(NG24), abso3b(NG24), rayla(NG24,MFX24), raylb(NG24)
+ 
+@@ -16984,7 +16984,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG25
+ 
+ !
+@@ -16995,7 +16995,7 @@
+       integer,  public :: MSA25
+       parameter (MSA25=65)
+ 
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad), public ::                                   &
+      &       absa(MSA25,NG25), rayl(NG25), abso3a(NG25), abso3b(NG25)
+ 
+ !  ---  rayleigh extinction coefficient at v =      cm-1.
+@@ -17136,7 +17136,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG26
+ 
+ !
+@@ -17144,7 +17144,7 @@
+ !
+       private
+ !
+-      real (kind=kind_phys), public ::  rayl(NG26)
++      real (kind=kind_rad), public ::  rayl(NG26)
+ 
+ !  ---  rayleigh extinction coefficient at all v
+       data   rayl  (1: 6)        /                         .1212630E-05,&
+@@ -17171,7 +17171,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG27
+ 
+ !
+@@ -17182,7 +17182,7 @@
+       integer,  public :: MSA27, MSB27
+       parameter (MSA27=65, MSB27=235)
+ 
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad), public ::                                   &
+      &       absa(MSA27,NG27), absb(MSB27,NG27), rayl(NG27)
+ 
+ !  ---  rayleigh extinction coefficient at v =      cm-1.
+@@ -17766,7 +17766,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG28
+ 
+ !
+@@ -17778,11 +17778,11 @@
+       parameter (MSA28=585, MSB28=1175)
+ 
+ 
+-      real (kind=kind_phys), public ::                                  &
++      real (kind=kind_rad), public ::                                   &
+      &       absa(MSA28,NG28), absb(MSB28,NG28), sfluxref(NG28,5)
+ 
+ !  ---  rayleigh extinction coefficient at v =      cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 2.02e-05
++      real (kind=kind_rad), parameter, public :: rayl = 2.02e-05
+ 
+ !     the array absa(585,NG28) (ka((9,5,13,NG28)) contains absorption coefs at
+ !     the 16 chosen g-values for a range of pressure levels> ~100mb,
+@@ -20077,7 +20077,7 @@
+ !                                                                     !
+ ! *********    *********    end description    *********    ********* !
+ !
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad
+       use module_radsw_parameters, only : NG29
+ 
+ !
+@@ -20088,12 +20088,12 @@
+       integer,  public :: MSA29, MSB29, MSF29, MFR29
+       parameter (MSA29=65, MSB29=235, MSF29=10, MFR29=4)
+ 
+-      real (kind=kind_phys), public ::           forref(MFR29,NG29),    &
++      real (kind=kind_rad), public ::           forref(MFR29,NG29),     &
+      &       absa(MSA29,NG29), absb(MSB29,NG29), selfref(MSF29,NG29),   &
+      &       absh2o(NG29), absco2(NG29)
+ 
+ !  ---  rayleigh extinction coefficient at v = 2200 cm-1.
+-      real (kind=kind_phys), parameter, public :: rayl = 9.30e-11
++      real (kind=kind_rad), parameter, public :: rayl = 9.30e-11
+ 
+ !  --- h2o
+       data   absh2o (1:12)       /            .2995080E-03,.3950120E-02,&
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radsw_main.f	2012-06-18 10:37:05.000000000 -0600
++++ radsw_main.f	2012-06-26 14:00:15.000000000 -0600
+@@ -186,7 +186,7 @@
+       module module_radsw_main           !
+ !........................................!
+ !
+-      use machine,          only : kind_phys
++      use machine,          only : kind_rad, kind_phys
+       use physcons,         only : con_g, con_cp, con_avgd, con_amd,    &
+      &                             con_amw, con_amo3
+ 
+@@ -204,17 +204,17 @@
+       character(24), parameter :: VTAGSW='RRTM-SW 112v2.3 Apr 2007'
+ 
+ !  ---  constant values
+-      real (kind=kind_phys), parameter :: eps     = 1.0e-6
+-      real (kind=kind_phys), parameter :: oneminus= 1.0 - eps
+-      real (kind=kind_phys), parameter :: ftiny   = 1.0e-12
+-      real (kind=kind_phys), parameter :: stpfac  = 296.0/1013.0
+-      real (kind=kind_phys), parameter :: s0      = 1368.22  ! solar const hard coded in freq bands
+-      real (kind=kind_phys), parameter :: zero    = 0.0
+-      real (kind=kind_phys), parameter :: one     = 1.0
++      real (kind=kind_rad ), parameter :: eps     = 1.0e-6
++      real (kind=kind_rad ), parameter :: oneminus= 1.0 - eps
++      real (kind=kind_rad ), parameter :: ftiny   = 1.0e-12
++      real (kind=kind_rad ), parameter :: stpfac  = 296.0/1013.0
++      real (kind=kind_rad ), parameter :: s0      = 1368.22  ! solar const hard coded in freq bands
++      real (kind=kind_rad ), parameter :: zero    = 0.0
++      real (kind=kind_rad ), parameter :: one     = 1.0
+ 
+ !  ...  atomic weights for conversion from mass to volume mixing ratios
+-      real (kind=kind_phys), parameter :: amdw    = con_amd/con_amw
+-      real (kind=kind_phys), parameter :: amdo3   = con_amd/con_amo3
++      real (kind=kind_rad ), parameter :: amdw    = con_amd/con_amw
++      real (kind=kind_rad ), parameter :: amdo3   = con_amd/con_amo3
+ 
+ !  ...  band indices
+       integer, dimension(NBLOW:NBHGH) :: NSPA, NSPB, IDXALB, IDXSFC
+@@ -226,14 +226,14 @@
+       data IDXSFC(:) /  1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 1 /
+ 
+ !  ...  band wavenumber intervals
+-!     real (kind=kind_phys), dimension(NBLOW:NBHGH):: wavenum1,wavenum2
++!     real (kind=kind_rad ), dimension(NBLOW:NBHGH):: wavenum1,wavenum2
+ !     data wavenum1(:)  /                                               &
+ !    &         2600.0, 3250.0, 4000.0, 4650.0, 5150.0, 6150.0, 7700.0,  &
+ !    &         8050.0,12850.0,16000.0,22650.0,29000.0,38000.0,  820.0 /
+ !     data wavenum2(:)  /                                               &
+ !              3250.0, 4000.0, 4650.0, 5150.0, 6150.0, 7700.0, 8050.0,  &
+ !    &        12850.0,16000.0,22650.0,29000.0,38000.0,50000.0, 2600.0 /
+-!     real (kind=kind_phys), dimension(NBLOW:NBHGH) :: delwave
++!     real (kind=kind_rad ), dimension(NBLOW:NBHGH) :: delwave
+ !     data delwave(:)   /                                               &
+ !    &          650.0,  750.0,  650.0,  500.0, 1000.0, 1550.0,  350.0,  &
+ !    &         4800.0, 3150.0, 6650.0, 6350.0, 9000.0,12000.0, 1780.0 /
+@@ -241,8 +241,8 @@
+       integer, parameter :: nuvb = 27            !uv-b band index
+ 
+ !  ---  reference pressure and temperature
+-!     real (kind=kind_phys), dimension(59) :: pref, preflog, tref
+-      real (kind=kind_phys), dimension(59) :: preflog, tref
++!     real (kind=kind_rad ), dimension(59) :: pref, preflog, tref
++      real (kind=kind_rad ), dimension(59) :: preflog, tref
+ 
+ !  ...  these pressures are chosen such that the ln of the first pressure
+ !       has only a few non-zero digits (i.e. ln(pref(1)) = 6.96000) and
+@@ -304,7 +304,7 @@
+ !  ...  heatfac is the factor for heating rates
+ !       (in k/day, or k/sec set by subroutine 'rlwinit')
+ 
+-      real (kind=kind_phys) :: heatfac
++      real (kind=kind_rad ) :: heatfac
+ 
+ !  ...  iovrsw  is the clouds overlapping control flag
+ !        =0: random overlapping clouds
+@@ -537,34 +537,34 @@
+       type (cmpfsw_type), dimension(:),  optional, intent(out) :: fdncmp
+ 
+ !  ---  locals:
+-      real (kind=kind_phys), dimension(NLAY) :: pavel, tavel, delp,     &
++      real (kind=kind_rad ), dimension(NLAY) :: pavel, tavel, delp,     &
+      &       coldry, colmol, h2ovmr, o3vmr, temcol
+ 
+-      real (kind=kind_phys), dimension(NLAY) :: cfrac, cliqp, reliq,    &
++      real (kind=kind_rad ), dimension(NLAY) :: cfrac, cliqp, reliq,    &
+      &       cicep, reice, cdat1, cdat2, cdat3, cdat4, zclfr
+ 
+-      real (kind=kind_phys), dimension(NLAY) :: plog, forfac, forfrac,  &
++      real (kind=kind_rad ), dimension(NLAY) :: plog, forfac, forfrac,  &
+      &       selffac, selffrac, fac00, fac01, fac10, fac11
+ 
+-      real (kind=kind_phys), dimension(NLAY,NBLOW:NBHGH) ::             &
++      real (kind=kind_rad ), dimension(NLAY,NBLOW:NBHGH) ::             &
+      &       taucw, ssacw, asycw, tauae, ssaae, asyae
+ 
+-      real (kind=kind_phys), dimension(2) :: albbm, albdf
++      real (kind=kind_rad ), dimension(2) :: albbm, albdf
+ 
+-      real (kind=kind_phys) ::  colamt(NLAY,MAXGAS)
++      real (kind=kind_rad ) ::  colamt(NLAY,MAXGAS)
+ 
+-      real (kind=kind_phys), dimension(NLP1) :: fnetc, flxdc, flxuc,    &
++      real (kind=kind_rad ), dimension(NLP1) :: fnetc, flxdc, flxuc,    &
+      &       flxd0, flxu0
+-      real (kind=kind_phys), dimension(NLP1,NBDSW) :: flxdcb, flxucb,   &
++      real (kind=kind_rad ), dimension(NLP1,NBDSW) :: flxdcb, flxucb,   &
+      &       flxd0b, flxu0b
+ 
+-      real (kind=kind_phys) :: cosz1, sntz1, tem0, tem1, tem2, s0fac,   &
++      real (kind=kind_rad ) :: cosz1, sntz1, tem0, tem1, tem2, s0fac,   &
+      &       fp, fp1, ft, ft1, ssolar, zdpgcp, zcf0, zcf1
+ 
+ !! ---  for optional outputs
+-      real (kind=kind_phys), dimension(2) :: sfbmc, sfbm0, sfdfc, sfdf0
+-      real (kind=kind_phys) :: suvbf0, suvbfc
+-      real (kind=kind_phys) :: fnet0(NLP1), fnetb(NLP1,NBDSW)
++      real (kind=kind_rad ), dimension(2) :: sfbmc, sfbm0, sfdfc, sfdf0
++      real (kind=kind_rad ) :: suvbf0, suvbfc
++      real (kind=kind_rad ) :: fnet0(NLP1), fnetb(NLP1,NBDSW)
+ 
+       integer, dimension(NLAY) :: indfor, indself, jp, jt, jt1
+ 
+@@ -1340,19 +1340,19 @@
+ !  ---  inputs:
+       integer, intent(in) :: NLAY
+ 
+-      real (kind=kind_phys), dimension(:), intent(in) :: cfrac,         &
++      real (kind=kind_rad ), dimension(:), intent(in) :: cfrac,         &
+      &       cliqp, reliq, cicep, reice, cdat1, cdat2, cdat3, cdat4
+ 
+ !  ---  outputs:
+-      real (kind=kind_phys), dimension(:,NBLOW:), intent(out) ::        &
++      real (kind=kind_rad ), dimension(:,NBLOW:), intent(out) ::        &
+      &       taucw, ssacw, asycw
+ 
+ !  ---  locals:
+-      real (kind=kind_phys), dimension(NBLOW:NBHGH) ::  fdelta,         &
++      real (kind=kind_rad ), dimension(NBLOW:NBHGH) ::  fdelta,         &
+      &       extcoice, ssacoice, asycoice, forcoice,                    &
+      &       extcoliq, ssacoliq, asycoliq, forcoliq
+ 
+-      real (kind=kind_phys) :: ffliq0, ffliq1, ffice0, ffice1,          &
++      real (kind=kind_rad ) :: ffliq0, ffliq1, ffice0, ffice1,          &
+      &       cldliq, refliq, tauliq, ssaliq, asyliq, factor, fint,      &
+      &       cldice, refice, tauice, ssaice, asyice,                    &
+      &       cldrain, refrain, taurain, ssarain, asyrain,               &
+@@ -1632,43 +1632,43 @@
+ 
+       integer, dimension(:), intent(in) :: indfor, indself, jp, jt, jt1
+ 
+-      real (kind=kind_phys), dimension(:),  intent(in) :: pclfr,        &
++      real (kind=kind_rad ), dimension(:),  intent(in) :: pclfr,        &
+      &       coldry, colmol, forfac, forfrac, selffac, selffrac,        &
+      &       fac00, fac01, fac10, fac11, albbm, albdf
+ 
+-      real (kind=kind_phys), dimension(:,:),intent(in) :: colamt
++      real (kind=kind_rad ), dimension(:,:),intent(in) :: colamt
+ 
+-      real (kind=kind_phys), dimension(:,NBLOW:),intent(in)::           &
++      real (kind=kind_rad ), dimension(:,NBLOW:),intent(in)::           &
+      &       taucw, ssacw, asycw, tauae, ssaae, asyae
+ 
+-      real (kind=kind_phys), intent(in) :: cosz, sntz, cf1
++      real (kind=kind_rad ), intent(in) :: cosz, sntz, cf1
+ 
+ !  ---  outputs:
+-      real (kind=kind_phys), dimension(:,:), intent(out) :: flxdc,      &
++      real (kind=kind_rad ), dimension(:,:), intent(out) :: flxdc,      &
+      &       flxuc, flxd0, flxu0
+ 
+ !! ---  optional outputs:
+-      real (kind=kind_phys), dimension(:), optional, intent(out) ::     &
++      real (kind=kind_rad ), dimension(:), optional, intent(out) ::     &
+      &       sfbmc, sfdfc, sfbm0, sfdf0
+-      real (kind=kind_phys), optional, intent(out) :: suvbfc, suvbf0
++      real (kind=kind_rad ), optional, intent(out) :: suvbfc, suvbf0
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: fs, speccomb, specmult, colm1, colm2
++      real (kind=kind_rad ) :: fs, speccomb, specmult, colm1, colm2
+ 
+-      real (kind=kind_phys), dimension(:,:), pointer :: sflxptr=>null()
++      real (kind=kind_rad ), dimension(:,:), pointer :: sflxptr=>null()
+ 
+       integer, dimension(NLAY,NBLOW:NBHGH) :: id0, id1
+       integer :: ibd, ifb, j, jb, js, k, klow, khgh, klim, ks, njb
+ 
+ !  ---  direct outputs from "taumol##":
+-      real (kind=kind_phys), dimension(NLAY,NGMAX) :: taug, taur
+-      real (kind=kind_phys), dimension(NGMAX)      :: sfluxzen
++      real (kind=kind_rad ), dimension(NLAY,NGMAX) :: taug, taur
++      real (kind=kind_rad ), dimension(NGMAX)      :: sfluxzen
+ 
+ !  ---  direct outputs from "swflux":
+-      real (kind=kind_phys), dimension(NLP1,2)     :: fxdn, fxup
++      real (kind=kind_rad ), dimension(NLP1,2)     :: fxdn, fxup
+ 
+ !! ---  for optional output from "swflux":
+-      real (kind=kind_phys) :: sflxbc,sflxdc,sflxb0,sflxd0
++      real (kind=kind_rad ) :: sflxbc,sflxdc,sflxb0,sflxd0
+ 
+ !
+ !===> ...  begin here
+@@ -1970,33 +1970,33 @@
+ !
+       implicit none
+ 
+-      real (kind=kind_phys), parameter :: zcrit = 0.9995   ! thresold for conservative scattering
+-      real (kind=kind_phys), parameter :: zsr3  = sqrt(3.0)
++      real (kind=kind_rad ), parameter :: zcrit = 0.9995   ! thresold for conservative scattering
++      real (kind=kind_rad ), parameter :: zsr3  = sqrt(3.0)
+ 
+ !  ---  inputs:
+       integer, intent(in) :: ib
+ 
+ !  ---  locals:
+-      real (kind=kind_phys), dimension(NLAY,2) :: ztau, zssa, zasy,     &
++      real (kind=kind_rad ), dimension(NLAY,2) :: ztau, zssa, zasy,     &
+      &       zssa0, zexpt
+ 
+-      real (kind=kind_phys), dimension(NLP1,2) :: zrefb, zrefd, ztrab,  &
++      real (kind=kind_rad ), dimension(NLP1,2) :: zrefb, zrefd, ztrab,  &
+      &       ztrad, zldbt, ztdbt
+ 
+-      real (kind=kind_phys), dimension(NLAY) :: ztaus, zssas, zasys
++      real (kind=kind_rad ), dimension(NLAY) :: ztaus, zssas, zasys
+ 
+-      real (kind=kind_phys), dimension(NLP1) :: zrupb, zrupd, zrdnd,    &
++      real (kind=kind_rad ), dimension(NLP1) :: zrupb, zrupd, zrdnd,    &
+      &       ztdn, zfd, zfu
+ 
+-      real (kind=kind_phys) :: ztau1, zssa1, zasy1, zasy3, zwo,         &
++      real (kind=kind_rad ) :: ztau1, zssa1, zasy1, zasy3, zwo,         &
+      &       zgam1, zgam2, zgam3, zgam4, zc0, zc1, za1, za2, zrk, zrk2, &
+      &       zrp, zrp1, zrm1, zrpp, zrkg1, zrkg3, zrkg4, zexp1, zexm1,  &
+      &       zexp2, zexm2, zden1, ze1r45
+ 
+-      real (kind=kind_phys) :: zr1, zr2, zr3, zr4, zr5, zt1, zt2, zt3
++      real (kind=kind_rad ) :: zr1, zr2, zr3, zr4, zr5, zt1, zt2, zt3
+ 
+ !! ---  for optional surface fluxes
+-      real (kind=kind_phys), dimension(2) :: sfxbm, sfxdf
++      real (kind=kind_rad ), dimension(2) :: sfxbm, sfxdf
+ 
+       integer :: k, kp, jg, ngt, ipa, iab
+ !
+@@ -2357,7 +2357,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, tauray, fs, fs1,     &
++      real (kind=kind_rad ) :: speccomb, specmult, tauray, fs, fs1,     &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111
+ 
+       integer :: ind01, ind02, ind03, ind04, ind11, ind12, ind13, ind14
+@@ -2458,7 +2458,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, tauray, fs, fs1,     &
++      real (kind=kind_rad ) :: speccomb, specmult, tauray, fs, fs1,     &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111
+ 
+       integer :: ind01, ind02, ind03, ind04, ind11, ind12, ind13, ind14
+@@ -2578,7 +2578,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, tauray, fs, fs1,     &
++      real (kind=kind_rad ) :: speccomb, specmult, tauray, fs, fs1,     &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111
+ 
+       integer :: ind01, ind02, ind03, ind04, ind11, ind12, ind13, ind14
+@@ -2678,7 +2678,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, tauray, fs, fs1,     &
++      real (kind=kind_rad ) :: speccomb, specmult, tauray, fs, fs1,     &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111
+ 
+       integer :: ind01, ind02, ind03, ind04, ind11, ind12, ind13, ind14
+@@ -2778,7 +2778,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: tauray
++      real (kind=kind_rad ) :: tauray
+ 
+       integer :: ind01, ind02, ind11, ind12
+       integer :: inds, indf, j, k
+@@ -2861,7 +2861,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, tauray, fs, fs1,     &
++      real (kind=kind_rad ) :: speccomb, specmult, tauray, fs, fs1,     &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111
+ 
+       integer :: ind01, ind02, ind03, ind04, ind11, ind12, ind13, ind14
+@@ -2985,7 +2985,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, tauray, fs, fs1,     &
++      real (kind=kind_rad ) :: speccomb, specmult, tauray, fs, fs1,     &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111,  &
+      &       o2adj, o2cont, o2tem
+ 
+@@ -3163,7 +3163,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, fs, fs1,             &
++      real (kind=kind_rad ) :: speccomb, specmult, fs, fs1,             &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111
+ 
+       integer :: ind01, ind02, ind03, ind04, ind11, ind12, ind13, ind14
+@@ -3434,7 +3434,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: speccomb, specmult, tauray, fs, fs1,     &
++      real (kind=kind_rad ) :: speccomb, specmult, tauray, fs, fs1,     &
+      &       fac000,fac001,fac010,fac011, fac100,fac101,fac110,fac111
+ 
+       integer :: ind01, ind02, ind03, ind04, ind11, ind12, ind13, ind14
+@@ -3549,7 +3549,7 @@
+       implicit none
+ 
+ !  ---  locals:
+-      real (kind=kind_phys) :: tauray
++      real (kind=kind_rad ) :: tauray
+ 
+       integer :: ind01, ind02, ind11, ind12
+       integer :: inds, indf, j, k
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/radsw_param.f	2011-02-04 11:25:35.000000000 -0700
++++ radsw_param.f	2012-06-26 14:00:15.000000000 -0600
+@@ -98,7 +98,7 @@
+       module module_radsw_parameters     !
+ !........................................!
+ 
+-      use machine,                 only : kind_phys
++      use machine,                 only : kind_rad 
+ 
+       implicit   none
+ !
+@@ -107,39 +107,39 @@
+ !  ---  define type construct for radiation fluxes at toa
+ !
+       type :: topfsw_type
+-        real (kind=kind_phys) :: upfxc         ! total sky upward flux at toa
+-        real (kind=kind_phys) :: dnfxc         ! total sky downward flux at toa
+-        real (kind=kind_phys) :: upfx0         ! clear sky upward flux at toa
++        real (kind=kind_rad ) :: upfxc         ! total sky upward flux at toa
++        real (kind=kind_rad ) :: dnfxc         ! total sky downward flux at toa
++        real (kind=kind_rad ) :: upfx0         ! clear sky upward flux at toa
+       end type
+ !
+ !  ---  define type construct for radiation fluxes at surface
+ !
+       type :: sfcfsw_type
+-        real (kind=kind_phys) :: upfxc         ! total sky upward flux at sfc
+-        real (kind=kind_phys) :: dnfxc         ! total sky downward flux at sfc
+-        real (kind=kind_phys) :: upfx0         ! clear sky upward flux at sfc
+-        real (kind=kind_phys) :: dnfx0         ! clear sky downward flux at sfc
++        real (kind=kind_rad ) :: upfxc         ! total sky upward flux at sfc
++        real (kind=kind_rad ) :: dnfxc         ! total sky downward flux at sfc
++        real (kind=kind_rad ) :: upfx0         ! clear sky upward flux at sfc
++        real (kind=kind_rad ) :: dnfx0         ! clear sky downward flux at sfc
+       end type
+ !
+ !  ---  define type construct for optional radiation flux profiles
+ !
+       type :: profsw_type
+-        real (kind=kind_phys) :: upfxc         ! total sky level upward flux
+-        real (kind=kind_phys) :: dnfxc         ! total sky level downward flux
+-        real (kind=kind_phys) :: upfx0         ! clear sky level upward flux
+-        real (kind=kind_phys) :: dnfx0         ! clear sky level downward flux
++        real (kind=kind_rad ) :: upfxc         ! total sky level upward flux
++        real (kind=kind_rad ) :: dnfxc         ! total sky level downward flux
++        real (kind=kind_rad ) :: upfx0         ! clear sky level upward flux
++        real (kind=kind_rad ) :: dnfx0         ! clear sky level downward flux
+       end type
+ !
+ !  ---  define type construct for optional component downward fluxes at surface
+ !
+       type :: cmpfsw_type
+-        real (kind=kind_phys) :: uvbfc         ! total sky downward uv-b flux at sfc
+-        real (kind=kind_phys) :: uvbf0         ! clear sky downward uv-b flux at sfc
++        real (kind=kind_rad ) :: uvbfc         ! total sky downward uv-b flux at sfc
++        real (kind=kind_rad ) :: uvbf0         ! clear sky downward uv-b flux at sfc
+ 
+-        real (kind=kind_phys) :: nirbm         ! sfc downward nir direct beam flux
+-        real (kind=kind_phys) :: nirdf         ! sfc downward nir diffused flux
+-        real (kind=kind_phys) :: visbm         ! sfc downward uv+vis direct beam flx
+-        real (kind=kind_phys) :: visdf         ! sfc downward uv+vis diffused flux
++        real (kind=kind_rad ) :: nirbm         ! sfc downward nir direct beam flux
++        real (kind=kind_rad ) :: nirdf         ! sfc downward nir diffused flux
++        real (kind=kind_rad ) :: visbm         ! sfc downward uv+vis direct beam flx
++        real (kind=kind_rad ) :: visdf         ! sfc downward uv+vis diffused flux
+       end type
+ !
+ !  ---  parameter constants for sw band structures
+@@ -176,7 +176,7 @@
+      &            NS28=NS27+NG27,  NS29=NS28+NG28  )
+ 
+ !  ---  band wavenumber intervals
+-      real (kind=kind_phys), dimension(NBANDS):: wvnum1, wvnum2
++      real (kind=kind_rad ), dimension(NBANDS):: wvnum1, wvnum2
+       data wvnum1(:)    /                                               &
+      &         2600.0, 3251.0, 4001.0, 4651.0, 5151.0, 6151.0, 7701.0,  &
+      &         8051.0,12851.0,16001.0,22651.0,29001.0,38001.0,  820.0 /
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/sfc_diff.f	2012-06-18 10:37:05.000000000 -0600
++++ sfc_diff.f	2012-06-26 14:00:51.000000000 -0600
+@@ -60,6 +60,7 @@
+ cc
+       PARAMETER (CHARNOCK=.014,CA=.4)!C CA IS THE VON KARMAN CONSTANT
+       PARAMETER (G=grav)
++      real(kind_phys), parameter :: one=1.0
+       PARAMETER (ALPHA=5.,A0=-3.975,A1=12.32,B1=-7.755,B2=6.041)
+       PARAMETER (A0P=-7.941,A1P=24.75,B1P=-8.705,B2P=7.899,VIS=1.4E-5)
+       PARAMETER (AA1=-1.076,BB1=.7045,CC1=-.05808)
+@@ -166,7 +167,7 @@
+         DTV(I)   = THV1(I) - TVS(I)
+         ADTV     = ABS(DTV(I))
+         ADTV     = MAX(ADTV,.001)
+-        DTV(I)   = SIGN(1.,DTV(I)) * ADTV
++        DTV(I)   = SIGN(one,DTV(I)) * ADTV
+         RB(I)    = G * DTV(I) * Z1(I) / (.5 * (THV1(I) + TVS(I))
+      &           * WIND(I) * WIND(I))
+         RB(I)    = MAX(RB(I),-5000.)
+--- /Volumes/Data1/emcsvn/gfs/global_fcst.fd/sflx.f	2012-06-18 10:37:05.000000000 -0600
++++ sflx.f	2012-06-26 14:00:16.000000000 -0600
+@@ -1548,7 +1548,8 @@
+ !                                                                       !
+ !  ====================    end of description    =====================  !
+ !
+-      use namelist_soilveg
++      !use namelist_soilveg
++      use phy_data
+ 
+ !  ---  input:
+ !     integer, intent(in) :: nsoil, vegtyp, soiltyp, slopetyp
+@@ -3637,8 +3638,8 @@
+           do while ( (nlog < 10) .and. (kcount == 0) )
+             nlog = nlog + 1
+ 
+-            df = alog( (psis*gs2/lsubf) * ( (1.0 + ck*swl)**2.0 )       &
+-     &         * (smcmax/(smc-swl))**bx ) - alog(-(tkelv-tfreez)/tkelv)
++            df = log( (psis*gs2/lsubf) * ( (1.0 + ck*swl)**2.0 )        
++     &         * (smcmax/(smc-swl))**bx ) - log(-(tkelv-tfreez)/tkelv)
+ 
+             denom = 2.0*ck/(1.0 + ck*swl) + bx/(smc - swl)
+             swlk  = swl - df/denom
