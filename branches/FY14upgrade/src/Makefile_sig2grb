@@ -1,0 +1,39 @@
+include Makefile_sig2grb.conf
+
+.SUFFIXES: .o .f90 .F90
+
+OBJS=	 kinds.o \
+	 physcons.o\
+	 sigio_module.o\
+         gfsio_module.o\
+	 shtns.o
+
+
+MAIN	= sig2grb.f90
+
+all: $(OBJS) 
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(LDFLAGS) -o $(EXEC) $(MAIN) $(OBJS) $(LIBS)
+
+clean:
+	rm -f $(OBJS) $(EXEC) *.mod *genmod* 
+
+.f90.o:
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(OMPFLAG) -c $< 
+
+.F90.o:
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(OMPFLAG) -c $< 
+
+.f.o:
+	$(FC) $(FFLAGS) $(DEBUGFLAGS) $(OMPFLAG) -free -c $< 
+
+%.o : %.mod
+
+kinds.o:	kinds.f90
+
+physcons.o:	physcons.f90 kinds.o
+
+shtns.o:	shtns.f90 kinds.o
+
+sigio_module.o:  sigio_module.f90
+
+gfsio_module.o: gfsio_module.f90

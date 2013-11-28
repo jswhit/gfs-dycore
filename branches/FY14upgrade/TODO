@@ -1,0 +1,8 @@
+* digital filter (done)
+* gloopb spatial filtering on physics tendencies (done)
+* 'coef00' stuff? (seems to be a damping applied to global mean on each level for tv,ozone,clwater?)
+* surface cycling
+* mass fixer (pdryini - done)
+* nst model
+* GFS grib io (done, for output but not input)
+* post-processor?
